@@ -2,9 +2,11 @@ import {ObjectGenerator} from './application/ObjectGenerator';
 import { RunnableApplication } from './engine/Application';
 import {canvas, gl} from './engine/GLContext';
 import {Mat4} from './engine/math/mat4';
+import {inRadians} from './engine/math/Utils';
 import {Shader} from './engine/Shader';
 import {createShaderFromIDs} from './engine/utils/Utils';
 import {Cube} from './objects/Cube';
+import {Plane} from './objects/Plane';
 
 class Application extends RunnableApplication {
 
@@ -13,6 +15,9 @@ class Application extends RunnableApplication {
     private cube: Cube;
     private perspective: Mat4;
 
+    private plane: Plane;
+    private wireframe: Plane;
+
     onStart(): void {
 
         //ObjectGenerator.generateGridData(1, 1, 1, 1);
@@ -20,7 +25,7 @@ class Application extends RunnableApplication {
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
 
-        gl.clearColor(0.5, 0.2, 0.3, 1.0);
+        gl.clearColor( 147 / 255, 237 / 255, 255 / 255, 1.0);
 
         canvas.width = window.innerWidth
         canvas.height = window.innerHeight
@@ -32,6 +37,13 @@ class Application extends RunnableApplication {
 
         this.cube = new Cube();
         this.cube.init(this.program);
+
+        this.wireframe = new Plane(10, 10, 1, 1, true);
+        this.wireframe.init(this.program);
+
+        this.plane = new Plane(10, 10, 1, 1, false);
+        this.plane.setColor(31 / 255, 168 / 255, 16 / 255);
+        this.plane.init(this.program);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
@@ -54,14 +66,21 @@ class Application extends RunnableApplication {
         gl.uniformMatrix4fv(modelMatrixLocation, false, model.data);
 
         const viewMatrixLocation = this.program.getUniformLocation('view');
-        const view = Mat4.translate(3, 0, -10);
+        const view = Mat4.translate(0, 0, -10);
         gl.uniformMatrix4fv(viewMatrixLocation, false, view.data);
 
         const projectionMatrixLocation = this.program.getUniformLocation('proj');
         gl.uniformMatrix4fv(projectionMatrixLocation, false, this.perspective.data);
 
 
-        this.cube.draw(this.program);
+        //this.cube.draw(this.program);
+
+        const planeModel = Mat4.rotationX(inRadians(-30));
+        gl.uniformMatrix4fv(modelMatrixLocation, false, planeModel.data);
+
+        this.plane.draw(this.program);
+        this.wireframe.draw(this.program);
+
     }
 
     loadHeightMap() {

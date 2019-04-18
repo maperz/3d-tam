@@ -53,12 +53,13 @@ export class Mat4 {
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_model_view_projection
     static perspective(fov, ar, near, far) {
 
-        var f = Math.tan(Math.PI * 0.5 - 0.5 * fov);
+        const fov_radians = fov * Math.PI / 180.0;
+        const f = 1.0 * Math.tan(fov_radians);
         const dist_inv = 1.0 / (near - far);
         return new Mat4([
-            f / ar, 0 , 0, 0,
-            0, f, 0, 0,
-            0, 0, (near + far) * dist_inv, -1,
+            f / ar,  0, 0, 0,
+                 0,  f, 0, 0,
+                 0,  0, (near + far) * dist_inv, -1,
             0, 0, 2.0 * far * near * dist_inv, 0
         ]);
     }
@@ -83,9 +84,9 @@ export class Mat4 {
 
     static translate(x: number, y: number, z: number) {
         return new Mat4([
-            1.0, 0.0, 0.0,   0,
-            0.0, 1.0, 0.0,   0,
-            0.0, 0.0, 1.0,   0,
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
               x,   y,   z, 1.0,
         ]);
     }
