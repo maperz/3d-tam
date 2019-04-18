@@ -1,0 +1,49 @@
+import {setupWebGL2Context} from './GLContext';
+
+/**
+ * Runnable application that initialises the GL context
+ * and keeps running in a loop.
+ */
+export abstract class RunnableApplication {
+
+    get fps(): number {
+        return this.framesPerSecond;
+    }
+
+    // Counter stuff for loop statistics
+    lastTime: number = 0;
+    counter: number = 0;
+    frames: number = 0;
+    framesPerSecond: number = 0;
+
+    start(): void {
+        // Call this at the end of start
+        setupWebGL2Context('canvas');
+        this.onStart();
+        this.loop();
+    }
+
+    abstract onStart(): void;
+    abstract onUpdate(deltaTime: number): void;
+
+    private loop(): void {
+        let deltaTime: number = 16; // ~ 1000ms / 60 Frames
+        const time = new Date().getTime();
+        if (this.lastTime != 0) {
+            deltaTime = time - this.lastTime;
+        }
+        this.lastTime = time;
+
+        this.counter += deltaTime;
+        this.frames += 1;
+
+        if (this.counter >= 1000) {
+            this.framesPerSecond = this.frames;
+            this.counter = 0;
+            this.frames = 0;
+        }
+
+        this.onUpdate(deltaTime / 1000);
+        requestAnimationFrame(this.loop.bind(this));
+    }
+}

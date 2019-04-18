@@ -1,0 +1,40 @@
+<html>
+    <head>
+        <title>Topo-Graphs</title>
+    </head>
+    <body>
+        <canvas id="canvas" style="background-color: bisque" id="glCanvas" width="700" height="500"></canvas>
+    </body>
+
+    <script type="x-shader/x-vertex" id="vertex-shader">
+        #version 100
+        precision highp float;
+
+        attribute vec3 position;
+        attribute vec3 color;
+
+        uniform mat4 model;
+        uniform mat4 view;
+        uniform mat4 proj;
+
+        varying vec4 v_color;
+
+        void main() {
+
+            v_color = vec4(color, 1.0);
+
+            gl_Position = proj * view * model * vec4(position, 1.0);
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="fragment-shader">
+        #version 100
+        precision highp float;
+
+        varying vec4 v_color;
+
+        void main() {
+            gl_FragColor = v_color;
+        }
+    </script>
+    <script src="../../dist/topograph.js"></script>
+</html>
