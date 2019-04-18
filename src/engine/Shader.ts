@@ -1,4 +1,4 @@
-import {GLException} from './error/GLException';
+import {TPException} from './error/TPException';
 import {gl} from './GLContext';
 
 export class Shader {
@@ -18,7 +18,7 @@ export class Shader {
 
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
             const errorLog = gl.getProgramInfoLog(program);
-            throw new GLException(`Failed to link ShaderProgram: ${errorLog}`);
+            throw new TPException(`Failed to link ShaderProgram: ${errorLog}`);
         }
 
         gl.detachShader(program, vertex);
@@ -60,7 +60,7 @@ export class Shader {
             const typeString = (type == gl.VERTEX_SHADER) ? 'Vertex' :
                 (type == gl.FRAGMENT_SHADER) ? 'Fragment' : 'Unknown';
 
-            throw new GLException(`Failed to compile shader [${typeString}]: ${errorLog}`);
+            throw new TPException(`Failed to compile shader [${typeString}]: ${errorLog}`);
         }
 
         return shader;

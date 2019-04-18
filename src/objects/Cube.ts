@@ -8,11 +8,11 @@ export class Cube implements Renderable {
     colorBuffer: WebGLBuffer;
     indexBuffer: WebGLBuffer;
 
-    numPrimitives: number;
+    numElements: number;
 
     init(shader: Shader): void {
 
-        const d = 0.7;
+        const d = 1;
         const vertices = [
             -d, -d, -d, d, -d, -d, d, d, -d, -d, d, -d,
             -d, -d, d, d, -d, d, d, d, d, -d, d, d,
@@ -26,18 +26,21 @@ export class Cube implements Renderable {
             1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
             0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
             0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
-            1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0,
+            1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
         ];
 
         const indices = [
-            0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7,
-            8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15,
-            16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23
+            0, 1, 2, 0, 2, 3,
+            4, 5, 6, 4, 6, 7,
+            8, 9, 10, 8, 10, 11,
+            12, 13, 14, 12, 14, 15,
+            16, 17, 18, 16, 18, 19,
+            20, 21, 22, 20, 22, 23
         ];
 
-        this.numPrimitives = Math.floor(indices.length / 3);
+        this.numElements = indices.length;
 
         // POSITION
 
@@ -64,15 +67,14 @@ export class Cube implements Renderable {
         const colorLocation = shader.getAttribLocation('color');
         gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(colorLocation);
-
     }
 
     draw(shader: Shader): void {
         const colorLocation = shader.getUniformLocation('color');
         gl.uniform4fv(colorLocation, new Float32Array([0.0, 1.0, 0.0, 1.0]));
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuffer);
-        gl.drawElements(gl.TRIANGLES, this.numPrimitives, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.drawElements(gl.TRIANGLES, this.numElements, gl.UNSIGNED_SHORT, 0);
     }
 
 }

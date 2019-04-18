@@ -15,12 +15,16 @@ class Application extends RunnableApplication {
 
     onStart(): void {
 
-        ObjectGenerator.generateGridData(1, 1, 1, 1);
+        //ObjectGenerator.generateGridData(1, 1, 1, 1);
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
 
         gl.clearColor(0.5, 0.2, 0.3, 1.0);
+
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
+
         gl.viewport(0, 0, canvas.width, canvas.height);
 
         this.program = createShaderFromIDs('vertex-shader', 'fragment-shader');
@@ -29,9 +33,10 @@ class Application extends RunnableApplication {
         this.cube = new Cube();
         this.cube.init(this.program);
 
-        const aspectratio = canvas.width / canvas.height;
-        // this.perspective = Mat4.perspective(80, aspectratio, 0.1, 100);
-        this.perspective = Mat4.identity();
+        const aspect = canvas.width / canvas.height;
+        this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
+
+        //this.loadHeightMap();
     }
 
     onUpdate(deltaTime: number): void {
@@ -42,21 +47,36 @@ class Application extends RunnableApplication {
 
         const modelMatrixLocation = this.program.getUniformLocation('model');
 
-        // const model = Mat4.rotationY(time / 10);
+        const model = Mat4.rotationX(time / 10);
         // const model = Mat4.translate(0, 0, 40 * Math.sin(time / 10));
-        const model = Mat4.identity();
+        //const model = Mat4.identity();
 
         gl.uniformMatrix4fv(modelMatrixLocation, false, model.data);
 
         const viewMatrixLocation = this.program.getUniformLocation('view');
-        // const view = Mat4.translate(0, -100, 2);
-        const view = Mat4.identity();
+        const view = Mat4.translate(3, 0, -10);
         gl.uniformMatrix4fv(viewMatrixLocation, false, view.data);
 
-        const projMatrixLocation = this.program.getUniformLocation('proj');
-        gl.uniformMatrix4fv(projMatrixLocation, false, this.perspective.data);
+        const projectionMatrixLocation = this.program.getUniformLocation('proj');
+        gl.uniformMatrix4fv(projectionMatrixLocation, false, this.perspective.data);
+
 
         this.cube.draw(this.program);
+    }
+
+    loadHeightMap() {
+        const heightMapCanvas =  document.createElement('canvas') as HTMLCanvasElement
+        document.body.appendChild(heightMapCanvas)
+        const heightMap = new Image();
+        const ctx = heightMapCanvas.getContext("2d") as CanvasRenderingContext2D;
+
+        heightMap.onload = function () {
+            heightMapCanvas.width = heightMap.width;
+            heightMapCanvas.height = heightMap.height;
+            ctx.drawImage(heightMap, 0, 0);
+        };
+
+        heightMap.src = '../img/heightmap.jpg';
     }
 
 }

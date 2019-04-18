@@ -5,17 +5,17 @@
   "author": "Markus Perz",
   "module": "src/main.js",
   "scripts": {
-    "test": "mocha -r ts-node/register test/**/*.spec.ts",
+    "test": "mocha -r ts-node/register test/**/*.test.ts",
     "lint": "tslint src/*.ts -t verbose",
-    "lintfix" : "tslint --fix --project ./tsconfig.json",
+    "lintfix": "tslint --fix --project ./tsconfig.json",
     "build": "webpack",
     "watch": "webpack --watch"
   },
   "devDependencies": {
-    "@types/chai": "^4.1.4",
-    "@types/mocha": "^5.2.5",
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.6",
     "@types/webgl2": "^0.0.4",
-    "chai": "^4.1.2",
+    "chai": "^4.2.0",
     "mocha": "^5.2.0",
     "ts-loader": "^5.1.0",
     "ts-node": "^7.0.1",
