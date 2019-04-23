@@ -17,6 +17,7 @@ class Application extends RunnableApplication {
 
     private plane: Plane;
     private wireframe: Plane;
+    private heightmapTexture : WebGLTexture;
 
     onStart(): void {
 
@@ -48,7 +49,8 @@ class Application extends RunnableApplication {
         const aspect = canvas.width / canvas.height;
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
 
-        //this.loadHeightMap();
+        this.setStartLoopManually(true);
+        this.loadHeightMap();
     }
 
     onUpdate(deltaTime: number): void {
@@ -56,6 +58,8 @@ class Application extends RunnableApplication {
         // gl.clearColor(Math.sin(time), Math.cos(time), Math.sin(time) / Math.cos(time), 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.clearDepth(1.0);
+
+        gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
 
         const modelMatrixLocation = this.program.getUniformLocation('model');
 
@@ -72,15 +76,30 @@ class Application extends RunnableApplication {
         const projectionMatrixLocation = this.program.getUniformLocation('proj');
         gl.uniformMatrix4fv(projectionMatrixLocation, false, this.perspective.data);
 
-
         //this.cube.draw(this.program);
-
-        const planeModel = Mat4.rotationX(inRadians(-30));
+        const planeModel = Mat4.rotationX(inRadians(  Math.sin(time / 10) * 15 - 15))
+        //const planeModel = Mat4.rotationX(inRadians(-30));
         gl.uniformMatrix4fv(modelMatrixLocation, false, planeModel.data);
 
-        this.plane.draw(this.program);
-        this.wireframe.draw(this.program);
+        const heightMapLocation = this.program.getUniformLocation("heightmap");
+        gl.activeTexture(gl.TEXTURE20);
+        gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
+        gl.uniform1i(heightMapLocation, 0);
 
+        this.plane.draw(this.program);
+        //this.wireframe.draw(this.program);
+
+    }
+
+    onHeightMapLoaded(heightmap: HTMLImageElement) {
+        this.heightmapTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, heightmap);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        this.startLoop();
     }
 
     loadHeightMap() {
@@ -93,7 +112,8 @@ class Application extends RunnableApplication {
             heightMapCanvas.width = heightMap.width;
             heightMapCanvas.height = heightMap.height;
             ctx.drawImage(heightMap, 0, 0);
-        };
+            this.onHeightMapLoaded(heightMap);
+        }.bind(this);
 
         heightMap.src = '../img/heightmap.jpg';
     }

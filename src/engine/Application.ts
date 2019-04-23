@@ -15,12 +15,26 @@ export abstract class RunnableApplication {
     counter: number = 0;
     frames: number = 0;
     framesPerSecond: number = 0;
+    private startLoopManually = false;
 
     start(): void {
         // Call this at the end of start
         setupWebGL2Context('canvas');
         this.onStart();
-        this.loop();
+        if(!this.startLoopManually) {
+            this.loop();
+        }
+    }
+
+
+    protected setStartLoopManually(startManually: boolean) {
+        this.startLoopManually = startManually;
+    }
+
+    protected startLoop() {
+        if(this.startLoopManually) {
+            this.loop();
+        }
     }
 
     abstract onStart(): void;

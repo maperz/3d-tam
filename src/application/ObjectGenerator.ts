@@ -1,10 +1,11 @@
 export class ObjectGenerator {
 
 
-    static generateGridData(numTilesX: number, numTilesY: number, sizeX: number, sizeY: number, lines: boolean = false): [number[], number[]] {
+    static generateGridData(numTilesX: number, numTilesY: number, sizeX: number, sizeY: number, lines: boolean = false): [number[], number[], number[]] {
 
-        const vertecies = [];
+        const vertices = [];
         const indices = [];
+        const uvs = [];
 
         numTilesX = Math.floor(numTilesX);
         numTilesY = Math.floor(numTilesY);
@@ -23,10 +24,13 @@ export class ObjectGenerator {
             for (let y = 0; y < numVertsY; ++y) {
                 const posX = offsetX + x * sizeX;
                 const posY = offsetY + y * sizeY;
-                vertecies.push(posX, 0.0, posY);
+                vertices.push(posX, 0.0, posY);
+
+                const u = x / numVertsX;
+                const v = y / numVertsY;
+                uvs.push(u, v)
             }
         }
-
 
         for (let y = 0; y < numTilesY; ++y) {
             for (let x = 0; x < numTilesX; ++x) {
@@ -43,11 +47,12 @@ export class ObjectGenerator {
             }
         }
 
-        return [vertecies, indices];
+        return [vertices, indices, uvs];
     }
 
 
     static generateCube(size: number) : [number[], number[]] {
+        // TODO: Add UV Coords
         const d = size;
         const vertices = [
             -d, -d, -d, d, -d, -d, d, d, -d, -d, d, -d,

@@ -9,6 +9,8 @@ export class Plane implements Renderable {
     vertBuffer: WebGLBuffer;
     colorBuffer: WebGLBuffer;
     indexBuffer: WebGLBuffer;
+    uvBuffer: WebGLBuffer;
+
     numElements: number;
 
     vao: WebGLVertexArrayObject;
@@ -19,7 +21,7 @@ export class Plane implements Renderable {
 
 
     init(shader: Shader): void {
-        let [vertices, indices] = ObjectGenerator.generateGridData(this.numX, this.numY, this.sizeX, this.sizeY, this.wireframe);
+        let [vertices, indices, uvs] = ObjectGenerator.generateGridData(this.numX, this.numY, this.sizeX, this.sizeY, this.wireframe);
 
         let colors : number[] = []
         for(let _ in vertices){
@@ -45,6 +47,16 @@ export class Plane implements Renderable {
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
         this.numElements = indices.length;
+
+        // UV
+
+        this.uvBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
+
+        const uvLocation = shader.getAttribLocation('uvs');
+        gl.vertexAttribPointer(uvLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(uvLocation);
 
         // COLOR
 
