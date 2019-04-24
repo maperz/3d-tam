@@ -6,6 +6,12 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.(glsl|vert|frag)$/, loader: "shader-loader",
+        include: [
+          path.resolve(__dirname, "src/shaders")
+        ],
+      },
+      {
         test: /\.ts$/,
         use: 'ts-loader',
         exclude: /node_modules/
@@ -13,7 +19,7 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.ts']
+    extensions: ['.ts', '.vs', '.fs', '.glsl']
   },
   output: {
     library: 'topograph',

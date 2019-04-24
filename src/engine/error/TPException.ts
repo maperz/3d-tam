@@ -7,7 +7,7 @@ export class TPException extends Error {
 }
 
 export function TPAssert(cond, msg) {
-    if(!cond) {
+    if (!cond) {
         throw new TPException(msg);
     }
 }

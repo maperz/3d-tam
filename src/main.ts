@@ -4,47 +4,53 @@ import {canvas, gl} from './engine/GLContext';
 import {Mat4} from './engine/math/mat4';
 import {inRadians} from './engine/math/Utils';
 import {Shader} from './engine/Shader';
-import {createShaderFromIDs} from './engine/utils/Utils';
+import {createShaderFromSources} from './engine/utils/Utils';
 import {Cube} from './objects/Cube';
 import {Plane} from './objects/Plane';
+import {BasicShader} from './shaders/Basic';
+import {BasicCube} from './shaders/BasicCube';
+import {BasicShaderSingleColor} from './shaders/BasicSingleColor';
 
 class Application extends RunnableApplication {
 
     private program: Shader;
+    private wireFrameShader: Shader;
+    private cubeShader: Shader;
 
     private cube: Cube;
     private perspective: Mat4;
 
     private plane: Plane;
     private wireframe: Plane;
-    private heightmapTexture : WebGLTexture;
+    private heightmapTexture: WebGLTexture;
 
     onStart(): void {
 
-        //ObjectGenerator.generateGridData(1, 1, 1, 1);
+        // ObjectGenerator.generateGridData(1, 1, 1, 1);
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
 
-        gl.clearColor( 147 / 255, 237 / 255, 255 / 255, 1.0);
+        gl.clearColor( 91 / 255, 91 / 255, 91 / 255, 1.0);
 
-        canvas.width = window.innerWidth
-        canvas.height = window.innerHeight
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
         gl.viewport(0, 0, canvas.width, canvas.height);
 
-        this.program = createShaderFromIDs('vertex-shader', 'fragment-shader');
-        this.program.use();
+        this.program = createShaderFromSources(BasicShader);
+        this.wireFrameShader = createShaderFromSources(BasicShaderSingleColor);
+        this.cubeShader = createShaderFromSources(BasicCube);
 
         this.cube = new Cube();
-        this.cube.init(this.program);
+        this.cube.init(this.cubeShader);
 
-        this.wireframe = new Plane(10, 10, 1, 1, true);
-        this.wireframe.init(this.program);
-
-        this.plane = new Plane(10, 10, 1, 1, false);
+        this.plane = new Plane(10, 10, 0.05, 0.05, false);
         this.plane.setColor(31 / 255, 168 / 255, 16 / 255);
         this.plane.init(this.program);
+
+        this.wireframe = new Plane(10, 10, 0.1, 0.1, true);
+        this.wireframe.init(this.wireFrameShader);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
@@ -59,36 +65,62 @@ class Application extends RunnableApplication {
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.clearDepth(1.0);
 
+        // const model = Mat4.translate(0, 0, 40 * Math.sin(time / 10));
+        // const model = Mat4.identity();
+        // const model = Mat4.rotationX(inRadians(-30));
+        const model = Mat4.rotationX(inRadians(  Math.sin(time / 10) * 15 - 15));
+
+        const view = Mat4.translate(0, 0, -10);
+
+        // this.drawNormal(time, model, view, this.perspective);
+        this.drawWireFrame(time, model, view, this.perspective);
+    }
+
+    drawNormal(time: number, model: Mat4, view: Mat4, proj: Mat4) {
+        this.program.use();
         gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
 
         const modelMatrixLocation = this.program.getUniformLocation('model');
-
-        const model = Mat4.rotationX(time / 10);
-        // const model = Mat4.translate(0, 0, 40 * Math.sin(time / 10));
-        //const model = Mat4.identity();
-
         gl.uniformMatrix4fv(modelMatrixLocation, false, model.data);
 
         const viewMatrixLocation = this.program.getUniformLocation('view');
-        const view = Mat4.translate(0, 0, -10);
         gl.uniformMatrix4fv(viewMatrixLocation, false, view.data);
 
         const projectionMatrixLocation = this.program.getUniformLocation('proj');
-        gl.uniformMatrix4fv(projectionMatrixLocation, false, this.perspective.data);
+        gl.uniformMatrix4fv(projectionMatrixLocation, false, proj.data);
 
-        //this.cube.draw(this.program);
-        const planeModel = Mat4.rotationX(inRadians(  Math.sin(time / 10) * 15 - 15))
-        //const planeModel = Mat4.rotationX(inRadians(-30));
-        gl.uniformMatrix4fv(modelMatrixLocation, false, planeModel.data);
-
-        const heightMapLocation = this.program.getUniformLocation("heightmap");
+        const heightMapLocation = this.program.getUniformLocation('heightmap');
         gl.activeTexture(gl.TEXTURE20);
         gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
         gl.uniform1i(heightMapLocation, 0);
 
         this.plane.draw(this.program);
-        //this.wireframe.draw(this.program);
+        this.program.unuse();
+    }
 
+    drawWireFrame(time: number, model: Mat4, view: Mat4, proj: Mat4) {
+        this.wireFrameShader.use();
+        gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
+
+        const modelMatrixLocation = this.wireFrameShader.getUniformLocation('model');
+        gl.uniformMatrix4fv(modelMatrixLocation, false, model.data);
+
+        const viewMatrixLocation = this.wireFrameShader.getUniformLocation('view');
+        gl.uniformMatrix4fv(viewMatrixLocation, false, view.data);
+
+        const projectionMatrixLocation = this.wireFrameShader.getUniformLocation('proj');
+        gl.uniformMatrix4fv(projectionMatrixLocation, false, proj.data);
+
+        const heightMapLocation = this.wireFrameShader.getUniformLocation('heightmap');
+        gl.activeTexture(gl.TEXTURE20);
+        gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
+        gl.uniform1i(heightMapLocation, 0);
+
+        const colorLocation = this.wireFrameShader.getUniformLocation('u_color');
+        gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
+
+        this.wireframe.draw(this.wireFrameShader);
+        this.wireFrameShader.unuse();
     }
 
     onHeightMapLoaded(heightmap: HTMLImageElement) {
@@ -103,12 +135,12 @@ class Application extends RunnableApplication {
     }
 
     loadHeightMap() {
-        const heightMapCanvas =  document.createElement('canvas') as HTMLCanvasElement
-        document.body.appendChild(heightMapCanvas)
+        const heightMapCanvas =  document.createElement('canvas') as HTMLCanvasElement;
+        document.body.appendChild(heightMapCanvas);
         const heightMap = new Image();
-        const ctx = heightMapCanvas.getContext("2d") as CanvasRenderingContext2D;
+        const ctx = heightMapCanvas.getContext('2d') as CanvasRenderingContext2D;
 
-        heightMap.onload = function () {
+        heightMap.onload = function() {
             heightMapCanvas.width = heightMap.width;
             heightMapCanvas.height = heightMap.height;
             ctx.drawImage(heightMap, 0, 0);

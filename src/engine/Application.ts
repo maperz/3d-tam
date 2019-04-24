@@ -21,18 +21,7 @@ export abstract class RunnableApplication {
         // Call this at the end of start
         setupWebGL2Context('canvas');
         this.onStart();
-        if(!this.startLoopManually) {
-            this.loop();
-        }
-    }
-
-
-    protected setStartLoopManually(startManually: boolean) {
-        this.startLoopManually = startManually;
-    }
-
-    protected startLoop() {
-        if(this.startLoopManually) {
+        if (!this.startLoopManually) {
             this.loop();
         }
     }
@@ -40,10 +29,20 @@ export abstract class RunnableApplication {
     abstract onStart(): void;
     abstract onUpdate(deltaTime: number): void;
 
+    protected setStartLoopManually(startManually: boolean) {
+        this.startLoopManually = startManually;
+    }
+
+    protected startLoop() {
+        if (this.startLoopManually) {
+            this.loop();
+        }
+    }
+
     private loop(): void {
         let deltaTime: number = 16; // ~ 1000ms / 60 Frames
         const time = new Date().getTime();
-        if (this.lastTime != 0) {
+        if (this.lastTime !== 0) {
             deltaTime = time - this.lastTime;
         }
         this.lastTime = time;

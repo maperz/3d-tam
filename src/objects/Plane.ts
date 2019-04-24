@@ -5,7 +5,6 @@ import {Renderable} from './Renderable';
 
 export class Plane implements Renderable {
 
-
     vertBuffer: WebGLBuffer;
     colorBuffer: WebGLBuffer;
     indexBuffer: WebGLBuffer;
@@ -16,15 +15,18 @@ export class Plane implements Renderable {
     vao: WebGLVertexArrayObject;
     private color = [1.0, 1.0, 1.0];
 
-    constructor(private numX: number, private numY: number, private sizeX: number, private sizeY: number, private wireframe: boolean = false) {
+    constructor(private width: number, private height: number, private sizeX: number, private sizeY: number, private wireframe: boolean = false) {
     }
 
-
     init(shader: Shader): void {
-        let [vertices, indices, uvs] = ObjectGenerator.generateGridData(this.numX, this.numY, this.sizeX, this.sizeY, this.wireframe);
+        shader.use();
+        const numTilesX = this.width / this.sizeX;
+        const numTilesY = this.height / this.sizeY;
 
-        let colors : number[] = []
-        for(let _ in vertices){
+        const [vertices, indices, uvs] = ObjectGenerator.generateGridData(numTilesX, numTilesY, this.sizeX, this.sizeY, this.wireframe);
+
+        const colors: number[] = [];
+        for (const _ in vertices) {
             colors.push(this.color[0], this.color[1], this.color[2]);
         }
 
@@ -64,14 +66,9 @@ export class Plane implements Renderable {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
-        const colorLocation = shader.getAttribLocation('color');
-        gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(colorLocation);
-
         gl.bindVertexArray(null);
-
+        shader.unuse();
     }
-
 
     draw(shader: Shader): void {
         gl.bindVertexArray(this.vao);

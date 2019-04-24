@@ -4,6 +4,8 @@ import {gl} from './GLContext';
 export class Shader {
     program: WebGLProgram;
 
+    constructor(public name: string) {}
+
     create(vertexSource: string, fragmentSource: string): void {
         const vertex = this.createShader(gl.VERTEX_SHADER, vertexSource);
         const fragment = this.createShader(gl.FRAGMENT_SHADER, fragmentSource);
@@ -38,6 +40,10 @@ export class Shader {
         gl.useProgram(this.program);
     }
 
+    unuse(): void {
+        gl.useProgram(null);
+    }
+
     getAttribLocation(attribute: string): number {
         return gl.getAttribLocation(this.program, attribute);
     }
@@ -57,10 +63,10 @@ export class Shader {
         if (errorLog.length > 0) {
             // Error or Warning - We do not tolerate either
 
-            const typeString = (type == gl.VERTEX_SHADER) ? 'Vertex' :
-                (type == gl.FRAGMENT_SHADER) ? 'Fragment' : 'Unknown';
+            const typeString = (type === gl.VERTEX_SHADER) ? 'Vertex' :
+                (type === gl.FRAGMENT_SHADER) ? 'Fragment' : 'Unknown';
 
-            throw new TPException(`Failed to compile shader [${typeString}]: ${errorLog}`);
+            throw new TPException(`Failed to compile ${this.name}[${typeString}]: ${errorLog}`);
         }
 
         return shader;

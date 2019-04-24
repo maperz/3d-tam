@@ -32,7 +32,7 @@ export class Cube implements Renderable {
 
         this.numElements = indices.length;
 
-        this.vao = gl.createVertexArray()
+        this.vao = gl.createVertexArray();
         gl.bindVertexArray(this.vao);
 
         // POSITION
@@ -57,7 +57,7 @@ export class Cube implements Renderable {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
-        const colorLocation = shader.getAttribLocation('color');
+        const colorLocation = shader.getAttribLocation('a_color');
         gl.vertexAttribPointer(colorLocation, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(colorLocation);
 
