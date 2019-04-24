@@ -19,12 +19,18 @@ class Application extends RunnableApplication {
 
     private cube: Cube;
     private perspective: Mat4;
+    private view: Mat4;
 
     private plane: Plane;
     private wireframe: Plane;
     private heightmapTexture: WebGLTexture;
 
     onStart(): void {
+
+        const a = new Mat4([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+        const b = new Mat4([15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
+
+        const c = a.mul(b);
 
         // ObjectGenerator.generateGridData(1, 1, 1, 1);
 
@@ -42,7 +48,7 @@ class Application extends RunnableApplication {
         this.wireFrameShader = createShaderFromSources(BasicShaderSingleColor);
         this.cubeShader = createShaderFromSources(BasicCube);
 
-        this.cube = new Cube();
+        this.cube = new Cube(0.5);
         this.cube.init(this.cubeShader);
 
         this.plane = new Plane(10, 10, 0.05, 0.05, false);
@@ -68,12 +74,18 @@ class Application extends RunnableApplication {
         // const model = Mat4.translate(0, 0, 40 * Math.sin(time / 10));
         // const model = Mat4.identity();
         // const model = Mat4.rotationX(inRadians(-30));
-        const model = Mat4.rotationX(inRadians(  Math.sin(time / 10) * 15 - 15));
 
-        const view = Mat4.translate(0, 0, -10);
+        const model = Mat4.multiply(
+            Mat4.rotationY(inRadians(  time)),
+            Mat4.rotationX(inRadians(-30))
+            // Mat4.rotationX(inRadians(  Math.sin(time / 10) * 15 - 15))
+        );
+
+        this.view = Mat4.translate(0, 0, -10);
 
         // this.drawNormal(time, model, view, this.perspective);
-        this.drawWireFrame(time, model, view, this.perspective);
+        this.drawWireFrame(time, model, this.view, this.perspective);
+        this.drawCube(time);
     }
 
     drawNormal(time: number, model: Mat4, view: Mat4, proj: Mat4) {
@@ -121,6 +133,28 @@ class Application extends RunnableApplication {
 
         this.wireframe.draw(this.wireFrameShader);
         this.wireFrameShader.unuse();
+    }
+
+    drawCube(time: number) {
+        this.cubeShader.use();
+
+        const model = Mat4.multiply(
+            Mat4.rotationX(inRadians(time * 20)),
+            Mat4.rotationZ(inRadians(time * 10)),
+            Mat4.translate(0, 3, -2)
+        );
+
+        const modelMatrixLocation = this.cubeShader.getUniformLocation('model');
+        gl.uniformMatrix4fv(modelMatrixLocation, false, model.data);
+
+        const viewMatrixLocation = this.cubeShader.getUniformLocation('view');
+        gl.uniformMatrix4fv(viewMatrixLocation, false, this.view.data);
+
+        const projectionMatrixLocation = this.cubeShader.getUniformLocation('proj');
+        gl.uniformMatrix4fv(projectionMatrixLocation, false, this.perspective.data);
+
+        this.cube.draw(this.cubeShader);
+        this.cubeShader.unuse();
     }
 
     onHeightMapLoaded(heightmap: HTMLImageElement) {
