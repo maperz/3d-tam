@@ -1,10 +1,10 @@
-import {setupWebGL2Context} from './GLContext';
+import {setupCanvas2DContext, setupWebGL2Context} from './Context';
 
 /**
  * Runnable application that initialises the GL context
  * and keeps running in a loop.
  */
-export abstract class RunnableApplication {
+export abstract class Application {
 
     get fps(): number {
         return this.framesPerSecond;
@@ -18,8 +18,6 @@ export abstract class RunnableApplication {
     private startLoopManually = false;
 
     start(): void {
-        // Call this at the end of start
-        setupWebGL2Context('canvas');
         this.onStart();
         if (!this.startLoopManually) {
             this.loop();
@@ -60,3 +58,22 @@ export abstract class RunnableApplication {
         requestAnimationFrame(this.loop.bind(this));
     }
 }
+
+export abstract class WebGLApplication extends Application{
+
+    start(): void {
+        // Call this at the end of start
+        setupWebGL2Context('canvas');
+        super.start();
+    }
+}
+
+export abstract class CanvasApplication extends Application{
+
+    start(): void {
+        // Call this at the end of start
+        setupCanvas2DContext('canvas');
+        super.start();
+    }
+}
+

@@ -1,5 +1,5 @@
 import {TPException} from './error/TPException';
-import {gl} from './GLContext';
+import {gl} from './Context';
 
 export class Shader {
     program: WebGLProgram;
