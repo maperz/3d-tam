@@ -1,3 +1,4 @@
+import {GUI} from 'dat.gui';
 import {WebGLApplication} from '../engine/Application';
 import {canvas, gl} from '../engine/Context';
 import {Mat4} from '../engine/math/mat4';
@@ -24,14 +25,16 @@ export class HeightmapApplication extends WebGLApplication {
     private wireframe: Plane;
     private heightmapTexture: WebGLTexture;
 
+    private modelRotationY = 0;
+
+    private settings = {
+        showWireFrame: true,
+        showTextured: false,
+        showCube: false,
+        rotationSpeed: 5
+    }
+
     onStart(): void {
-
-        const a = new Mat4([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
-        const b = new Mat4([15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
-
-        const c = a.mul(b);
-
-        // ObjectGenerator.generateGridData(1, 1, 1, 1);
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
@@ -54,14 +57,28 @@ export class HeightmapApplication extends WebGLApplication {
         this.plane.setColor(31 / 255, 168 / 255, 16 / 255);
         this.plane.init(this.program);
 
-        this.wireframe = new Plane(10, 10, 0.04, 0.04, true);
+        this.wireframe = new Plane(10, 10, 0.1, 0.1, true);
         this.wireframe.init(this.wireFrameShader);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
 
+
+        this.initGUI();
+
         this.setStartLoopManually(true);
         this.loadHeightMap();
+    }
+
+    initGUI(): void {
+        const gui: GUI = new GUI({width: 300});
+
+        gui.remember(this.settings);
+        gui.add(this.settings, 'showWireFrame');
+        gui.add(this.settings, 'showTextured');
+        gui.add(this.settings, 'showCube');
+        gui.add(this.settings, 'rotationSpeed', 0, 15);
+
     }
 
     onUpdate(deltaTime: number): void {
@@ -74,17 +91,25 @@ export class HeightmapApplication extends WebGLApplication {
         // const model = Mat4.identity();
         // const model = Mat4.rotationX(inRadians(-30));
 
+        this.modelRotationY += this.settings.rotationSpeed * deltaTime;
+
         const model = Mat4.multiply(
-            Mat4.rotationY(inRadians(  time)),
+            Mat4.rotationY(inRadians(this.modelRotationY)),
             Mat4.rotationX(inRadians(-30))
             // Mat4.rotationX(inRadians(  Math.sin(time / 10) * 15 - 15))
         );
 
         this.view = Mat4.translate(0, 0, -10);
 
-        //this.drawNormal(time, model, this.view, this.perspective);
-        this.drawWireFrame(time, model, this.view, this.perspective);
-        this.drawCube(time);
+        if(this.settings.showTextured) {
+            this.drawNormal(time, model, this.view, this.perspective);
+        }
+        if(this.settings.showWireFrame) {
+            this.drawWireFrame(time, model, this.view, this.perspective);
+        }
+        if(this.settings.showCube) {
+            this.drawCube(time);
+        }
     }
 
     drawNormal(time: number, model: Mat4, view: Mat4, proj: Mat4) {
