@@ -61,9 +61,9 @@ export abstract class Application {
 
 export abstract class WebGLApplication extends Application{
 
-    start(): void {
+    start(attributes = {}): void {
         // Call this at the end of start
-        setupWebGL2Context('canvas');
+        setupWebGL2Context('canvas', attributes);
         super.start();
     }
 }

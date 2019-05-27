@@ -52,6 +52,35 @@ export class ObjectGenerator {
         return [vertices, indices, uvs];
     }
 
+
+    static generateQuad(sizeX: number, sizeY: number)
+        : [number[], number[], number[]] {
+
+        const vertices = [];
+        const indices = [];
+        const uvs = [];
+
+        vertices.push(0, 0, 0, sizeY, sizeX, sizeY, sizeX, 0);
+        uvs.push(0, 0, 0, 1, 1, 1, 1, 0);
+        indices.push(0, 1, 2, 2, 3, 0);
+
+        return [vertices, indices, uvs];
+    }
+
+    static generateQuadAligned()
+        : [number[], number[], number[]] {
+
+        const vertices = [];
+        const indices = [];
+        const uvs = [];
+
+        vertices.push(-1, -1, -1, 1, 1, 1, 1, -1);
+        uvs.push(0, 0, 0, 1, 1, 1, 1, 0);
+        indices.push(0, 1, 2, 2, 3, 0);
+
+        return [vertices, indices, uvs];
+    }
+
     static generateCube(size: number): [number[], number[]] {
         // TODO: Add UV Coords
         const d = size;

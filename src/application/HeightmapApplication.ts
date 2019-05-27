@@ -32,7 +32,7 @@ export class HeightmapApplication extends WebGLApplication {
         showTextured: false,
         showCube: false,
         rotationSpeed: 5
-    }
+    };
 
     onStart(): void {
 
@@ -127,7 +127,6 @@ export class HeightmapApplication extends WebGLApplication {
 
         const heightMapLocation = this.program.getUniformLocation('heightmap');
         gl.activeTexture(gl.TEXTURE20);
-        gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
         gl.uniform1i(heightMapLocation, 0);
 
         this.plane.draw(this.program);

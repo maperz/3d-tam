@@ -1,4 +1,4 @@
-import {ObjectGenerator} from '../application/ObjectGenerator';
+import {ObjectGenerator} from './ObjectGenerator';
 import {gl} from '../engine/Context';
 import {Shader} from '../engine/Shader';
 import {Renderable} from './Renderable';
