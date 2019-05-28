@@ -1,9 +1,9 @@
-import {ObjectGenerator} from './ObjectGenerator';
 import {gl} from '../engine/Context';
 import {Shader} from '../engine/Shader';
-import {Renderable} from './Renderable';
+import {IRenderable} from './IRenderable';
+import {ObjectGenerator} from './ObjectGenerator';
 
-export class Plane implements Renderable {
+export class Plane implements IRenderable {
 
     vertBuffer: WebGLBuffer;
     colorBuffer: WebGLBuffer;
@@ -15,7 +15,11 @@ export class Plane implements Renderable {
     vao: WebGLVertexArrayObject;
     private color = [1.0, 1.0, 1.0];
 
-    constructor(private width: number, private height: number, private sizeX: number, private sizeY: number, private wireframe: boolean = false) {
+    constructor(private width: number,
+                private height: number,
+                private sizeX: number,
+                private sizeY: number,
+                private wireframe: boolean = false) {
     }
 
     init(shader: Shader): void {
@@ -23,10 +27,11 @@ export class Plane implements Renderable {
         const numTilesX = this.width / this.sizeX;
         const numTilesY = this.height / this.sizeY;
 
-        const [vertices, indices, uvs] = ObjectGenerator.generateGridData(numTilesX, numTilesY, this.sizeX, this.sizeY, this.wireframe);
+        const [vertices, indices, uvs] = ObjectGenerator.generateGridData(numTilesX, numTilesY,
+            this.sizeX, this.sizeY, this.wireframe);
 
         const colors: number[] = [];
-        for (const _ in vertices) {
+        for (const _ of vertices) {
             colors.push(this.color[0], this.color[1], this.color[2]);
         }
 

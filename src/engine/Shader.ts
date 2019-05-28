@@ -1,5 +1,5 @@
-import {TPException} from './error/TPException';
 import {gl} from './Context';
+import {TPException} from './error/TPException';
 
 export class Shader {
     program: WebGLProgram;
@@ -14,7 +14,7 @@ export class Shader {
         gl.attachShader(program, vertex);
         gl.attachShader(program, fragment);
         gl.linkProgram(program);
-        if (gl.getError() != gl.NO_ERROR) {
+        if (gl.getError() !== gl.NO_ERROR) {
             gl.deleteProgram(this.program);
         }
 

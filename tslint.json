@@ -1,8 +1,6 @@
 {
     "defaultSeverity": "error",
-    "extends": [
-        "tslint:recommended"
-    ],
+    "extends": "tslint:recommended",
     "jsRules": {},
     "rules": {
         "prefer-const": true,
@@ -16,7 +14,9 @@
             true,
             "single",
             "avoid-escape"
-        ]
+        ],
+        "object-literal-sort-keys": false,
+        "no-var-requires": false
     },
     "rulesDirectory": []
 }

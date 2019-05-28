@@ -1,4 +1,4 @@
-import {setupCanvas2DContext, setupWebGL2Context} from './Context';
+import {setupCanvas2DContext, setupWebGL2Context} from '../Context';
 
 /**
  * Runnable application that initialises the GL context
@@ -58,22 +58,3 @@ export abstract class Application {
         requestAnimationFrame(this.loop.bind(this));
     }
 }
-
-export abstract class WebGLApplication extends Application{
-
-    start(attributes = {}): void {
-        // Call this at the end of start
-        setupWebGL2Context('canvas', attributes);
-        super.start();
-    }
-}
-
-export abstract class CanvasApplication extends Application{
-
-    start(): void {
-        // Call this at the end of start
-        setupCanvas2DContext('canvas');
-        super.start();
-    }
-}
-

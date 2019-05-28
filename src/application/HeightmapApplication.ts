@@ -1,5 +1,5 @@
 import {GUI} from 'dat.gui';
-import {WebGLApplication} from '../engine/Application';
+import {WebGLApplication} from '../engine/application/WebGLApplication';
 import {canvas, gl} from '../engine/Context';
 import {Mat4} from '../engine/math/mat4';
 import {inRadians} from '../engine/math/Utils';
@@ -63,7 +63,6 @@ export class HeightmapApplication extends WebGLApplication {
         const aspect = canvas.width / canvas.height;
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
 
-
         this.initGUI();
 
         this.setStartLoopManually(true);
@@ -101,13 +100,13 @@ export class HeightmapApplication extends WebGLApplication {
 
         this.view = Mat4.translate(0, 0, -10);
 
-        if(this.settings.showTextured) {
+        if (this.settings.showTextured) {
             this.drawNormal(time, model, this.view, this.perspective);
         }
-        if(this.settings.showWireFrame) {
+        if (this.settings.showWireFrame) {
             this.drawWireFrame(time, model, this.view, this.perspective);
         }
-        if(this.settings.showCube) {
+        if (this.settings.showCube) {
             this.drawCube(time);
         }
     }

@@ -2,7 +2,6 @@ export declare let gl: WebGL2RenderingContext;
 export declare let canvas: HTMLCanvasElement;
 export declare let ctx: CanvasRenderingContext2D;
 
-
 export function setupWebGL2Context(canvasName: string = 'canvas', attributes = {}) {
     canvas = document.getElementById(canvasName) as HTMLCanvasElement;
     gl = canvas.getContext('webgl2', attributes) as WebGL2RenderingContext;

@@ -3,10 +3,10 @@ import {FDGEdge} from './FDGEdge';
 
 export class FDGNode {
 
-    position : vec2;
+    position: vec2;
     force: vec2;
 
-    edges: FDGEdge[] = []
+    edges: FDGEdge[] = [];
 
     constructor(pos: vec2) {
         this.position = vec2.copy(vec2.create(), pos);
@@ -14,8 +14,8 @@ export class FDGNode {
     }
 
     updatePosition(dt: number) {
-        let scaledForce = vec2.create();
-        //vec2.normalize(scaledForce, this.force);
+        const scaledForce = vec2.create();
+        // vec2.normalize(scaledForce, this.force);
         vec2.scale(scaledForce, this.force  , dt * 15);
         vec2.add(this.position, this.position, scaledForce);
     }

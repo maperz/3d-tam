@@ -97,7 +97,7 @@ export class Mat4 {
             ];
         }
 
-        TPAssert(data.length == 16, 'Invalid size Mat4 data must be length 16.');
+        TPAssert(data.length === 16, 'Invalid size Mat4 data must be length 16.');
         this.array = new Float32Array(data);
     }
 

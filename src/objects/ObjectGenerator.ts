@@ -52,7 +52,6 @@ export class ObjectGenerator {
         return [vertices, indices, uvs];
     }
 
-
     static generateQuad(sizeX: number, sizeY: number)
         : [number[], number[], number[]] {
 

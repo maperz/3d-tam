@@ -19,12 +19,22 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.ts', '.vs', '.fs', '.glsl']
+    extensions: ['.js', '.ts', '.vs', '.fs', '.glsl']
+  },
+  optimization: {
+    minimize: false
   },
   output: {
-    library: 'topograph',
-    filename: 'topograph.js',
-    path: path.resolve(__dirname, 'dist')
+    path: `${__dirname}/dist/js/`,
+    publicPath: 'js/',
+    filename: 'topograph.js'
   },
-  mode: 'development'
+  mode: 'development',
+  devServer: {
+    contentBase: [`${__dirname}/dist`, `${__dirname}/static/`, `${__dirname}/static/css`],
+    // open: true,
+    port: 4000,
+    disableHostCheck: true,
+    watchContentBase: true
+  }
 };

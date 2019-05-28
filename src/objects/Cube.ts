@@ -1,9 +1,9 @@
-import {ObjectGenerator} from './ObjectGenerator';
 import {gl} from '../engine/Context';
 import {Shader} from '../engine/Shader';
-import {Renderable} from './Renderable';
+import {IRenderable} from './IRenderable';
+import {ObjectGenerator} from './ObjectGenerator';
 
-export class Cube implements Renderable {
+export class Cube implements IRenderable {
 
     vertBuffer: WebGLBuffer;
     colorBuffer: WebGLBuffer;
