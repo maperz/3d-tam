@@ -1,3 +1,11 @@
 body {
     margin: 0;
 }
+
+#error {
+    font-family: "Arial";
+    background: red;
+    color: white;
+    white-space: pre-line;
+    padding: 20px;
+}
