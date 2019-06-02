@@ -18,7 +18,7 @@ export function createShaderFromIDs(name: string, vertexShaderId: string, fragme
 export const createShaderFromSources = (shaderProvider: GLSLSources): Shader => {
 
     const program = new Shader(shaderProvider.name);
-    program.create(shaderProvider.vertexSource, shaderProvider.fragmentSource);
+    program.create(shaderProvider.vertexSource, shaderProvider.fragmentSource, shaderProvider.computeSource);
 
     return program;
 };
