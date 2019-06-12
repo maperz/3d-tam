@@ -4,5 +4,5 @@ export const DilationCompute = new GLSLSources(
     "DilationCompute",
     null,
     null,
-    require("glsl/dilation.glsl")
+    require("./glsl/dilation.glsl")
 );

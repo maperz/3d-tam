@@ -4,7 +4,6 @@ import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
-import {ObjectGenerator} from '../objects/ObjectGenerator';
 import {DilationShader} from '../shaders/DilationShader';
 import {TextureRenderer} from '../texture/TextureRenderer';
 
@@ -17,8 +16,6 @@ export class RegionGenerationApplication extends WebGLApplication {
     input: WebGLTexture;
     shader: Shader;
 
-    vao: WebGLVertexArrayObject;
-    numElements: number;
     renderTarget: WebGLFramebuffer;
     renderTexture: WebGLTexture;
 

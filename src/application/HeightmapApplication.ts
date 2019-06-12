@@ -77,7 +77,6 @@ export class HeightmapApplication extends WebGLApplication {
         gui.add(this.settings, 'showTextured');
         gui.add(this.settings, 'showCube');
         gui.add(this.settings, 'rotationSpeed', 0, 15);
-
     }
 
     onUpdate(deltaTime: number): void {
@@ -184,8 +183,8 @@ export class HeightmapApplication extends WebGLApplication {
         gl.bindTexture(gl.TEXTURE_2D, this.heightmapTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, heightmap);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        //gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindTexture(gl.TEXTURE_2D, null);
         this.startLoop();
     }
