@@ -16,8 +16,8 @@ void main() {
     float sum = 0.0;
     float values = 0.0;
 
-    for(int dx = 0; dx < 2; ++dx) {
-        for(int dy = 0; dy < 2; ++dy) {
+    for(int dx = -1; dx < 2; ++dx) {
+        for(int dy = -1; dy < 2; ++dy) {
             float value = imageLoad(u_input, input_pos + ivec2(dx, dy)).r;
 
             if(value != 0.0) {
@@ -26,7 +26,6 @@ void main() {
             }
         }
     }
-
 
     if(values == 0.0) {
         return;

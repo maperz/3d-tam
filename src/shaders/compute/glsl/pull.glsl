@@ -17,14 +17,25 @@ void main() {
         imageStore(u_output, output_pos, vec4(cur_value));
     }
     else {
+        float last_value = 0.0;
+        float num_last_values = 0.0;
         ivec2 input_pos = output_pos / 2;
-        // Should calculate the average here
 
-        float last_value = imageLoad(u_lastPush, input_pos).r;
+        for(int dx = -1; dx < 2; ++dx) {
+            for(int dy = -1; dy < 2; ++dy) {
+                float value = imageLoad(u_lastPush, input_pos + ivec2(dx, dy)).r;
+                if(value != 0.0) {
+                    last_value += value;
+                    num_last_values++;
+                }
+            }
+        }
+
+        if(num_last_values != 0.0) {
+            last_value = last_value / num_last_values;
+        }
+
         imageStore(u_output, output_pos, vec4(last_value));
-
-        //imageStore(u_output, output_pos, vec4(255));
-
     }
 
 }

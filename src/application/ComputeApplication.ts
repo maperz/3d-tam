@@ -1,14 +1,24 @@
 import {GUI} from 'dat.gui';
-import {vec2} from 'gl-matrix';
+import {mat4, vec2} from 'gl-matrix';
 import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
+import {HeightMapRenderer} from '../engine/HeightMapRenderer';
+import {Mat4} from '../engine/math/mat4';
+import {inRadians} from '../engine/math/Utils';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
 import {DilationCompute} from '../shaders/compute/DilationCompute';
 import {PullCompute} from '../shaders/compute/PullCompute';
 import {PushCompute} from '../shaders/compute/PushCompute';
 import {TextureRenderer} from '../texture/TextureRenderer';
+
+enum RenderMode {
+    ShowDilate = "Show Dilate",
+    ShowPush = "Show Push",
+    ShowPull = "Show Pull",
+    Show3D = "Show 3D",
+}
 
 export class ComputeApplication extends ComputeGLApplication {
 
@@ -25,13 +35,16 @@ export class ComputeApplication extends ComputeGLApplication {
 
     frameBuffer: WebGLFramebuffer;
 
+    modelRotationY: number = 0;
+
+    heightMapRenderer: HeightMapRenderer;
+    perspective: Mat4;
+
 
     private settings = {
-        showDilate: true,
-        showPush: true,
         pushIteration: 1,
-        showPull: false,
         pullIteration: 1,
+        mode : RenderMode.Show3D,
     };
 
     start(): void {
@@ -55,11 +68,10 @@ export class ComputeApplication extends ComputeGLApplication {
         const input = gl.createBuffer();
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, input);
 
-        const values = this.generateRandomInput(30);
+        const values = this.generateRandomInput(100);
 
         gl.bufferData(gl.SHADER_STORAGE_BUFFER, values, gl.DYNAMIC_COPY);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, input);
-
 
         //
         // Dilation
@@ -76,7 +88,7 @@ export class ComputeApplication extends ComputeGLApplication {
         //gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
         gl.bindImageTexture(1, outputDilation, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
-        gl.uniform1i(this.dilationShader.getUniformLocation("u_size"), 4);
+        gl.uniform1i(this.dilationShader.getUniformLocation("u_size"), 2);
 
         gl.dispatchCompute(this.WIDTH / 16, this.HEIGHT / 16, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -121,6 +133,16 @@ export class ComputeApplication extends ComputeGLApplication {
         this.frameBuffer = gl.createFramebuffer();
 
         this.initGUI();
+
+
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+
+        this.heightMapRenderer = new HeightMapRenderer();
+        this.heightMapRenderer.init(10, 10, 0.2, 0.2);
+
+        const aspect = canvas.width / canvas.height;
+        this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
     }
 
 
@@ -135,7 +157,7 @@ export class ComputeApplication extends ComputeGLApplication {
         //gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
         gl.bindImageTexture(0, input, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(1, output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
-        
+
         gl.dispatchCompute(this.WIDTH / 2 / fraction, this.HEIGHT / 2 / fraction, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
         pushShader.unuse();
@@ -146,7 +168,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     doPullOperation(lastPull: WebGLTexture, currentState: WebGLTexture, pullShader: Shader, iteration: number): WebGLTexture {
 
-        const fraction = 2 ** iteration;
+        const fraction = 2 ** (iteration - 1);
 
         const output = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, output);
@@ -165,14 +187,10 @@ export class ComputeApplication extends ComputeGLApplication {
         return output;
     }
 
-
     initGUI(): void {
         const gui: GUI = new GUI({width: 300});
 
         gui.remember(this.settings);
-        gui.add(this.settings, 'showDilate');
-        gui.add(this.settings, 'showPush');
-
         let iterations = []
         for(let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
             iterations.push(iteration);
@@ -180,55 +198,80 @@ export class ComputeApplication extends ComputeGLApplication {
         gui.add(this.settings, 'pushIteration', iterations);
 
         iterations.splice(-1,1)
-        gui.add(this.settings, 'showPull');
         gui.add(this.settings, 'pullIteration', iterations);
-
+        gui.add(this.settings, 'mode', [
+            RenderMode.ShowDilate,
+            RenderMode.ShowPush,
+            RenderMode.ShowPull,
+            RenderMode.Show3D]);
     }
-
 
     onUpdate(deltaTime: number): void {
 
-        if(this.settings.showDilate) {
-            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
-            gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.dilateOut, 0);
-            gl.blitFramebuffer(
-                0, 0, this.WIDTH, this.HEIGHT,
-                0, 0, this.WIDTH, this.HEIGHT,
-                gl.COLOR_BUFFER_BIT, gl.NEAREST);
+        switch (this.settings.mode) {
+            case RenderMode.ShowPush: {
+                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+
+                const iteration = this.settings.pushIteration;
+                const index =  iteration - 1;
+                const output = this.pushOutputs[index];
+                const fraction = 2 ** iteration;
+
+                gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
+                gl.blitFramebuffer(
+                    0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
+                    0, 0, this.WIDTH, this.HEIGHT,
+                    gl.COLOR_BUFFER_BIT, gl.NEAREST);
+                break;
+            }
+
+            case RenderMode.ShowPull: {
+                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+
+                const iteration = this.settings.pullIteration;
+                const index =  iteration - 1;
+                const output = this.pullOutputs[index];
+                const fraction = 2 ** iteration;
+
+                gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
+                gl.blitFramebuffer(
+                    0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
+                    0, 0, this.WIDTH, this.HEIGHT,
+                    gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+                break;
+            }
+
+            case RenderMode.ShowDilate: {
+                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+                gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.dilateOut, 0);
+                gl.blitFramebuffer(
+                    0, 0, this.WIDTH, this.HEIGHT,
+                    0, 0, this.WIDTH, this.HEIGHT,
+                    gl.COLOR_BUFFER_BIT, gl.NEAREST);
+                break;
+            }
+
+            case RenderMode.Show3D: {
+
+                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                gl.clearDepth(1.0);
+
+                this.modelRotationY += 5 * deltaTime;
+
+                const model = Mat4.multiply(
+                    Mat4.rotationY(inRadians(this.modelRotationY)),
+                    Mat4.rotationX(inRadians(-30))
+                    // Mat4.rotationX(inRadians(  Math.sin(time / 10) * 15 - 15))
+                );
+                const view = Mat4.translate(0, 0, -15);
+                this.heightMapRenderer.drawWireFrame(this.pullOutputs[0], deltaTime, model, view, this.perspective);
+            }
+
         }
 
-
-        if(this.settings.showPush) {
-            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
-
-            const iteration = this.settings.pushIteration;
-            const index =  iteration - 1;
-            const output = this.pushOutputs[index];
-            const fraction = 2 ** iteration;
-
-            gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
-            gl.blitFramebuffer(
-                0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
-                0, 0, this.WIDTH, this.HEIGHT,
-                gl.COLOR_BUFFER_BIT, gl.NEAREST);
-        }
-
-        if(this.settings.showPull) {
-            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
-
-            const iteration = this.settings.pullIteration;
-            const index =  iteration - 1;
-            const output = this.pullOutputs[index];
-            const fraction = 2 ** iteration;
-
-            gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
-            gl.blitFramebuffer(
-                0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
-                0, 0, this.WIDTH, this.HEIGHT,
-                gl.COLOR_BUFFER_BIT, gl.NEAREST);
-        }
     }
-
 
     private generateRandomInput(samples: number): Float32Array {
         const data = new Float32Array(this.WIDTH * this.HEIGHT);

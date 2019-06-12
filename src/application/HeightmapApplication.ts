@@ -1,6 +1,8 @@
 import {GUI} from 'dat.gui';
+import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {WebGLApplication} from '../engine/application/WebGLApplication';
 import {canvas, gl} from '../engine/Context';
+import {HeightMapRenderer} from '../engine/HeightMapRenderer';
 import {Mat4} from '../engine/math/mat4';
 import {inRadians} from '../engine/math/Utils';
 import {Shader} from '../engine/Shader';
@@ -11,7 +13,7 @@ import {BasicShader} from '../shaders/Basic';
 import {BasicCube} from '../shaders/BasicCube';
 import {BasicShaderSingleColor} from '../shaders/BasicSingleColor';
 
-export class HeightmapApplication extends WebGLApplication {
+export class HeightmapApplication extends ComputeGLApplication {
 
     private program: Shader;
     private wireFrameShader: Shader;
@@ -26,6 +28,8 @@ export class HeightmapApplication extends WebGLApplication {
     private heightmapTexture: WebGLTexture;
 
     private modelRotationY = 0;
+
+    private heightMapRenderer: HeightMapRenderer;
 
     private settings = {
         showWireFrame: true,
@@ -67,6 +71,9 @@ export class HeightmapApplication extends WebGLApplication {
 
         this.setStartLoopManually(true);
         this.loadHeightMap();
+
+        this.heightMapRenderer = new HeightMapRenderer();
+        this.heightMapRenderer.init(10, 10, 0.1, 0.1);
     }
 
     initGUI(): void {
@@ -103,7 +110,8 @@ export class HeightmapApplication extends WebGLApplication {
             this.drawNormal(time, model, this.view, this.perspective);
         }
         if (this.settings.showWireFrame) {
-            this.drawWireFrame(time, model, this.view, this.perspective);
+            this.heightMapRenderer.drawWireFrame(this.heightmapTexture, deltaTime, model, this.view, this.perspective);
+            //this.drawWireFrame(time, model, this.view, this.perspective);
         }
         if (this.settings.showCube) {
             this.drawCube(time);
