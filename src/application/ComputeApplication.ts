@@ -6,6 +6,7 @@ import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
 import {DilationCompute} from '../shaders/compute/DilationCompute';
+import {PullCompute} from '../shaders/compute/PullCompute';
 import {PushCompute} from '../shaders/compute/PushCompute';
 import {TextureRenderer} from '../texture/TextureRenderer';
 
@@ -20,13 +21,17 @@ export class ComputeApplication extends ComputeGLApplication {
 
     dilateOut: WebGLTexture;
     pushOutputs: Array<WebGLTexture>;
+    pullOutputs: Array<WebGLTexture>;
+
     frameBuffer: WebGLFramebuffer;
 
 
     private settings = {
         showDilate: true,
         showPush: true,
-        iterationToShow: 1,
+        pushIteration: 1,
+        showPull: false,
+        pullIteration: 1,
     };
 
     start(): void {
@@ -84,17 +89,33 @@ export class ComputeApplication extends ComputeGLApplication {
 
         const pushShader = createShaderFromSources(PushCompute);
 
-
         this.pushOutputs = new Array<WebGLTexture>();
 
-        let inputToPush = outputDilation;
+        let lastPush = outputDilation;
         for(let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
 
-            const output = this.doPushOperation(inputToPush, pushShader, iteration);
-            inputToPush = output;
+            const output = this.doPushOperation(lastPush, pushShader, iteration);
+            lastPush = output;
             this.pushOutputs.push(output);
         }
 
+        //
+        // Pull
+        //
+
+        const pullShader = createShaderFromSources(PullCompute);
+
+        this.pullOutputs = new Array<WebGLTexture>();
+
+        let inputToPull = lastPush;
+        for(let iteration = this.NUMBER_ITERATIONS_PUSH - 1; iteration >= 1; iteration--) {
+            const currentState = this.pushOutputs[iteration - 1];
+            const output = this.doPullOperation(inputToPull, currentState, pullShader, iteration);
+            inputToPull = output;
+            this.pullOutputs.push(output);
+        }
+
+        this.pullOutputs.reverse();
 
         // create frameBuffer to read from texture
         this.frameBuffer = gl.createFramebuffer();
@@ -104,20 +125,42 @@ export class ComputeApplication extends ComputeGLApplication {
 
 
     doPushOperation(input: WebGLTexture, pushShader: Shader, iteration: number): WebGLTexture {
+        const fraction = 2 ** iteration;
+
         const output = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, output);
-        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.WIDTH / 2, this.HEIGHT / 2);
+        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.WIDTH / fraction, this.HEIGHT / fraction);
 
         pushShader.use();
         //gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
         gl.bindImageTexture(0, input, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(1, output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
-
-        const fraction = 2 ** iteration;
-
+        
         gl.dispatchCompute(this.WIDTH / 2 / fraction, this.HEIGHT / 2 / fraction, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
         pushShader.unuse();
+
+        return output;
+    }
+
+
+    doPullOperation(lastPull: WebGLTexture, currentState: WebGLTexture, pullShader: Shader, iteration: number): WebGLTexture {
+
+        const fraction = 2 ** iteration;
+
+        const output = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, output);
+        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.WIDTH / fraction, this.HEIGHT / fraction);
+
+        pullShader.use();
+        //gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
+        gl.bindImageTexture(0, currentState, 0, false, 0, gl.READ_ONLY, gl.R32F);
+        gl.bindImageTexture(1, lastPull, 0, false, 0, gl.READ_ONLY, gl.R32F);
+        gl.bindImageTexture(2, output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+
+        gl.dispatchCompute(this.WIDTH / 2 / fraction, this.HEIGHT / 2 / fraction, 1);
+        gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        pullShader.unuse();
 
         return output;
     }
@@ -129,7 +172,16 @@ export class ComputeApplication extends ComputeGLApplication {
         gui.remember(this.settings);
         gui.add(this.settings, 'showDilate');
         gui.add(this.settings, 'showPush');
-        gui.add(this.settings, 'iterationToShow', 1, this.NUMBER_ITERATIONS_PUSH);
+
+        let iterations = []
+        for(let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
+            iterations.push(iteration);
+        }
+        gui.add(this.settings, 'pushIteration', iterations);
+
+        iterations.splice(-1,1)
+        gui.add(this.settings, 'showPull');
+        gui.add(this.settings, 'pullIteration', iterations);
 
     }
 
@@ -149,9 +201,24 @@ export class ComputeApplication extends ComputeGLApplication {
         if(this.settings.showPush) {
             gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
-            const iteration = Math.round(this.settings.iterationToShow);
+            const iteration = this.settings.pushIteration;
             const index =  iteration - 1;
             const output = this.pushOutputs[index];
+            const fraction = 2 ** iteration;
+
+            gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
+            gl.blitFramebuffer(
+                0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
+                0, 0, this.WIDTH, this.HEIGHT,
+                gl.COLOR_BUFFER_BIT, gl.NEAREST);
+        }
+
+        if(this.settings.showPull) {
+            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+
+            const iteration = this.settings.pullIteration;
+            const index =  iteration - 1;
+            const output = this.pullOutputs[index];
             const fraction = 2 ** iteration;
 
             gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);

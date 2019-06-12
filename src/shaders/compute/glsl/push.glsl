@@ -5,13 +5,8 @@
 
 layout (local_size_x = 2, local_size_y = 2, local_size_z = 1) in;
 
-
 layout(binding = 0, r32f) readonly highp uniform image2D u_input;
 layout(binding = 1, r32f) writeonly highp uniform image2D u_output;
-
-layout (std430, binding = 0) buffer SSBO {
-    float data[];
-} ssbo_input;
 
 
 void main() {
@@ -40,6 +35,5 @@ void main() {
     float result =  sum / values;
 
     imageStore(u_output, output_pos, vec4(result));
-
 
 }
