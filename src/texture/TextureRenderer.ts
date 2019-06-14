@@ -7,11 +7,11 @@ import {TexturedQuadShader} from '../shaders/texture/TexturedQuadShader';
 
 export class TextureRenderer {
 
-    private readonly MATRIX_LOCATION_NAME = "u_matrix";
-    private readonly TEXTURE_LOCATION_NAME = "u_texture";
+    private readonly MATRIX_LOCATION_NAME = 'u_matrix';
+    private readonly TEXTURE_LOCATION_NAME = 'u_texture';
 
-    private readonly POSITION_ATTRIBUTE = "a_position";
-    private readonly UV_ATTRIBUTE = "a_texcoord";
+    private readonly POSITION_ATTRIBUTE = 'a_position';
+    private readonly UV_ATTRIBUTE = 'a_texcoord';
 
     private shader: Shader;
     private matrixLocation: WebGLUniformLocation;
@@ -19,6 +19,31 @@ export class TextureRenderer {
 
     private vao: WebGLVertexArrayObject;
     private numElements: number;
+
+    init(): void {
+        this.shader = createShaderFromSources(TexturedQuadShader);
+        this.matrixLocation = this.shader.getUniformLocation(this.MATRIX_LOCATION_NAME);
+        this.textureLocation = this.shader.getUniformLocation(this.TEXTURE_LOCATION_NAME);
+        this.generateQuad(this.shader);
+    }
+
+    renderTexture(texture: WebGLTexture, position: vec2, size: vec2) {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        this.shader.use();
+        const matrix = mat4.ortho(mat4.create(), 0, gl.canvas.width, 0,  gl.canvas.height, -1, 1);
+        mat4.translate(matrix, matrix, vec3.fromValues(position[0], position[1], 0));
+        mat4.scale(matrix, matrix, vec3.fromValues(size[0], size[1], 1));
+
+        gl.uniformMatrix4fv(this.matrixLocation, false, matrix);
+        gl.uniform1i(this.textureLocation, 0);
+
+        gl.bindVertexArray(this.vao);
+        gl.drawElements( gl.TRIANGLES, this.numElements, gl.UNSIGNED_SHORT, 0);
+        gl.bindVertexArray(null);
+
+        this.shader.unuse();
+    }
 
     private generateQuad(shader: Shader) {
 
@@ -71,31 +96,6 @@ export class TextureRenderer {
         gl.enableVertexAttribArray(uvLocation);
 
         gl.bindVertexArray(null);
-        this.shader.unuse();
-    }
-
-    init() : void {
-        this.shader = createShaderFromSources(TexturedQuadShader);
-        this.matrixLocation = this.shader.getUniformLocation(this.MATRIX_LOCATION_NAME);
-        this.textureLocation = this.shader.getUniformLocation(this.TEXTURE_LOCATION_NAME);
-        this.generateQuad(this.shader);
-    }
-
-    renderTexture(texture: WebGLTexture, position: vec2, size: vec2) {
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        this.shader.use();
-        let matrix = mat4.ortho(mat4.create(), 0, gl.canvas.width, 0,  gl.canvas.height, -1, 1);
-        mat4.translate(matrix, matrix, vec3.fromValues(position[0], position[1], 0));
-        mat4.scale(matrix, matrix, vec3.fromValues(size[0], size[1], 1));
-
-        gl.uniformMatrix4fv(this.matrixLocation, false, matrix);
-        gl.uniform1i(this.textureLocation, 0);
-
-        gl.bindVertexArray(this.vao);
-        gl.drawElements( gl.TRIANGLES, this.numElements, gl.UNSIGNED_SHORT, 0);
-        gl.bindVertexArray(null);
-
         this.shader.unuse();
     }
 }

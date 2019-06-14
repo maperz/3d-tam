@@ -14,11 +14,10 @@ function main() {
 function _main() {
     try {
         main();
-    }
-    catch (exception) {
-        document.getElementById("error").removeAttribute("hidden")
-        document.getElementById("error").innerHTML=exception.stack;
-        console.error("Exception thrown at main", exception.stack);
+    } catch (exception) {
+        document.getElementById('error').removeAttribute('hidden');
+        document.getElementById('error').innerHTML = exception.stack;
+        console.error('Exception thrown at main', exception.stack);
     }
 }
 

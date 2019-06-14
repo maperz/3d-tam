@@ -14,10 +14,10 @@ import {PushCompute} from '../shaders/compute/PushCompute';
 import {TextureRenderer} from '../texture/TextureRenderer';
 
 enum RenderMode {
-    ShowDilate = "Show Dilate",
-    ShowPush = "Show Push",
-    ShowPull = "Show Pull",
-    Show3D = "Show 3D",
+    ShowDilate = 'Show Dilate',
+    ShowPush = 'Show Push',
+    ShowPull = 'Show Pull',
+    Show3D = 'Show 3D',
 }
 
 export class ComputeApplication extends ComputeGLApplication {
@@ -30,8 +30,8 @@ export class ComputeApplication extends ComputeGLApplication {
     textureRenderer: TextureRenderer;
 
     dilateOut: WebGLTexture;
-    pushOutputs: Array<WebGLTexture>;
-    pullOutputs: Array<WebGLTexture>;
+    pushOutputs: WebGLTexture[];
+    pullOutputs: WebGLTexture[];
 
     frameBuffer: WebGLFramebuffer;
 
@@ -39,7 +39,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
     heightMapRenderer: HeightMapRenderer;
     perspective: Mat4;
-
 
     private settings = {
         pushIteration: 1,
@@ -53,15 +52,14 @@ export class ComputeApplication extends ComputeGLApplication {
 
     onStart(): void {
 
-        let ext = gl.getExtension("EXT_color_buffer_float");
-        TPAssert(ext != null, "Cannot render to floating point FBOs!");
-
+        const ext = gl.getExtension('EXT_color_buffer_float');
+        TPAssert(ext != null, 'Cannot render to floating point FBOs!');
 
         canvas.width = this.WIDTH;
         canvas.height = this.HEIGHT;
         gl.viewport(0, 0, this.WIDTH, this.HEIGHT);
 
-        //this.input = this.generateRandomImage(10);
+        // this.input = this.generateRandomImage(10);
 
         this.textureRenderer = new TextureRenderer();
         this.textureRenderer.init();
@@ -86,10 +84,10 @@ export class ComputeApplication extends ComputeGLApplication {
 
         this.dilationShader = createShaderFromSources(DilationCompute);
         this.dilationShader.use();
-        //gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
+        // gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
         gl.bindImageTexture(1, outputDilation, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
-        gl.uniform1i(this.dilationShader.getUniformLocation("u_size"), 2);
+        gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), 2);
 
         gl.dispatchCompute(this.WIDTH / 16, this.HEIGHT / 16, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -105,7 +103,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.pushOutputs = new Array<WebGLTexture>();
 
         let lastPush = outputDilation;
-        for(let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
+        for (let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
 
             const output = this.doPushOperation(lastPush, pushShader, iteration);
             lastPush = output;
@@ -121,13 +119,12 @@ export class ComputeApplication extends ComputeGLApplication {
         this.pullOutputs = new Array<WebGLTexture>();
 
         let inputToPull = lastPush;
-        for(let iteration = this.NUMBER_ITERATIONS_PUSH - 1; iteration >= 1; iteration--) {
+        for (let iteration = this.NUMBER_ITERATIONS_PUSH - 1; iteration >= 1; iteration--) {
             const currentState = this.pushOutputs[iteration - 1];
             const output = this.doPullOperation(inputToPull, currentState, pullShader, iteration);
             inputToPull = output;
             this.pullOutputs.push(output);
         }
-
         this.pullOutputs.reverse();
 
         // create frameBuffer to read from texture
@@ -145,16 +142,14 @@ export class ComputeApplication extends ComputeGLApplication {
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
     }
 
-
     doPushOperation(input: WebGLTexture, pushShader: Shader, iteration: number): WebGLTexture {
         const fraction = 2 ** iteration;
-
         const output = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, output);
         gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.WIDTH / fraction, this.HEIGHT / fraction);
 
         pushShader.use();
-        //gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
+        // gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
         gl.bindImageTexture(0, input, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(1, output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
@@ -165,8 +160,8 @@ export class ComputeApplication extends ComputeGLApplication {
         return output;
     }
 
-
-    doPullOperation(lastPull: WebGLTexture, currentState: WebGLTexture, pullShader: Shader, iteration: number): WebGLTexture {
+    doPullOperation(lastPull: WebGLTexture, currentState: WebGLTexture,
+                    pullShader: Shader, iteration: number): WebGLTexture {
 
         const fraction = 2 ** (iteration - 1);
 
@@ -175,7 +170,7 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.WIDTH / fraction, this.HEIGHT / fraction);
 
         pullShader.use();
-        //gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
+        // gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
         gl.bindImageTexture(0, currentState, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(1, lastPull, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(2, output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
@@ -191,13 +186,13 @@ export class ComputeApplication extends ComputeGLApplication {
         const gui: GUI = new GUI({width: 300});
 
         gui.remember(this.settings);
-        let iterations = []
-        for(let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
+        const iterations = [];
+        for (let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
             iterations.push(iteration);
         }
         gui.add(this.settings, 'pushIteration', iterations);
 
-        iterations.splice(-1,1)
+        iterations.splice(-1, 1);
         gui.add(this.settings, 'pullIteration', iterations);
         gui.add(this.settings, 'mode', [
             RenderMode.ShowDilate,
@@ -263,7 +258,7 @@ export class ComputeApplication extends ComputeGLApplication {
                 const model = Mat4.multiply(
                     Mat4.rotationY(inRadians(this.modelRotationY)),
                     Mat4.rotationX(inRadians(-30))
-                    //Mat4.rotationX(inRadians(  Math.sin(deltaTime / 10) * 15 - 15))
+                    // Mat4.rotationX(inRadians(  Math.sin(deltaTime / 10) * 15 - 15))
                 );
                 const view = Mat4.translate(0, 0, -15);
                 this.heightMapRenderer.drawWireFrame(this.pullOutputs[0], deltaTime, model, view, this.perspective);

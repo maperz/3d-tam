@@ -12,17 +12,17 @@ export class Shader {
         let compute = null;
 
         const program = gl.createProgram();
-        if(vertexSource != null) {
+        if (vertexSource != null) {
             vertex = this.createShader(gl.VERTEX_SHADER, vertexSource);
             gl.attachShader(program, vertex);
         }
 
-        if(fragmentSource != null) {
+        if (fragmentSource != null) {
             fragment = this.createShader(gl.FRAGMENT_SHADER, fragmentSource);
             gl.attachShader(program, fragment);
         }
 
-        if(computeShader != null) {
+        if (computeShader != null) {
             compute = this.createShader(gl.COMPUTE_SHADER, computeShader);
             gl.attachShader(program, compute);
         }
@@ -38,17 +38,17 @@ export class Shader {
             throw new TPException(`Failed to link Shader [${errorLog}]: ${errorLog}`);
         }
 
-        if(vertex != null) {
+        if (vertex != null) {
             gl.detachShader(program, vertex);
             gl.deleteShader(vertex);
         }
 
-        if(fragment != null) {
+        if (fragment != null) {
             gl.detachShader(program, fragment);
             gl.deleteShader(fragment);
         }
 
-        if(compute != null) {
+        if (compute != null) {
             gl.detachShader(program, compute);
             gl.deleteShader(compute);
         }
@@ -79,13 +79,13 @@ export class Shader {
     private shaderTypeToString(type: GLenum): string {
         switch (type) {
             case gl.VERTEX_SHADER:
-                return "Vertex";
+                return 'Vertex';
             case gl.FRAGMENT_SHADER:
-                return "Fragment";
+                return 'Fragment';
             case gl.COMPUTE_SHADER:
-                return "Compute";
+                return 'Compute';
             default:
-                return "Unknown";
+                return 'Unknown';
         }
     }
 

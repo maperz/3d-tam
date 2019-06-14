@@ -1,8 +1,8 @@
 import {GLSLSources} from '../GLSLSources';
 
 export const PushCompute = new GLSLSources(
-    "PushCompute",
+    'PushCompute',
     null,
     null,
-    require("./glsl/push.glsl")
+    require('./glsl/push.glsl')
 );

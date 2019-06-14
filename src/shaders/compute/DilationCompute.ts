@@ -1,8 +1,8 @@
 import {GLSLSources} from '../GLSLSources';
 
 export const DilationCompute = new GLSLSources(
-    "DilationCompute",
+    'DilationCompute',
     null,
     null,
-    require("./glsl/dilation.glsl")
+    require('./glsl/dilation.glsl')
 );

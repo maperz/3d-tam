@@ -33,12 +33,11 @@ export class RegionGenerationApplication extends WebGLApplication {
 
         this.shader = createShaderFromSources(DilationShader);
 
-        //this.createFramebufferObjects();
+        // this.createFramebufferObjects();
 
         this.textureRenderer = new TextureRenderer();
         this.textureRenderer.init();
     }
-
 
     renderToFrameBuffer(): void {
         this.shader.use();
@@ -83,7 +82,8 @@ export class RegionGenerationApplication extends WebGLApplication {
         // this.renderToScreen(this.renderTexture);
          */
         gl.clear(gl.COLOR_BUFFER_BIT);
-        this.textureRenderer.renderTexture(this.input, vec2.fromValues(0, 0), vec2.fromValues(canvas.width, canvas.height));
+        this.textureRenderer.renderTexture(this.input,
+            vec2.fromValues(0, 0), vec2.fromValues(canvas.width, canvas.height));
     }
 
     private createFramebufferObjects() {
@@ -113,7 +113,7 @@ export class RegionGenerationApplication extends WebGLApplication {
         for (let x = 0; x < this.WIDTH * this.HEIGHT * this.CHANNELS; ++x) {
             data[x] = 0.0;
         }
-
+        
         for (let x = 0; x < samples; ++x) {
             const pos = vec2.fromValues(Math.random(), Math.random());
             const r = 255 * Math.random();

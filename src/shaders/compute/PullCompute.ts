@@ -1,8 +1,8 @@
 import {GLSLSources} from '../GLSLSources';
 
 export const PullCompute = new GLSLSources(
-    "PullCompute",
+    'PullCompute',
     null,
     null,
-    require("./glsl/pull.glsl")
+    require('./glsl/pull.glsl')
 );

@@ -12,7 +12,7 @@ class ChunkDrawInfo {
 
 export class HeightMapRenderer {
 
-    private shader : Shader;
+    private shader: Shader;
     private chunkInfos: ChunkDrawInfo[];
 
     init(width: number, height: number, pixelsX: number, pixelsY: number) {
@@ -25,13 +25,42 @@ export class HeightMapRenderer {
         const indicesData = grid.getIndices();
         const pixelData = grid.getPixels();
 
-        for(let chunk = 0; chunk < grid.getChunkCount(); chunk++) {
+        for (let chunk = 0; chunk < grid.getChunkCount(); chunk++) {
             const vertices = verticesData[chunk];
             const indices = indicesData[chunk];
             const pixels = pixelData[chunk];
             const chunkInfo = this.createChunkInfo(vertices, indices, pixels);
             this.chunkInfos.push(chunkInfo);
         }
+    }
+
+    drawWireFrame(heightMapTexture: WebGLTexture, time: number, model: Mat4, view: Mat4, proj: Mat4) {
+
+        TPAssert(this.shader != null, 'Shader == null! Forgot to init HeightMapRenderer?');
+
+        this.shader.use();
+
+        const modelMatrixLocation = this.shader.getUniformLocation('u_model');
+        gl.uniformMatrix4fv(modelMatrixLocation, false, model.data);
+
+        const viewMatrixLocation = this.shader.getUniformLocation('u_view');
+        gl.uniformMatrix4fv(viewMatrixLocation, false, view.data);
+
+        const projectionMatrixLocation = this.shader.getUniformLocation('u_proj');
+        gl.uniformMatrix4fv(projectionMatrixLocation, false, proj.data);
+
+        gl.bindImageTexture(0, heightMapTexture, 0, false, 0, gl.READ_ONLY, gl.R32F);
+
+        const colorLocation = this.shader.getUniformLocation('u_color');
+        gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
+
+        for (const chunkInfo of this.chunkInfos) {
+            gl.bindVertexArray(chunkInfo.vao);
+            gl.drawElements(gl.LINES , chunkInfo.elements, gl.UNSIGNED_SHORT, 0);
+            gl.bindVertexArray(null);
+        }
+
+        this.shader.unuse();
     }
 
     private createChunkInfo(vertices: Float32Array, indices: Uint16Array, pixels: Int32Array): ChunkDrawInfo {
@@ -62,36 +91,6 @@ export class HeightMapRenderer {
         gl.bindVertexArray(null);
 
         return new ChunkDrawInfo(vao, elements);
-    }
-
-    drawWireFrame(heightMapTexture: WebGLTexture, time: number, model: Mat4, view: Mat4, proj: Mat4){
-
-        TPAssert(this.shader != null, "Shader == null! Forgot to init HeightMapRenderer?")
-
-        this.shader.use();
-
-        const modelMatrixLocation = this.shader.getUniformLocation('u_model');
-        gl.uniformMatrix4fv(modelMatrixLocation, false, model.data);
-
-        const viewMatrixLocation = this.shader.getUniformLocation('u_view');
-        gl.uniformMatrix4fv(viewMatrixLocation, false, view.data);
-
-        const projectionMatrixLocation = this.shader.getUniformLocation('u_proj');
-        gl.uniformMatrix4fv(projectionMatrixLocation, false, proj.data);
-
-        gl.bindImageTexture(0, heightMapTexture, 0, false, 0, gl.READ_ONLY, gl.R32F);
-
-        const colorLocation = this.shader.getUniformLocation('u_color');
-        gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
-
-
-        for(let chunkInfo of this.chunkInfos) {
-            gl.bindVertexArray(chunkInfo.vao);
-            gl.drawElements(gl.LINES , chunkInfo.elements, gl.UNSIGNED_SHORT, 0);
-            gl.bindVertexArray(null);
-        }
-
-        this.shader.unuse();
     }
 
 }

@@ -11,7 +11,6 @@ layout (std430, binding = 0) buffer SSBO {
     float data[];
 } ssbo_input;
 
-
 uniform int u_size;
 
 void main() {
