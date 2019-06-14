@@ -4,7 +4,7 @@ import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
-import {DilationShader} from '../shaders/DilationShader';
+import {DilationShader} from '../shaders/other/DilationShader';
 import {TextureRenderer} from '../texture/TextureRenderer';
 
 export class RegionGenerationApplication extends WebGLApplication {

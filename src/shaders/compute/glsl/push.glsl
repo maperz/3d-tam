@@ -8,7 +8,6 @@ layout (local_size_x = 2, local_size_y = 2, local_size_z = 1) in;
 layout(binding = 0, r32f) readonly highp uniform image2D u_input;
 layout(binding = 1, r32f) writeonly highp uniform image2D u_output;
 
-
 void main() {
     ivec2 output_pos = ivec2(gl_GlobalInvocationID.xy);
     ivec2 input_pos = output_pos * 2;
@@ -34,5 +33,4 @@ void main() {
     float result =  sum / values;
 
     imageStore(u_output, output_pos, vec4(result));
-
 }

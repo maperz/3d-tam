@@ -1,4 +1,4 @@
-import {GLSLSources} from './GLSLSources';
+import {GLSLSources} from '../GLSLSources';
 
 export const BasicCube = new GLSLSources(
     'BasicCube',

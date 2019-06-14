@@ -1,4 +1,4 @@
-import {GLSLSources} from './GLSLSources';
+import {GLSLSources} from '../GLSLSources';
 
 export const PushShader = new GLSLSources(
     'PushShader',

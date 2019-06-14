@@ -1,19 +1,17 @@
 import {GUI} from 'dat.gui';
-import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {WebGLApplication} from '../engine/application/WebGLApplication';
 import {canvas, gl} from '../engine/Context';
-import {HeightMapRenderer} from '../engine/HeightMapRenderer';
 import {Mat4} from '../engine/math/mat4';
 import {inRadians} from '../engine/math/Utils';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
 import {Cube} from '../objects/Cube';
 import {Plane} from '../objects/Plane';
-import {BasicShader} from '../shaders/Basic';
-import {BasicCube} from '../shaders/BasicCube';
-import {BasicShaderSingleColor} from '../shaders/BasicSingleColor';
+import {BasicShader} from '../shaders/other/Basic';
+import {BasicCube} from '../shaders/other/BasicCube';
+import {BasicShaderSingleColor} from '../shaders/other/BasicSingleColor';
 
-export class HeightmapApplication extends ComputeGLApplication {
+export class HeightmapApplication extends WebGLApplication {
 
     private program: Shader;
     private wireFrameShader: Shader;
@@ -28,8 +26,6 @@ export class HeightmapApplication extends ComputeGLApplication {
     private heightmapTexture: WebGLTexture;
 
     private modelRotationY = 0;
-
-    private heightMapRenderer: HeightMapRenderer;
 
     private settings = {
         showWireFrame: true,
@@ -71,9 +67,6 @@ export class HeightmapApplication extends ComputeGLApplication {
 
         this.setStartLoopManually(true);
         this.loadHeightMap();
-
-        this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, 0.1, 0.1);
     }
 
     initGUI(): void {
@@ -110,8 +103,7 @@ export class HeightmapApplication extends ComputeGLApplication {
             this.drawNormal(time, model, this.view, this.perspective);
         }
         if (this.settings.showWireFrame) {
-            this.heightMapRenderer.drawWireFrame(this.heightmapTexture, deltaTime, model, this.view, this.perspective);
-            //this.drawWireFrame(time, model, this.view, this.perspective);
+            this.drawWireFrame(time, model, this.view, this.perspective);
         }
         if (this.settings.showCube) {
             this.drawCube(time);

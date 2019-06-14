@@ -53,8 +53,9 @@ export class ComputeApplication extends ComputeGLApplication {
 
     onStart(): void {
 
-        const ext = gl.getExtension("EXT_color_buffer_float");
+        let ext = gl.getExtension("EXT_color_buffer_float");
         TPAssert(ext != null, "Cannot render to floating point FBOs!");
+
 
         canvas.width = this.WIDTH;
         canvas.height = this.HEIGHT;
@@ -134,12 +135,11 @@ export class ComputeApplication extends ComputeGLApplication {
 
         this.initGUI();
 
-
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
 
         this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, 0.2, 0.2);
+        this.heightMapRenderer.init(10, 10, 512, 512);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
@@ -263,7 +263,7 @@ export class ComputeApplication extends ComputeGLApplication {
                 const model = Mat4.multiply(
                     Mat4.rotationY(inRadians(this.modelRotationY)),
                     Mat4.rotationX(inRadians(-30))
-                    // Mat4.rotationX(inRadians(  Math.sin(time / 10) * 15 - 15))
+                    //Mat4.rotationX(inRadians(  Math.sin(deltaTime / 10) * 15 - 15))
                 );
                 const view = Mat4.translate(0, 0, -15);
                 this.heightMapRenderer.drawWireFrame(this.pullOutputs[0], deltaTime, model, view, this.perspective);
