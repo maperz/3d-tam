@@ -18,6 +18,7 @@ export class HeightMapRenderer {
     init(width: number, height: number, pixelsX: number, pixelsY: number) {
         this.shader = createShaderFromSources(HeightMapShader);
         const grid = new PixelGrid(width, height, pixelsX, pixelsY);
+        console.log(grid);
 
         this.chunkInfos = new Array<ChunkDrawInfo>();
 
@@ -34,7 +35,7 @@ export class HeightMapRenderer {
         }
     }
 
-    drawWireFrame(heightMapTexture: WebGLTexture, time: number, model: Mat4, view: Mat4, proj: Mat4) {
+    drawWireFrame(dilatedTexture: WebGLTexture, heightMapTexture: WebGLTexture, height: number, model: Mat4, view: Mat4, proj: Mat4) {
 
         TPAssert(this.shader != null, 'Shader == null! Forgot to init HeightMapRenderer?');
 
@@ -50,9 +51,13 @@ export class HeightMapRenderer {
         gl.uniformMatrix4fv(projectionMatrixLocation, false, proj.data);
 
         gl.bindImageTexture(0, heightMapTexture, 0, false, 0, gl.READ_ONLY, gl.R32F);
+        gl.bindImageTexture(1, dilatedTexture, 0, false, 0, gl.READ_ONLY, gl.R32F);
 
         const colorLocation = this.shader.getUniformLocation('u_color');
         gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
+
+        const heightLocation = this.shader.getUniformLocation('u_height');
+        gl.uniform1f(heightLocation, height);
 
         for (const chunkInfo of this.chunkInfos) {
             gl.bindVertexArray(chunkInfo.vao);

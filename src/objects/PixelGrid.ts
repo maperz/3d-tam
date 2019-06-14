@@ -7,6 +7,7 @@ export class PixelGrid {
     private readonly chunkCount: number;
 
     private readonly MAX_INDICES_PER_CHUNK = 2 ** 16 - 10; // - 10 For Tolerance
+    //private readonly MAX_INDICES_PER_CHUNK  = 40;
 
     private readonly tileSizeX: number;
     private readonly tileSizeY: number;
@@ -19,27 +20,22 @@ export class PixelGrid {
         this.tileSizeX = width / (pixelX - 1);
         this.tileSizeY = height / (pixelY - 1);
 
-        const indicesPerTile = 6;
-        const tileCount = (pixelX - 1) * (pixelY - 1);
-        const totalIndicesCount = indicesPerTile * tileCount;
-        this.chunkCount = Math.ceil(totalIndicesCount / this.MAX_INDICES_PER_CHUNK);
-
+        const indicesPerTile = 6;        
         const tilesPerRow = (pixelX - 1);
         const indicesPerRow = indicesPerTile * tilesPerRow;
-        const rowsPerChunk = this.MAX_INDICES_PER_CHUNK / indicesPerRow;
 
-        const fullRows = Math.floor(rowsPerChunk);
-        const additionalTiles = Math.floor((rowsPerChunk - fullRows) * tilesPerRow);
+        console.log(indicesPerRow);
 
-        let currentFromX = 0;
-        let currentFromY = 0;
+        const rowsPerChunk = Math.floor(this.MAX_INDICES_PER_CHUNK / indicesPerRow); 
+        const totalRows = pixelY;
 
+        this.chunkCount = Math.ceil(totalRows / rowsPerChunk);
+
+        let startRow = 0;
         for (let chunk = 0; chunk < this.chunkCount; chunk++) {
-            const endX = (currentFromX + additionalTiles) % pixelX;
-            const endY = currentFromY + fullRows;
-            this.createChunk(currentFromX, currentFromY, endX, endY);
-            currentFromX = endX;
-            currentFromY = endY;
+            let endRow = Math.min(startRow + rowsPerChunk, totalRows - 1);
+            this.createChunk(startRow, endRow);
+            startRow = endRow;
         }
     }
 
@@ -59,27 +55,29 @@ export class PixelGrid {
         return this.pixels;
     }
 
-    private createChunk(fromX: number, fromY: number, toX: number, toY: number) {
-        console.log('Creating chunk from (' + fromX + ',' + fromY + ') to (' + toX + ',' + toY + ')');
+    private createChunk(startRow: number, endRow: number) {
+        console.log('Creating chunk from ' + startRow + ' to ' + endRow);
         const vertices = [];
         const indices = [];
         const pixels = [];
 
-        const offsetX = -this.width / 2.0 + fromX * this.tileSizeX;
-        const offsetY = -this.height / 2.0 + fromY * this.tileSizeY;
+        const offsetX = -this.width / 2.0;
+        const offsetY = -this.height / 2.0;
 
-        for (let y = fromY; y < toY; ++y) {
-            for (let x = fromX; x < toX; ++x) {
+        for (let y = startRow; y <= endRow; ++y) {
+            for (let x = 0; x < this.pixelX; ++x) {
                 const positionX = offsetX + x * this.tileSizeX;
                 const positionY = offsetY + y * this.tileSizeY;
                 vertices.push(positionX, positionY);
                 pixels.push(x, y);
             }
         }
-        for (let y = fromY; y < toY - 1; ++y) {
-            for (let x = fromX; x < toX - 1; ++x) {
-                const i = x + this.pixelY * y;
-                const iPlusRow = i + this.pixelY;
+
+        const numRows = endRow - startRow;
+        for (let y = 0; y < numRows; ++y) {
+            for (let x = 0; x < this.pixelX-1; ++x) {
+                const i = x + this.pixelX * y;
+                const iPlusRow = i + this.pixelX;
 
                 // TODO: This is incomplete
                 indices.push(i, i + 1);

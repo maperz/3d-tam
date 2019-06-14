@@ -22,6 +22,9 @@ enum RenderMode {
 
 export class ComputeApplication extends ComputeGLApplication {
 
+    readonly CANVAS_WIDTH = 1024;
+    readonly CANVAS_HEIGHT = 1024;
+
     readonly WIDTH = 512;
     readonly HEIGHT = 512;
     readonly NUMBER_ITERATIONS_PUSH = 8;
@@ -44,6 +47,7 @@ export class ComputeApplication extends ComputeGLApplication {
         pushIteration: 1,
         pullIteration: 1,
         mode : RenderMode.Show3D,
+        height: 2
     };
 
     start(): void {
@@ -55,9 +59,11 @@ export class ComputeApplication extends ComputeGLApplication {
         const ext = gl.getExtension('EXT_color_buffer_float');
         TPAssert(ext != null, 'Cannot render to floating point FBOs!');
 
-        canvas.width = this.WIDTH;
-        canvas.height = this.HEIGHT;
-        gl.viewport(0, 0, this.WIDTH, this.HEIGHT);
+        canvas.width = this.CANVAS_WIDTH;
+        canvas.height = this.CANVAS_HEIGHT;
+        gl.viewport(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        canvas.style.backgroundColor = "black";
 
         // this.input = this.generateRandomImage(10);
 
@@ -99,7 +105,6 @@ export class ComputeApplication extends ComputeGLApplication {
         //
 
         const pushShader = createShaderFromSources(PushCompute);
-
         this.pushOutputs = new Array<WebGLTexture>();
 
         let lastPush = outputDilation;
@@ -136,7 +141,7 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.depthFunc(gl.LEQUAL);
 
         this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, 512, 512);
+        this.heightMapRenderer.init(10, 10, this.CANVAS_WIDTH / 4, this.CANVAS_HEIGHT / 4);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
@@ -199,6 +204,7 @@ export class ComputeApplication extends ComputeGLApplication {
             RenderMode.ShowPush,
             RenderMode.ShowPull,
             RenderMode.Show3D]);
+        gui.add(this.settings, 'height', 0, 5);
     }
 
     onUpdate(deltaTime: number): void {
@@ -215,7 +221,7 @@ export class ComputeApplication extends ComputeGLApplication {
                 gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
                 gl.blitFramebuffer(
                     0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
-                    0, 0, this.WIDTH, this.HEIGHT,
+                    0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
                     gl.COLOR_BUFFER_BIT, gl.NEAREST);
                 break;
             }
@@ -231,7 +237,7 @@ export class ComputeApplication extends ComputeGLApplication {
                 gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
                 gl.blitFramebuffer(
                     0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
-                    0, 0, this.WIDTH, this.HEIGHT,
+                    0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
                     gl.COLOR_BUFFER_BIT, gl.NEAREST);
 
                 break;
@@ -242,7 +248,7 @@ export class ComputeApplication extends ComputeGLApplication {
                 gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.dilateOut, 0);
                 gl.blitFramebuffer(
                     0, 0, this.WIDTH, this.HEIGHT,
-                    0, 0, this.WIDTH, this.HEIGHT,
+                    0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
                     gl.COLOR_BUFFER_BIT, gl.NEAREST);
                 break;
             }
@@ -261,7 +267,7 @@ export class ComputeApplication extends ComputeGLApplication {
                     // Mat4.rotationX(inRadians(  Math.sin(deltaTime / 10) * 15 - 15))
                 );
                 const view = Mat4.translate(0, 0, -15);
-                this.heightMapRenderer.drawWireFrame(this.pullOutputs[0], deltaTime, model, view, this.perspective);
+                this.heightMapRenderer.drawWireFrame(this.dilateOut, this.pullOutputs[0], this.settings.height, model, view, this.perspective);
             }
 
         }
