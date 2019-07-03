@@ -18,7 +18,6 @@ export class HeightMapRenderer {
     init(width: number, height: number, pixelsX: number, pixelsY: number) {
         this.shader = createShaderFromSources(HeightMapShader);
         const grid = new PixelGrid(width, height, pixelsX, pixelsY);
-        console.log(grid);
 
         this.chunkInfos = new Array<ChunkDrawInfo>();
 

@@ -24,8 +24,6 @@ export class PixelGrid {
         const tilesPerRow = (pixelX - 1);
         const indicesPerRow = indicesPerTile * tilesPerRow;
 
-        console.log(indicesPerRow);
-
         const rowsPerChunk = Math.floor(this.MAX_INDICES_PER_CHUNK / indicesPerRow); 
         const totalRows = pixelY;
 
@@ -56,7 +54,7 @@ export class PixelGrid {
     }
 
     private createChunk(startRow: number, endRow: number) {
-        console.log('Creating chunk from ' + startRow + ' to ' + endRow);
+        // console.log('Creating chunk from ' + startRow + ' to ' + endRow);
         const vertices = [];
         const indices = [];
         const pixels = [];

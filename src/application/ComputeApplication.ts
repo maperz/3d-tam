@@ -25,9 +25,12 @@ export class ComputeApplication extends ComputeGLApplication {
     readonly CANVAS_WIDTH = 1024;
     readonly CANVAS_HEIGHT = 1024;
 
-    readonly WIDTH = 512;
-    readonly HEIGHT = 512;
+    readonly WIDTH = 1024;
+    readonly HEIGHT = 1024;
     readonly NUMBER_ITERATIONS_PUSH = 8;
+
+    readonly NUM_DILATE = 1;
+    readonly NUM_SAMPLES = 200;
 
     dilationShader: Shader;
     textureRenderer: TextureRenderer;
@@ -45,7 +48,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     private settings = {
         pushIteration: 1,
-        pullIteration: 1,
+        pullIteration: this.NUMBER_ITERATIONS_PUSH,
         mode : RenderMode.Show3D,
         height: 2
     };
@@ -65,15 +68,13 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         canvas.style.backgroundColor = "black";
 
-        // this.input = this.generateRandomImage(10);
-
         this.textureRenderer = new TextureRenderer();
         this.textureRenderer.init();
 
         const input = gl.createBuffer();
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, input);
 
-        const values = this.generateRandomInput(100);
+        const values = this.generateRandomInput(this.NUM_SAMPLES);
 
         gl.bufferData(gl.SHADER_STORAGE_BUFFER, values, gl.DYNAMIC_COPY);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, input);
@@ -93,7 +94,7 @@ export class ComputeApplication extends ComputeGLApplication {
         // gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
         gl.bindImageTexture(1, outputDilation, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
-        gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), 2);
+        gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), this.NUM_DILATE);
 
         gl.dispatchCompute(this.WIDTH / 16, this.HEIGHT / 16, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -123,14 +124,22 @@ export class ComputeApplication extends ComputeGLApplication {
 
         this.pullOutputs = new Array<WebGLTexture>();
 
-        let inputToPull = lastPush;
-        for (let iteration = this.NUMBER_ITERATIONS_PUSH - 1; iteration >= 1; iteration--) {
-            const currentState = this.pushOutputs[iteration - 1];
-            const output = this.doPullOperation(inputToPull, currentState, pullShader, iteration);
+        let inputToPull = null;
+        for (let iteration = this.NUMBER_ITERATIONS_PUSH; iteration >= 0; iteration--) {
+            let output: WebGLTexture;
+            if(iteration == this.NUMBER_ITERATIONS_PUSH) {
+                output = lastPush;
+            }
+            else {
+                const currentState = this.pushOutputs[iteration];
+                output = this.doPullOperation(inputToPull, currentState, pullShader, iteration);
+            }
+
             inputToPull = output;
             this.pullOutputs.push(output);
         }
-        this.pullOutputs.reverse();
+        this.pullOutputs = this.pullOutputs.reverse();
+
 
         // create frameBuffer to read from texture
         this.frameBuffer = gl.createFramebuffer();
@@ -141,7 +150,7 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.depthFunc(gl.LEQUAL);
 
         this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, this.CANVAS_WIDTH / 4, this.CANVAS_HEIGHT / 4);
+        this.heightMapRenderer.init(10, 10, this.WIDTH, this.HEIGHT);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
@@ -152,6 +161,9 @@ export class ComputeApplication extends ComputeGLApplication {
         const output = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, output);
         gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.WIDTH / fraction, this.HEIGHT / fraction);
+
+        console.log("Push: " + fraction);
+        console.log("Push Dim: " + this.WIDTH / fraction + " / " + this.HEIGHT / fraction);
 
         pushShader.use();
         // gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
@@ -168,7 +180,10 @@ export class ComputeApplication extends ComputeGLApplication {
     doPullOperation(lastPull: WebGLTexture, currentState: WebGLTexture,
                     pullShader: Shader, iteration: number): WebGLTexture {
 
-        const fraction = 2 ** (iteration - 1);
+        const fraction = 2 ** (iteration);
+
+        console.log("Pull: " + fraction);
+        console.log("Pull Dim: " + this.WIDTH / fraction + " / " + this.HEIGHT / fraction);
 
         const output = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, output);
@@ -196,8 +211,6 @@ export class ComputeApplication extends ComputeGLApplication {
             iterations.push(iteration);
         }
         gui.add(this.settings, 'pushIteration', iterations);
-
-        iterations.splice(-1, 1);
         gui.add(this.settings, 'pullIteration', iterations);
         gui.add(this.settings, 'mode', [
             RenderMode.ShowDilate,
@@ -208,7 +221,7 @@ export class ComputeApplication extends ComputeGLApplication {
     }
 
     onUpdate(deltaTime: number): void {
-
+        /*
         switch (this.settings.mode) {
             case RenderMode.ShowPush: {
                 gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
@@ -232,7 +245,7 @@ export class ComputeApplication extends ComputeGLApplication {
                 const iteration = this.settings.pullIteration;
                 const index =  iteration - 1;
                 const output = this.pullOutputs[index];
-                const fraction = 2 ** iteration;
+                const fraction = 2 ** index;
 
                 gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
                 gl.blitFramebuffer(
@@ -271,6 +284,62 @@ export class ComputeApplication extends ComputeGLApplication {
             }
 
         }
+        */
+
+
+        // 3D
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        gl.viewport(this.CANVAS_WIDTH / 2, 0, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clearDepth(1.0);
+
+        this.modelRotationY += 5 * deltaTime;
+
+        const model = Mat4.multiply(
+            Mat4.rotationY(inRadians(this.modelRotationY)),
+            Mat4.rotationX(inRadians(-30))
+            // Mat4.rotationX(inRadians(  Math.sin(deltaTime / 10) * 15 - 15))
+        );
+        const view = Mat4.translate(0, 0, -15);
+
+        this.heightMapRenderer.drawWireFrame(this.dilateOut, this.pullOutputs[0], this.settings.height, model, view, this.perspective);
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+        gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.dilateOut, 0);
+        gl.blitFramebuffer(
+            0, 0, this.WIDTH, this.HEIGHT,
+            0, 0, this.CANVAS_WIDTH/2, this.CANVAS_HEIGHT/2,
+            gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+
+        // Push
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+
+        let iteration = this.settings.pushIteration;
+        let index =  iteration - 1;
+        let output = this.pushOutputs[index];
+        let fraction = 2 ** iteration;
+
+        gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
+        gl.blitFramebuffer(
+            0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
+            0, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT,
+            gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+
+        // Pull
+        iteration = this.settings.pushIteration;
+        index =  iteration - 1;
+        output = this.pullOutputs[index];
+        fraction = 2 ** iteration;
+
+        gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
+        gl.blitFramebuffer(
+            0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
+            this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
+            gl.COLOR_BUFFER_BIT, gl.NEAREST);
 
     }
 

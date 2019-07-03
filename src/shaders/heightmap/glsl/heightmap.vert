@@ -20,15 +20,13 @@ out float v_pixelvalue;
 
 void main()
 {
-
     v_pixelvalue = imageLoad(u_heightmap, a_pixel).r;
 
-    float dilated = imageLoad(u_dilated, a_pixel).r;
-
-    float height =  v_pixelvalue * u_height;
+    float height =  v_pixelvalue * log((1.0+u_height));
     vec3 position = vec3(a_position.x,  height, a_position.y);
     gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
 
-    v_color = vec4(0.0, v_pixelvalue, 0.0, 1.0);
+    //v_color = vec4(v_pixelvalue, 0.0, 0.0, 1.0);
+    v_color = vec4(v_pixelvalue, 0.0, 0.0, 1.0);
     //v_color = vec4(1.0);
 }
