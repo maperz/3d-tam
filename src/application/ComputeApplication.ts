@@ -18,6 +18,7 @@ enum RenderMode {
     ShowPush = 'Show Push',
     ShowPull = 'Show Pull',
     Show3D = 'Show 3D',
+    ShowAll = 'Show All',
 }
 
 export class ComputeApplication extends ComputeGLApplication {
@@ -27,7 +28,10 @@ export class ComputeApplication extends ComputeGLApplication {
 
     readonly WIDTH = 1024;
     readonly HEIGHT = 1024;
-    readonly NUMBER_ITERATIONS_PUSH = 8;
+
+    readonly WORKGROUP_SIZE = 16;
+
+    readonly NUMBER_ITERATIONS_PUSH = 10;
 
     readonly NUM_DILATE = 1;
     readonly NUM_SAMPLES = 200;
@@ -38,6 +42,7 @@ export class ComputeApplication extends ComputeGLApplication {
     dilateOut: WebGLTexture;
     pushOutputs: WebGLTexture[];
     pullOutputs: WebGLTexture[];
+    heightMap: WebGLTexture;
 
     frameBuffer: WebGLFramebuffer;
 
@@ -49,7 +54,7 @@ export class ComputeApplication extends ComputeGLApplication {
     private settings = {
         pushIteration: 1,
         pullIteration: this.NUMBER_ITERATIONS_PUSH,
-        mode : RenderMode.Show3D,
+        mode : RenderMode.ShowAll,
         height: 2
     };
 
@@ -107,8 +112,8 @@ export class ComputeApplication extends ComputeGLApplication {
 
         const pushShader = createShaderFromSources(PushCompute);
         this.pushOutputs = new Array<WebGLTexture>();
-
         let lastPush = outputDilation;
+
         for (let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
 
             const output = this.doPushOperation(lastPush, pushShader, iteration);
@@ -124,22 +129,31 @@ export class ComputeApplication extends ComputeGLApplication {
 
         this.pullOutputs = new Array<WebGLTexture>();
 
-        let inputToPull = null;
-        for (let iteration = this.NUMBER_ITERATIONS_PUSH; iteration >= 0; iteration--) {
-            let output: WebGLTexture;
-            if(iteration == this.NUMBER_ITERATIONS_PUSH) {
-                output = lastPush;
+        let inputToPull = lastPush;
+        for (let iteration = 1; iteration <= this.NUMBER_ITERATIONS_PUSH; iteration++) {
+
+            const pushIteration = this.NUMBER_ITERATIONS_PUSH - iteration - 1;
+            let currentState : WebGLTexture = null;
+            if(pushIteration >= 0) {
+                currentState = this.pushOutputs[pushIteration];
             }
             else {
-                const currentState = this.pushOutputs[iteration];
-                output = this.doPullOperation(inputToPull, currentState, pullShader, iteration);
+                currentState = outputDilation;
             }
+
+            let output = this.doPullOperation(inputToPull, currentState, pullShader, iteration);
 
             inputToPull = output;
             this.pullOutputs.push(output);
         }
-        this.pullOutputs = this.pullOutputs.reverse();
+        console.log(this.pushOutputs);
+        console.log(this.pullOutputs);
 
+        this.heightMap = inputToPull;
+
+        const aspect = canvas.width / canvas.height;
+        //this.pullOutputs = this.pullOutputs.reverse();
+        this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
 
         // create frameBuffer to read from texture
         this.frameBuffer = gl.createFramebuffer();
@@ -152,25 +166,33 @@ export class ComputeApplication extends ComputeGLApplication {
         this.heightMapRenderer = new HeightMapRenderer();
         this.heightMapRenderer.init(10, 10, this.WIDTH, this.HEIGHT);
 
-        const aspect = canvas.width / canvas.height;
-        this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
     }
 
     doPushOperation(input: WebGLTexture, pushShader: Shader, iteration: number): WebGLTexture {
+
+        TPAssert(iteration >= 1, "Iteration cannot be lower than one.");
+
         const fraction = 2 ** iteration;
         const output = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, output);
-        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.WIDTH / fraction, this.HEIGHT / fraction);
 
-        console.log("Push: " + fraction);
-        console.log("Push Dim: " + this.WIDTH / fraction + " / " + this.HEIGHT / fraction);
+        let inputSize = vec2.fromValues(this.WIDTH / (fraction - 1), this.HEIGHT / (fraction - 1));
+        let outputSize = vec2.fromValues(this.WIDTH / fraction, this.HEIGHT / fraction);
+
+        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, outputSize[0], outputSize[1]);
 
         pushShader.use();
-        // gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
+
+        gl.uniform2i(pushShader.getUniformLocation("u_inputSize"), inputSize[0], inputSize[1]);
+        gl.uniform2i(pushShader.getUniformLocation("u_outputSize"), outputSize[0], outputSize[1]);
+
         gl.bindImageTexture(0, input, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(1, output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
-        gl.dispatchCompute(this.WIDTH / 2 / fraction, this.HEIGHT / 2 / fraction, 1);
+        const num_groups_x = Math.ceil(outputSize[0] / this.WORKGROUP_SIZE);
+        const num_groups_y = Math.ceil(outputSize[1] / this.WORKGROUP_SIZE);
+
+        gl.dispatchCompute(num_groups_x, num_groups_y, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
         pushShader.unuse();
 
@@ -180,22 +202,31 @@ export class ComputeApplication extends ComputeGLApplication {
     doPullOperation(lastPull: WebGLTexture, currentState: WebGLTexture,
                     pullShader: Shader, iteration: number): WebGLTexture {
 
-        const fraction = 2 ** (iteration);
+        TPAssert(iteration >= 1, "Iteration cannot be lower than one.");
 
-        console.log("Pull: " + fraction);
-        console.log("Pull Dim: " + this.WIDTH / fraction + " / " + this.HEIGHT / fraction);
+        let currentSize = vec2.fromValues(2 ** (iteration - 1), 2 ** (iteration - 1));
+        let outputSize = vec2.fromValues(2 ** iteration, 2 ** iteration);
 
         const output = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, output);
-        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.WIDTH / fraction, this.HEIGHT / fraction);
+        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, outputSize[0], outputSize[1]);
 
         pullShader.use();
+
+        gl.uniform2i(pullShader.getUniformLocation("u_currentSize"), currentSize[0], currentSize[1]);
+        gl.uniform2i(pullShader.getUniformLocation("u_outputSize"), outputSize[0], outputSize[1]);
+
         // gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
         gl.bindImageTexture(0, currentState, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(1, lastPull, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(2, output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
-        gl.dispatchCompute(this.WIDTH / 2 / fraction, this.HEIGHT / 2 / fraction, 1);
+
+        const num_groups_x = Math.ceil(outputSize[0] / this.WORKGROUP_SIZE);
+        const num_groups_y = Math.ceil(outputSize[1] / this.WORKGROUP_SIZE);
+        console.log("Iteration: " + iteration + " Size: " + outputSize[0] + "/" + outputSize[1] + " NumGroups: " + num_groups_x + "/" + num_groups_y);
+
+        gl.dispatchCompute(num_groups_x, num_groups_y, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
         pullShader.unuse();
 
@@ -213,15 +244,17 @@ export class ComputeApplication extends ComputeGLApplication {
         gui.add(this.settings, 'pushIteration', iterations);
         gui.add(this.settings, 'pullIteration', iterations);
         gui.add(this.settings, 'mode', [
+            RenderMode.ShowAll,
             RenderMode.ShowDilate,
             RenderMode.ShowPush,
             RenderMode.ShowPull,
-            RenderMode.Show3D]);
+            RenderMode.Show3D,
+        ]);
         gui.add(this.settings, 'height', 0, 5);
     }
 
     onUpdate(deltaTime: number): void {
-        /*
+
         switch (this.settings.mode) {
             case RenderMode.ShowPush: {
                 gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
@@ -242,14 +275,16 @@ export class ComputeApplication extends ComputeGLApplication {
             case RenderMode.ShowPull: {
                 gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
+                // Pull
                 const iteration = this.settings.pullIteration;
                 const index =  iteration - 1;
                 const output = this.pullOutputs[index];
-                const fraction = 2 ** index;
+                const width = 2 ** iteration;
+                const height = 2 ** iteration;
 
                 gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
                 gl.blitFramebuffer(
-                    0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
+                    0, 0, width, height,
                     0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
                     gl.COLOR_BUFFER_BIT, gl.NEAREST);
 
@@ -271,6 +306,7 @@ export class ComputeApplication extends ComputeGLApplication {
                 gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
                 gl.clearDepth(1.0);
+                gl.viewport(0 ,0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
 
                 this.modelRotationY += 5 * deltaTime;
 
@@ -280,13 +316,22 @@ export class ComputeApplication extends ComputeGLApplication {
                     // Mat4.rotationX(inRadians(  Math.sin(deltaTime / 10) * 15 - 15))
                 );
                 const view = Mat4.translate(0, 0, -15);
-                this.heightMapRenderer.drawWireFrame(this.dilateOut, this.pullOutputs[0], this.settings.height, model, view, this.perspective);
+
+                this.heightMapRenderer.drawWireFrame(this.dilateOut, this.heightMap, this.settings.height, model, view, this.perspective);
+
+                break;
             }
 
+            case RenderMode.ShowAll: {
+                this.renderAll(deltaTime);
+                break;
+            }
         }
-        */
 
 
+    }
+
+    private renderAll(deltaTime: number){
         // 3D
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
         gl.viewport(this.CANVAS_WIDTH / 2, 0, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2);
@@ -302,7 +347,7 @@ export class ComputeApplication extends ComputeGLApplication {
         );
         const view = Mat4.translate(0, 0, -15);
 
-        this.heightMapRenderer.drawWireFrame(this.dilateOut, this.pullOutputs[0], this.settings.height, model, view, this.perspective);
+        this.heightMapRenderer.drawWireFrame(this.dilateOut, this.heightMap, this.settings.height, model, view, this.perspective);
 
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
         gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.dilateOut, 0);
@@ -330,17 +375,17 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
         // Pull
-        iteration = this.settings.pushIteration;
+        iteration = this.settings.pullIteration;
         index =  iteration - 1;
         output = this.pullOutputs[index];
-        fraction = 2 ** iteration;
+        const width = 2 ** iteration;
+        const height = 2 ** iteration;
 
         gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
         gl.blitFramebuffer(
-            0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
+            0, 0, width, height,
             this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
             gl.COLOR_BUFFER_BIT, gl.NEAREST);
-
     }
 
     private generateRandomInput(samples: number): Float32Array {

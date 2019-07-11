@@ -3,13 +3,21 @@
 #define WIDTH 512
 #define HEIGHT 512
 
-layout (local_size_x = 2, local_size_y = 2, local_size_z = 1) in;
+// TODO: Set this to 16
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(binding = 0, r32f) readonly highp uniform image2D u_input;
 layout(binding = 1, r32f) writeonly highp uniform image2D u_output;
 
+uniform ivec2 u_inputSize;
+uniform ivec2 u_outputSize;
+
 void main() {
     ivec2 output_pos = ivec2(gl_GlobalInvocationID.xy);
+
+    if(output_pos.x >= u_outputSize.x || output_pos.y >= u_outputSize.y)
+        return;
+
     ivec2 input_pos = output_pos * 2;
 
     float sum = 0.0;
