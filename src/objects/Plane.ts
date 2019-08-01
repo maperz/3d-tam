@@ -1,6 +1,6 @@
 import {gl} from '../engine/Context';
 import {Shader} from '../engine/Shader';
-import {IRenderable} from './IRenderable';
+import {IRenderable} from '../engine/IRenderable';
 import {ObjectGenerator} from './ObjectGenerator';
 
 export class Plane implements IRenderable {

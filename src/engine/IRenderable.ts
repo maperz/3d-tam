@@ -1,4 +1,4 @@
-import {Shader} from '../engine/Shader';
+import {Shader} from './Shader';
 
 export interface IRenderable {
 

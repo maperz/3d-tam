@@ -39,6 +39,8 @@ export class Dilator {
         gl.bindImageTexture(1, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
         gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), this.radius);
+        gl.uniform2ui(this.dilationShader.getUniformLocation('u_inputSize'), this.width, this.height);
+
         gl.dispatchCompute(this.width / this.WORK_GROUP_SIZE, this.height / this.WORK_GROUP_SIZE, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
         this.dilationShader.unuse();

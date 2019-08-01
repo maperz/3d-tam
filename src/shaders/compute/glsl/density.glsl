@@ -17,24 +17,12 @@ void main() {
     ivec2 input_pos = output_pos * 2;
 
     float sum = 0.0;
-    float values = 0.0;
 
-    for(int dx = -1; dx < 2; ++dx) {
-        for(int dy = -1; dy < 2; ++dy) {
-            float value = imageLoad(u_input, input_pos + ivec2(dx, dy)).r;
-
-            if(value != 0.0) {
-                sum += value;
-                values++;
-            }
+    for(int dx = 0; dx < 2; ++dx) {
+        for(int dy = 0; dy < 2; ++dy) {
+            sum += imageLoad(u_input, input_pos + ivec2(dx, dy)).r;
         }
     }
 
-    if(values == 0.0) {
-        return;
-    }
-
-    float result =  sum / values;
-
-    imageStore(u_output, output_pos, vec4(result));
+    imageStore(u_output, output_pos, vec4(sum));
 }

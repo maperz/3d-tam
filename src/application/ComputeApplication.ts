@@ -1,11 +1,10 @@
 import {GUI} from 'dat.gui';
-import {mat4, vec2} from 'gl-matrix';
+import {mat4, vec2, vec3} from 'gl-matrix';
 import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
-import {HeightMapRenderer} from '../engine/HeightMapRenderer';
-import {Mat4} from '../engine/math/mat4';
-import {inRadians} from '../engine/math/Utils';
+import {DensityMapCalculator} from '../objects/DensityMapCalculator';
+import {HeightMapRenderer} from '../objects/HeightMapRenderer';
 import {Dilator} from '../objects/Dilator';
 import {GradientInterpolator} from '../objects/GradientInterpolator';
 
@@ -13,6 +12,7 @@ enum RenderMode {
     ShowDilate = 'Show Dilate',
     ShowPush = 'Show Push',
     ShowPull = 'Show Pull',
+    ShowDensity = 'Show Density',
     Show3D = 'Show 3D',
     ShowAll = 'Show All',
 }
@@ -30,6 +30,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     dilator: Dilator;
     gradientInterpolator: GradientInterpolator;
+    densityMapCalculator: DensityMapCalculator;
 
     dilateOut: WebGLTexture;
     heightMap: WebGLTexture;
@@ -39,13 +40,14 @@ export class ComputeApplication extends ComputeGLApplication {
     modelRotationY: number = 0;
 
     heightMapRenderer: HeightMapRenderer;
-    perspective: Mat4;
+    perspective: mat4;
 
     input: WebGLBuffer;
 
     private settings = {
         pushIteration: 1,
         pullIteration: 10,
+        densityIteration: 1,
         mode : RenderMode.ShowAll,
         height: 2
     };
@@ -80,8 +82,14 @@ export class ComputeApplication extends ComputeGLApplication {
         this.gradientInterpolator = new GradientInterpolator();
         this.gradientInterpolator.init(this.WIDTH, this.HEIGHT);
 
+        this.densityMapCalculator = new DensityMapCalculator();
+        this.densityMapCalculator.init(this.WIDTH, this.HEIGHT);
+
+        this.heightMapRenderer = new HeightMapRenderer();
+        this.heightMapRenderer.init(10, 10, this.WIDTH, this.HEIGHT);
+
         const aspect = canvas.width / canvas.height;
-        this.perspective = Mat4.perspective(70, aspect, 0.1, 30);
+        this.perspective = mat4.perspective(mat4.create(),70, aspect, 0.1, 30);
 
         // create frameBuffer to read from texture
         this.frameBuffer = gl.createFramebuffer();
@@ -90,9 +98,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
-
-        this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, this.WIDTH, this.HEIGHT);
 
     }
 
@@ -107,152 +112,138 @@ export class ComputeApplication extends ComputeGLApplication {
         }
         gui.add(this.settings, 'pushIteration', iterations);
         gui.add(this.settings, 'pullIteration', iterations);
+        // TODO: Change items to something relative to iterations
+        gui.add(this.settings, 'densityIteration', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         gui.add(this.settings, 'mode', [
             RenderMode.ShowAll,
             RenderMode.ShowDilate,
             RenderMode.ShowPush,
             RenderMode.ShowPull,
+            RenderMode.ShowDensity,
             RenderMode.Show3D,
         ]);
         gui.add(this.settings, 'height', 0, 5);
     }
 
-    onUpdate(deltaTime: number): void {
 
-        this.dilateOut = this.dilator.dilate(this.input);
-        this.heightMap = this.gradientInterpolator.calculateGradient(this.dilateOut);
-
-        switch (this.settings.mode) {
-            case RenderMode.ShowPush: {
-                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
-
-                const iteration = this.settings.pushIteration;
-                const index =  iteration - 1;
-                const output = this.gradientInterpolator.getPushTexture(index);
-                const fraction = 2 ** iteration;
-
-                gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
-                gl.blitFramebuffer(
-                    0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
-                    0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
-                    gl.COLOR_BUFFER_BIT, gl.NEAREST);
-                break;
-            }
-
-            case RenderMode.ShowPull: {
-                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
-
-                // Pull
-                const iteration = this.settings.pullIteration;
-                const index =  iteration - 1;
-                const output = this.gradientInterpolator.getPullTexture(index);
-                const width = 2 ** iteration;
-                const height = 2 ** iteration;
-
-                gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
-                gl.blitFramebuffer(
-                    0, 0, width, height,
-                    0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
-                    gl.COLOR_BUFFER_BIT, gl.NEAREST);
-
-                break;
-            }
-
-            case RenderMode.ShowDilate: {
-                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
-                gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.dilateOut, 0);
-                gl.blitFramebuffer(
-                    0, 0, this.WIDTH, this.HEIGHT,
-                    0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
-                    gl.COLOR_BUFFER_BIT, gl.NEAREST);
-                break;
-            }
-
-            case RenderMode.Show3D: {
-
-                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-                gl.clearDepth(1.0);
-                gl.viewport(0 ,0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
-
-                this.modelRotationY += 5 * deltaTime;
-
-                const model = Mat4.multiply(
-                    Mat4.rotationY(inRadians(this.modelRotationY)),
-                    Mat4.rotationX(inRadians(-30))
-                    // Mat4.rotationX(inRadians(  Math.sin(deltaTime / 10) * 15 - 15))
-                );
-                const view = Mat4.translate(0, 0, -15);
-
-                this.heightMapRenderer.drawWireFrame(this.dilateOut, this.heightMap, this.settings.height, model, view, this.perspective);
-
-                break;
-            }
-
-            case RenderMode.ShowAll: {
-                this.renderAll(deltaTime);
-                break;
-            }
-        }
-
-
-    }
-
-    private renderAll(deltaTime: number){
-        // 3D
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-        gl.viewport(this.CANVAS_WIDTH / 2, 0, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.clearDepth(1.0);
-
-        this.modelRotationY += 5 * deltaTime;
-
-        const model = Mat4.multiply(
-            Mat4.rotationY(inRadians(this.modelRotationY)),
-            Mat4.rotationX(inRadians(-30))
-            // Mat4.rotationX(inRadians(  Math.sin(deltaTime / 10) * 15 - 15))
-        );
-        const view = Mat4.translate(0, 0, -15);
-
-        this.heightMapRenderer.drawWireFrame(this.dilateOut, this.heightMap, this.settings.height, model, view, this.perspective);
-
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
-        gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.dilateOut, 0);
-        gl.blitFramebuffer(
-            0, 0, this.WIDTH, this.HEIGHT,
-            0, 0, this.CANVAS_WIDTH/2, this.CANVAS_HEIGHT/2,
-            gl.COLOR_BUFFER_BIT, gl.NEAREST);
-
-
-        // Push
+    renderPush(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
-        let iteration = this.settings.pushIteration;
-        let index =  iteration - 1;
-        let output = this.gradientInterpolator.getPushTexture(index);
-        let fraction = 2 ** iteration;
+        const iteration = this.settings.pushIteration;
+        const index =  iteration - 1;
+        const output = this.gradientInterpolator.getPushTexture(index);
+        const fraction = 2 ** iteration;
 
         gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
         gl.blitFramebuffer(
             0, 0, this.WIDTH / fraction, this.HEIGHT / fraction,
-            0, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT,
-            gl.COLOR_BUFFER_BIT, gl.NEAREST);
+            x, y, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    }
 
-
+    renderPull(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
-        // Pull
-        iteration = this.settings.pullIteration;
-        index =  iteration - 1;
-        output = this.gradientInterpolator.getPullTexture(index);
-        const width = 2 ** iteration;
-        const height = 2 ** iteration;
+        const iteration = this.settings.pullIteration;
+        const index =  iteration - 1;
+        const output = this.gradientInterpolator.getPullTexture(index);
+        const w = 2 ** iteration;
+        const h = 2 ** iteration;
 
         gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
         gl.blitFramebuffer(
-            0, 0, width, height,
-            this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH, this.CANVAS_HEIGHT,
+            0, 0, w, h,
+            x, y, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    }
+
+    renderDilate(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+        gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.dilateOut, 0);
+        gl.blitFramebuffer(
+            0, 0, this.WIDTH, this.HEIGHT,
+            x, y, width, height,
             gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    }
+
+
+    renderDensity(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
+
+        const iteration = this.settings.densityIteration;
+        const index =  iteration - 1;
+        const output = this.densityMapCalculator.getTexture(index);
+        const fraction = 2 ** iteration;
+
+        const w = this.WIDTH / fraction;
+        const h = this.HEIGHT / fraction;
+
+        gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
+        gl.blitFramebuffer(
+            0, 0, w, h,
+            x, y, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+        const pixels = new Float32Array(w * h * 4);
+        gl.readPixels(0, 0, w, h, gl.R32F, gl.FLOAT, pixels);
+        console.log(pixels);
+    }
+
+    render3d(deltaTime: number, x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+
+        gl.viewport(x, y, width, height);
+
+        this.modelRotationY += 5 * deltaTime;
+
+        const rotationY = mat4.rotateY(mat4.create(), mat4.identity(mat4.create()), this.modelRotationY / 180 * Math.PI);
+        const rotationX = mat4.rotateX(mat4.create(), mat4.identity(mat4.create()), 30 / 180 * Math.PI);
+        const model = mat4.mul(mat4.create(), rotationX, rotationY);
+        const view = mat4.translate(mat4.create(), mat4.create(), vec3.fromValues(0, 0, -15));
+
+        this.heightMapRenderer.drawWireFrame(this.dilateOut, this.heightMap, this.settings.height, model, view, this.perspective);
+    }
+
+    onUpdate(deltaTime: number): void {
+
+        //this.densityMapCalculator.calculateDensityMap(inputTexture);
+        this.dilateOut = this.dilator.dilate(this.input);
+        this.heightMap = this.gradientInterpolator.calculateGradient(this.dilateOut);
+
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clearDepth(1.0);
+
+        switch (this.settings.mode) {
+            case RenderMode.ShowPush: {
+                this.renderPush();
+                break;
+            }
+
+            case RenderMode.ShowPull: {
+                this.renderPull();
+                break;
+            }
+
+            case RenderMode.ShowDilate: {
+                this.renderDilate();
+                break;
+            }
+
+            case RenderMode.Show3D: {
+                this.render3d(deltaTime);
+                break;
+            }
+
+            case RenderMode.ShowDensity: {
+                this.renderDensity();
+                break;
+            }
+
+            case RenderMode.ShowAll: {
+                this.renderDilate(0,0, this.CANVAS_WIDTH/2,this.CANVAS_HEIGHT/2)
+                this.renderPush(0,this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT);
+                this.renderPull(this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
+                this.render3d(deltaTime, this.CANVAS_WIDTH / 2, 0, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2);
+                break;
+            }
+        }
     }
 
     private generateRandomInput(samples: number): Float32Array {

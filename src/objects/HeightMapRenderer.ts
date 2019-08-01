@@ -1,10 +1,10 @@
-import {PixelGrid} from '../objects/PixelGrid';
+import {mat4} from 'gl-matrix';
+import {PixelGrid} from './PixelGrid';
 import {HeightMapShader} from '../shaders/heightmap/HeightMapShader';
-import {gl} from './Context';
-import {TPAssert} from './error/TPException';
-import {Mat4} from './math/mat4';
-import {Shader} from './Shader';
-import {createShaderFromSources} from './utils/Utils';
+import {gl} from '../engine/Context';
+import {TPAssert} from '../engine/error/TPException';
+import {Shader} from '../engine/Shader';
+import {createShaderFromSources} from '../engine/utils/Utils';
 
 class ChunkDrawInfo {
     constructor(public vao: WebGLVertexArrayObject, public elements: number) {}
@@ -34,20 +34,20 @@ export class HeightMapRenderer {
         }
     }
 
-    drawWireFrame(dilatedTexture: WebGLTexture, heightMapTexture: WebGLTexture, height: number, model: Mat4, view: Mat4, proj: Mat4) {
+    drawWireFrame(dilatedTexture: WebGLTexture, heightMapTexture: WebGLTexture, height: number, model: mat4, view: mat4, proj: mat4) {
 
         TPAssert(this.shader != null, 'Shader == null! Forgot to init HeightMapRenderer?');
 
         this.shader.use();
 
         const modelMatrixLocation = this.shader.getUniformLocation('u_model');
-        gl.uniformMatrix4fv(modelMatrixLocation, false, model.data);
+        gl.uniformMatrix4fv(modelMatrixLocation, false, model);
 
         const viewMatrixLocation = this.shader.getUniformLocation('u_view');
-        gl.uniformMatrix4fv(viewMatrixLocation, false, view.data);
+        gl.uniformMatrix4fv(viewMatrixLocation, false, view);
 
         const projectionMatrixLocation = this.shader.getUniformLocation('u_proj');
-        gl.uniformMatrix4fv(projectionMatrixLocation, false, proj.data);
+        gl.uniformMatrix4fv(projectionMatrixLocation, false, proj);
 
         gl.bindImageTexture(0, heightMapTexture, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(1, dilatedTexture, 0, false, 0, gl.READ_ONLY, gl.R32F);
