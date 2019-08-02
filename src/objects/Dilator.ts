@@ -1,3 +1,4 @@
+import {AppConfig} from '../application/AppConfig';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
@@ -12,7 +13,6 @@ export class Dilator {
     private dilationShader: Shader;
     private radius: number;
 
-    private readonly WORK_GROUP_SIZE = 16;
     private initialized = false;
 
     init(width: number, height: number, radius: number) {
@@ -36,12 +36,13 @@ export class Dilator {
         this.dilationShader.use();
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, input);
-        gl.bindImageTexture(1, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+        gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
         gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), this.radius);
         gl.uniform2ui(this.dilationShader.getUniformLocation('u_inputSize'), this.width, this.height);
 
-        gl.dispatchCompute(this.width / this.WORK_GROUP_SIZE, this.height / this.WORK_GROUP_SIZE, 1);
+
+        gl.dispatchCompute(this.width / AppConfig.WORK_GROUP_SIZE, this.height / AppConfig.WORK_GROUP_SIZE, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
         this.dilationShader.unuse();
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);

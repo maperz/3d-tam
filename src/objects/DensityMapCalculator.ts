@@ -1,17 +1,14 @@
+import {AppConfig} from '../application/AppConfig';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
 import {DensityCompute} from '../shaders/compute/DensityCompute';
-import {PullCompute} from '../shaders/compute/PullCompute';
-import {PushCompute} from '../shaders/compute/PushCompute';
 import {Texture} from './Texture';
 
 
 
 export class DensityMapCalculator {
-
-    readonly WORKGROUP_SIZE = 16;
 
     private isInitialized = false;
 
@@ -57,10 +54,10 @@ export class DensityMapCalculator {
 
 
     private calculateDensities(start: WebGLTexture) {
+        this.densityShader.use();
+
         this.textures[0].texture = start;
 
-        this.densityShader.use();
-        const inputSizeLoc = this.densityShader.getUniformLocation("u_inputSize");
         const outputSizeLoc = this.densityShader.getUniformLocation("u_outputSize");
 
         for (let iteration = 0; iteration < this.levels - 1; iteration++) {
@@ -68,14 +65,13 @@ export class DensityMapCalculator {
             const input = this.textures[iteration];
             const output = this.textures[iteration + 1];
 
-            gl.uniform2i(inputSizeLoc, input.width, input.height);
             gl.uniform2i(outputSizeLoc, output.width, output.height);
 
             gl.bindImageTexture(0, input.texture, 0, false, 0, gl.READ_ONLY, gl.R32F);
             gl.bindImageTexture(1, output.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
-            const num_groups_x = Math.ceil(output.width / this.WORKGROUP_SIZE);
-            const num_groups_y = Math.ceil(output.height / this.WORKGROUP_SIZE);
+            const num_groups_x = Math.ceil(output.width / AppConfig.WORK_GROUP_SIZE);
+            const num_groups_y = Math.ceil(output.height / AppConfig.WORK_GROUP_SIZE);
 
             gl.dispatchCompute(num_groups_x, num_groups_y, 1);
             gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);

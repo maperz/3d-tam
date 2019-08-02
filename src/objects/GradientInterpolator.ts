@@ -26,6 +26,10 @@ export class GradientInterpolator {
     private numberIterationsPush: number;
     private numberIterationsPull: number;
 
+    private pushOutputSizeLoc: WebGLUniformLocation;
+    private pullInputSizeLoc: WebGLUniformLocation;
+    private pullOutputSizeLoc: WebGLUniformLocation;
+
 
     init(width: number, height: number) {
         TPAssert(width == height, 'Width and height must be the same, different sizes are not supported yet');
@@ -38,7 +42,14 @@ export class GradientInterpolator {
 
         this.generateTextures();
         this.pushShader = createShaderFromSources(PushCompute);
+
+        this.pushOutputSizeLoc = this.pushShader.getUniformLocation("u_outputSize");
+
         this.pullShader = createShaderFromSources(PullCompute);
+
+        this.pullInputSizeLoc = this.pullShader.getUniformLocation("u_inputSize");
+        this.pullOutputSizeLoc = this.pullShader.getUniformLocation("u_outputSize");
+
 
         this.isInitialized = true;
     }
@@ -75,20 +86,16 @@ export class GradientInterpolator {
 
     }
 
-
     private doPush(startInput: Texture) {
         this.pushShader.use();
 
         let input = startInput;
 
-        const inputSizeLoc = this.pushShader.getUniformLocation("u_inputSize");
-        const outputSizeLoc = this.pushShader.getUniformLocation("u_outputSize");
-
         for (let iteration = 0; iteration < this.numberIterationsPush; iteration++) {
 
             const output = this.pushTextures[iteration];
-            gl.uniform2i(inputSizeLoc, input.width, input.height);
-            gl.uniform2i(outputSizeLoc, output.width, output.height);
+            //gl.uniform2i(inputSizeLoc, input.width, input.height);
+            gl.uniform2i(this.pushOutputSizeLoc, output.width, output.height);
 
             gl.bindImageTexture(0, input.texture, 0, false, 0, gl.READ_ONLY, gl.R32F);
             gl.bindImageTexture(1, output.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
@@ -110,9 +117,6 @@ export class GradientInterpolator {
 
         let lastPull = this.pushTextures[this.pushTextures.length - 1];
 
-        const inputSizeLoc = this.pullShader.getUniformLocation("u_inputSize");
-        const outputSizeLoc = this.pullShader.getUniformLocation("u_outputSize");
-
         for (let iteration = 0; iteration < this.numberIterationsPull; iteration++) {
 
             let currentState : Texture;
@@ -128,8 +132,8 @@ export class GradientInterpolator {
 
             const output = this.pullTextures[iteration];
 
-            gl.uniform2i(inputSizeLoc, currentState.width, currentState.height);
-            gl.uniform2i(outputSizeLoc, output.width, output.height);
+            gl.uniform2i(this.pullInputSizeLoc, currentState.width, currentState.height);
+            gl.uniform2i(this.pullOutputSizeLoc, output.width, output.height);
 
             // gl.bindImageTexture(0, this.input, 0, false, 0, gl.READ_ONLY, gl.RGBA8);
             gl.bindImageTexture(0, currentState.texture, 0, false, 0, gl.READ_ONLY, gl.R32F);

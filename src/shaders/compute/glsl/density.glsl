@@ -5,7 +5,6 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(binding = 0, r32f) readonly highp uniform image2D u_input;
 layout(binding = 1, r32f) writeonly highp uniform image2D u_output;
 
-uniform ivec2 u_inputSize;
 uniform ivec2 u_outputSize;
 
 void main() {

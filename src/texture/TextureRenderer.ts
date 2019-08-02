@@ -2,7 +2,6 @@ import {mat4, vec2, vec3} from 'gl-matrix';
 import {gl} from '../engine/Context';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
-import {ObjectGenerator} from '../objects/ObjectGenerator';
 import {TexturedQuadShader} from '../shaders/texture/TexturedQuadShader';
 
 export class TextureRenderer {
