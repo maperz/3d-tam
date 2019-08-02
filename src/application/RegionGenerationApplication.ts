@@ -113,7 +113,7 @@ export class RegionGenerationApplication extends WebGLApplication {
         for (let x = 0; x < this.WIDTH * this.HEIGHT * this.CHANNELS; ++x) {
             data[x] = 0.0;
         }
-        
+
         for (let x = 0; x < samples; ++x) {
             const pos = vec2.fromValues(Math.random(), Math.random());
             const r = 255 * Math.random();

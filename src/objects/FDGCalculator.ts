@@ -8,7 +8,7 @@ export class FDGCalculator {
 
     initialized = false;
 
-    attractionShader : Shader;
+    attractionShader: Shader;
     updateShader: Shader;
 
     init() {
@@ -16,7 +16,7 @@ export class FDGCalculator {
         this.updateShader = createShaderFromSources(PositionUpdateCompute);
         this.initialized = true;
     }
-    
+
     updatePositions() {
         TPAssert(this.initialized, 'FDGCalculator needs to be initialized first before usage.');
     }

@@ -2,6 +2,25 @@ import {gl} from '../engine/Context';
 
 export class FDGBufferCreator {
 
+    get positionBuffer(): WebGLBuffer {
+        return this._positionBuffer;
+    }
+
+    get infosBuffer(): WebGLBuffer {
+        return this._infosBuffer;
+    }
+
+    get neighboursBuffer(): WebGLBuffer {
+        return this._neighboursBuffer;
+    }
+
+    get attractionBuffers(): WebGLBuffer {
+        return this._attractionBuffers;
+    }
+
+    get repulsionBuffers(): WebGLBuffer {
+        return this._repulsionBuffers;
+    }
 
     private _positionBuffer: WebGLBuffer;
     private _infosBuffer: WebGLBuffer;
@@ -9,7 +28,16 @@ export class FDGBufferCreator {
     private _attractionBuffers: WebGLBuffer;
     private _repulsionBuffers: WebGLBuffer;
 
-    private createPositionsBuffer(numSamples: number) : WebGLBuffer {
+    createBuffers() {
+        const samples = 200;
+        this._attractionBuffers = this.createAttractionBuffer(samples);
+        this._repulsionBuffers = this.createRepulsionBuffer(samples);
+        this._positionBuffer = this.createPositionsBuffer(samples);
+        this._infosBuffer = this.createInfoBuffer(samples);
+        this._neighboursBuffer = this.createNeighboursBuffer(samples);
+    }
+
+    private createPositionsBuffer(numSamples: number): WebGLBuffer {
         /* Position buffer has following entries:
         //
         // | X (Float) | Y (Float) |
@@ -28,7 +56,7 @@ export class FDGBufferCreator {
         return buffer;
     }
 
-    private createInfoBuffer(numSamples: number) : WebGLBuffer {
+    private createInfoBuffer(numSamples: number): WebGLBuffer {
         /* Info buffer has following entries:
         //
         // | count (Int) | offset (Int) |
@@ -48,8 +76,7 @@ export class FDGBufferCreator {
         return buffer;
     }
 
-
-    private createNeighboursBuffer(numSamples: number) : WebGLBuffer {
+    private createNeighboursBuffer(numSamples: number): WebGLBuffer {
         /* Neighbours buffer has following entries:
         //
         // | id_0 (Int) | id_1 (Int) | ... | id_(count-1) (Int) |
@@ -71,8 +98,7 @@ export class FDGBufferCreator {
         return buffer;
     }
 
-
-    private createAttractionBuffer(numSamples: number) : WebGLBuffer {
+    private createAttractionBuffer(numSamples: number): WebGLBuffer {
         /* Attraction buffer has following entries:
         //
         // | X (Float) | Y (Float) |
@@ -92,7 +118,7 @@ export class FDGBufferCreator {
         return buffer;
     }
 
-    private createRepulsionBuffer(numSamples: number) : WebGLBuffer {
+    private createRepulsionBuffer(numSamples: number): WebGLBuffer {
         /* Repulsion buffer has following entries:
         //
         // | X (Float) | Y (Float) |
@@ -110,36 +136,5 @@ export class FDGBufferCreator {
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
 
         return buffer;
-    }
-
-
-    createBuffers() {
-        const samples = 200;
-        this._attractionBuffers = this.createAttractionBuffer(samples);
-        this._repulsionBuffers = this.createRepulsionBuffer(samples);
-        this._positionBuffer = this.createPositionsBuffer(samples);
-        this._infosBuffer = this.createInfoBuffer(samples);
-        this._neighboursBuffer = this.createNeighboursBuffer(samples);
-    }
-
-
-    get positionBuffer(): WebGLBuffer {
-        return this._positionBuffer;
-    }
-
-    get infosBuffer(): WebGLBuffer {
-        return this._infosBuffer;
-    }
-
-    get neighboursBuffer(): WebGLBuffer {
-        return this._neighboursBuffer;
-    }
-
-    get attractionBuffers(): WebGLBuffer {
-        return this._attractionBuffers;
-    }
-
-    get repulsionBuffers(): WebGLBuffer {
-        return this._repulsionBuffers;
     }
 }

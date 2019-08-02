@@ -1,10 +1,10 @@
 import {mat4} from 'gl-matrix';
-import {PixelGrid} from './PixelGrid';
-import {HeightMapShader} from '../shaders/heightmap/HeightMapShader';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
+import {HeightMapShader} from '../shaders/heightmap/HeightMapShader';
+import {PixelGrid} from './PixelGrid';
 
 class ChunkDrawInfo {
     constructor(public vao: WebGLVertexArrayObject, public elements: number) {}

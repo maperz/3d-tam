@@ -28,7 +28,7 @@ export class Dilator {
         this.dilationShader = createShaderFromSources(DilationCompute);
         this.initialized = true;
     }
-    
+
     dilate(input: WebGLBuffer): WebGLTexture {
 
         TPAssert(this.initialized, 'Dilator needs to be initialized before usage.');
@@ -40,7 +40,6 @@ export class Dilator {
 
         gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), this.radius);
         gl.uniform2ui(this.dilationShader.getUniformLocation('u_inputSize'), this.width, this.height);
-
 
         gl.dispatchCompute(this.width / AppConfig.WORK_GROUP_SIZE, this.height / AppConfig.WORK_GROUP_SIZE, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);

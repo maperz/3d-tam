@@ -4,10 +4,10 @@ import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {DensityMapCalculator} from '../objects/DensityMapCalculator';
-import {FDGCalculator} from '../objects/FDGCalculator';
-import {HeightMapRenderer} from '../objects/HeightMapRenderer';
 import {Dilator} from '../objects/Dilator';
+import {FDGCalculator} from '../objects/FDGCalculator';
 import {GradientInterpolator} from '../objects/GradientInterpolator';
+import {HeightMapRenderer} from '../objects/HeightMapRenderer';
 
 enum RenderMode {
     ShowDilate = 'Show Dilate',
@@ -59,7 +59,6 @@ export class ComputeApplication extends ComputeGLApplication {
         height: 2,
     };
 
-
     start(): void {
         super.start({antialias : false});
     }
@@ -73,7 +72,7 @@ export class ComputeApplication extends ComputeGLApplication {
         canvas.height = this.CANVAS_HEIGHT;
         gl.viewport(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
-        canvas.style.backgroundColor = "black";
+        canvas.style.backgroundColor = 'black';
 
         this.input = gl.createBuffer();
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, this.input);
@@ -81,7 +80,6 @@ export class ComputeApplication extends ComputeGLApplication {
         const values = this.generateRandomInput(this.NUM_SAMPLES);
 
         gl.bufferData(gl.SHADER_STORAGE_BUFFER, values, gl.DYNAMIC_COPY);
-
 
         this.dilator = new Dilator();
         this.dilator.init(this.WIDTH, this.HEIGHT, this.DILATE_RADIUS);
@@ -99,7 +97,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.heightMapRenderer.init(10, 10, this.WIDTH, this.HEIGHT);
 
         const aspect = canvas.width / canvas.height;
-        this.perspective = mat4.perspective(mat4.create(),70, aspect, 0.1, 30);
+        this.perspective = mat4.perspective(mat4.create(), 70, aspect, 0.1, 30);
 
         // create frameBuffer to read from texture
         this.frameBuffer = gl.createFramebuffer();
@@ -111,7 +109,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
         this.densityInputTexture = this.createDensityInputTexture(values);
     }
-
 
     initGUI(): void {
         const gui: GUI = new GUI({width: 300});
@@ -137,7 +134,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
         gui.add(this.settings, 'height', 0, 5);
     }
-
 
     renderPush(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
@@ -177,7 +173,6 @@ export class ComputeApplication extends ComputeGLApplication {
             gl.COLOR_BUFFER_BIT, gl.NEAREST);
     }
 
-
     renderDensity(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
@@ -185,7 +180,7 @@ export class ComputeApplication extends ComputeGLApplication {
         const output = this.densityMapCalculator.getTexture(iteration);
 
         const fraction = 2 ** iteration;
-
+        
         const w = this.WIDTH / fraction;
         const h = this.HEIGHT / fraction;
 
@@ -194,7 +189,7 @@ export class ComputeApplication extends ComputeGLApplication {
             0, 0, w, h,
             x, y, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
 
-        if(this.settings.logDensity) {
+        if (this.settings.logDensity) {
             const pixels = new Float32Array(w * h );
             gl.readPixels(0, 0, w, h, gl.RED, gl.FLOAT, pixels);
             console.log(pixels);
@@ -218,7 +213,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     onUpdate(deltaTime: number): void {
 
-        if(this.needsUpdate) {
+        if (this.needsUpdate) {
             this.densityMapCalculator.calculateDensityMap(this.densityInputTexture);
             this.dilateOut = this.dilator.dilate(this.input);
             this.heightMap = this.gradientInterpolator.calculateGradient(this.dilateOut);
@@ -255,9 +250,9 @@ export class ComputeApplication extends ComputeGLApplication {
             }
 
             case RenderMode.ShowAll: {
-                //this.renderDilate(0,0, this.CANVAS_WIDTH/2,this.CANVAS_HEIGHT/2)
-                this.renderDensity(0,0, this.CANVAS_WIDTH/2,this.CANVAS_HEIGHT/2)
-                this.renderPush(0,this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT);
+                // this.renderDilate(0,0, this.CANVAS_WIDTH/2,this.CANVAS_HEIGHT/2)
+                this.renderDensity(0, 0, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2);
+                this.renderPush(0, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT);
                 this.renderPull(this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
                 this.render3d(deltaTime, this.CANVAS_WIDTH / 2, 0, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2);
                 break;
@@ -285,11 +280,10 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.bindTexture(gl.TEXTURE_2D, texture);
         const densityData = new Float32Array(this.WIDTH * this.HEIGHT);
 
-        for(let i = 0; i < this.WIDTH * this.HEIGHT; i++) {
-            if(values[i] > 0.0) {
+        for (let i = 0; i < this.WIDTH * this.HEIGHT; i++) {
+            if (values[i] > 0.0) {
                 densityData[i] = 1;
-            }
-            else {
+            } else {
                 densityData[i] = 0;
             }
         }

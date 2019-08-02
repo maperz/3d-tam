@@ -7,7 +7,7 @@ export class PixelGrid {
     private readonly chunkCount: number;
 
     private readonly MAX_INDICES_PER_CHUNK = 2 ** 16 - 10; // - 10 For Tolerance
-    //private readonly MAX_INDICES_PER_CHUNK  = 40;
+    // private readonly MAX_INDICES_PER_CHUNK  = 40;
 
     private readonly tileSizeX: number;
     private readonly tileSizeY: number;
@@ -20,18 +20,18 @@ export class PixelGrid {
         this.tileSizeX = width / (pixelX - 1);
         this.tileSizeY = height / (pixelY - 1);
 
-        const indicesPerTile = 6;        
+        const indicesPerTile = 6;
         const tilesPerRow = (pixelX - 1);
         const indicesPerRow = indicesPerTile * tilesPerRow;
 
-        const rowsPerChunk = Math.floor(this.MAX_INDICES_PER_CHUNK / indicesPerRow); 
+        const rowsPerChunk = Math.floor(this.MAX_INDICES_PER_CHUNK / indicesPerRow);
         const totalRows = pixelY;
 
         this.chunkCount = Math.ceil(totalRows / rowsPerChunk);
 
         let startRow = 0;
         for (let chunk = 0; chunk < this.chunkCount; chunk++) {
-            let endRow = Math.min(startRow + rowsPerChunk, totalRows - 1);
+            const endRow = Math.min(startRow + rowsPerChunk, totalRows - 1);
             this.createChunk(startRow, endRow);
             startRow = endRow;
         }
@@ -73,7 +73,7 @@ export class PixelGrid {
 
         const numRows = endRow - startRow;
         for (let y = 0; y < numRows; ++y) {
-            for (let x = 0; x < this.pixelX-1; ++x) {
+            for (let x = 0; x < this.pixelX - 1; ++x) {
                 const i = x + this.pixelX * y;
                 const iPlusRow = i + this.pixelX;
 

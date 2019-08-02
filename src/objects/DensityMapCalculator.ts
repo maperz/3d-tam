@@ -6,16 +6,14 @@ import {createShaderFromSources} from '../engine/utils/Utils';
 import {DensityCompute} from '../shaders/compute/DensityCompute';
 import {Texture} from './Texture';
 
-
-
 export class DensityMapCalculator {
 
     private isInitialized = false;
 
-    private width : number;
+    private width: number;
     private height: number;
 
-    private textures: Array<Texture>;
+    private textures: Texture[];
     private densityShader: Shader;
     private levels: number;
 
@@ -34,13 +32,23 @@ export class DensityMapCalculator {
         this.isInitialized = true;
     }
 
+    calculateDensityMap(input: WebGLTexture): Texture[] {
+        TPAssert(this.isInitialized, 'DensityMapCalculator needs to be initialized before usage. Use GradientInterpolator::init.');
+        this.calculateDensities(input);
+        return this.textures;
+    }
+
+    getTexture(index: number) {
+        return this.textures[index];
+    }
+
     private generateTextures() {
 
         this.textures = new Array<Texture>();
 
         // Texture is null since it will be passed at runtime
         const startTexture = new Texture(this.width, this.height, null);
-        this.textures.push(startTexture)
+        this.textures.push(startTexture);
 
         for (let iteration = 1; iteration < this.levels; iteration++) {
             const w = this.width / (2 ** iteration);
@@ -52,13 +60,12 @@ export class DensityMapCalculator {
         }
     }
 
-
     private calculateDensities(start: WebGLTexture) {
         this.densityShader.use();
 
         this.textures[0].texture = start;
 
-        const outputSizeLoc = this.densityShader.getUniformLocation("u_outputSize");
+        const outputSizeLoc = this.densityShader.getUniformLocation('u_outputSize');
 
         for (let iteration = 0; iteration < this.levels - 1; iteration++) {
 
@@ -78,16 +85,5 @@ export class DensityMapCalculator {
         }
 
         this.densityShader.unuse();
-    }
-
-
-    calculateDensityMap(input: WebGLTexture): Array<Texture> {
-        TPAssert(this.isInitialized, 'DensityMapCalculator needs to be initialized before usage. Use GradientInterpolator::init.');
-        this.calculateDensities(input);
-        return this.textures;
-    }
-
-    getTexture(index: number) {
-        return this.textures[index];
     }
 }
