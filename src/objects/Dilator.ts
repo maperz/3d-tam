@@ -29,22 +29,26 @@ export class Dilator {
         this.initialized = true;
     }
 
-    dilate(input: WebGLBuffer): WebGLTexture {
+    dilate(samples: number, position: WebGLBuffer, values: WebGLBuffer): WebGLTexture {
 
         TPAssert(this.initialized, 'Dilator needs to be initialized before usage.');
 
         this.dilationShader.use();
 
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, input);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, position);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, values);
+
         gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
+        gl.uniform1ui(this.dilationShader.getUniformLocation('u_num'), samples);
         gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), this.radius);
-        gl.uniform2ui(this.dilationShader.getUniformLocation('u_inputSize'), this.width, this.height);
+        gl.uniform2ui(this.dilationShader.getUniformLocation('u_outputSize'), this.width, this.height);
 
-        gl.dispatchCompute(this.width / AppConfig.WORK_GROUP_SIZE, this.height / AppConfig.WORK_GROUP_SIZE, 1);
+        gl.dispatchCompute(Math.ceil(samples / AppConfig.WORK_GROUP_SIZE), 1, 1);
         gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
         this.dilationShader.unuse();
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
 
         return this.output;
     }

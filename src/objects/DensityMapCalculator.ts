@@ -4,6 +4,8 @@ import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
 import {DensityCompute} from '../shaders/compute/DensityCompute';
+import {RasterizeCompute} from '../shaders/compute/RasterizeCompute';
+import {FDGBuffers} from './FDGBuffers';
 import {Texture} from './Texture';
 
 export class DensityMapCalculator {
@@ -15,7 +17,15 @@ export class DensityMapCalculator {
 
     private textures: Texture[];
     private densityShader: Shader;
+    private rasterizeShader: Shader;
+
     private levels: number;
+
+    private densityTexture: WebGLTexture;
+
+    private numSamplesLoc: WebGLUniformLocation;
+
+    private outputSizeLoc: WebGLUniformLocation;
 
     init(width: number, height: number) {
         TPAssert(width == height, 'Width and height must be the same, different sizes are not supported');
@@ -27,14 +37,21 @@ export class DensityMapCalculator {
         this.levels = exponent + 1;
 
         this.generateTextures();
+
         this.densityShader = createShaderFromSources(DensityCompute);
+        this.outputSizeLoc = this.densityShader.getUniformLocation('u_outputSize');
+
+        this.rasterizeShader = createShaderFromSources(RasterizeCompute);
+        this.numSamplesLoc = this.rasterizeShader.getUniformLocation('u_num');
+
 
         this.isInitialized = true;
     }
 
-    calculateDensityMap(input: WebGLTexture): Texture[] {
+    calculateDensityMap(input: FDGBuffers): Texture[] {
         TPAssert(this.isInitialized, 'DensityMapCalculator needs to be initialized before usage. Use GradientInterpolator::init.');
-        this.calculateDensities(input);
+        this.rasterizePositions(input);
+        this.calculateDensities();
         return this.textures;
     }
 
@@ -46,11 +63,7 @@ export class DensityMapCalculator {
 
         this.textures = new Array<Texture>();
 
-        // Texture is null since it will be passed at runtime
-        const startTexture = new Texture(this.width, this.height, null);
-        this.textures.push(startTexture);
-
-        for (let iteration = 1; iteration < this.levels; iteration++) {
+        for (let iteration = 0; iteration < this.levels; iteration++) {
             const w = this.width / (2 ** iteration);
             const h = this.height / (2 ** iteration);
             const texture = gl.createTexture();
@@ -60,19 +73,38 @@ export class DensityMapCalculator {
         }
     }
 
-    private calculateDensities(start: WebGLTexture) {
+    private rasterizePositions(buffers: FDGBuffers) {
+        this.rasterizeShader.use();
+
+        const output = this.textures[0];
+
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
+
+        gl.bindImageTexture(0, output.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+
+        const samples = buffers.numSamples;
+        gl.uniform1ui(this.rasterizeShader.getUniformLocation('u_num'), samples);
+
+        gl.dispatchCompute(Math.ceil(samples / AppConfig.WORK_GROUP_SIZE), 1, 1);
+        gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+
+        this.rasterizeShader.unuse();
+    }
+
+    private calculateDensities() {
+
+        // Rasterize position values to texture grid;
         this.densityShader.use();
-
-        this.textures[0].texture = start;
-
-        const outputSizeLoc = this.densityShader.getUniformLocation('u_outputSize');
 
         for (let iteration = 0; iteration < this.levels - 1; iteration++) {
 
             const input = this.textures[iteration];
             const output = this.textures[iteration + 1];
 
-            gl.uniform2i(outputSizeLoc, output.width, output.height);
+            gl.uniform2i(this.outputSizeLoc, output.width, output.height);
 
             gl.bindImageTexture(0, input.texture, 0, false, 0, gl.READ_ONLY, gl.R32F);
             gl.bindImageTexture(1, output.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
@@ -85,5 +117,18 @@ export class DensityMapCalculator {
         }
 
         this.densityShader.unuse();
+    }
+
+    get densityPyramid() : Texture[]{
+        return this.textures;
+    }
+
+
+    getDensityTexture() : WebGLTexture {
+        return this.densityTexture;
+    }
+
+    getLevels() : number {
+        return this.levels;
     }
 }
