@@ -11,10 +11,10 @@ export class FDGApplication extends CanvasApplication {
 
     private static CONNECTION_MATRIX = [
         [true, true, false, false, false],
-        [true, true, false, false, true],
-        [false, false, true, false, true],
+        [true, true, true, false, true],
+        [false, true, true, false, true],
         [false, false, false, true, true],
-        [false, false, true, true, true]
+        [false, false, true, true, true],
     ];
 
     readonly BACKGROUND_COLOR = '#e2e2e2';
@@ -90,5 +90,17 @@ export class FDGApplication extends CanvasApplication {
             ctx.fill();
             ctx.stroke();
         });
+
+        let id: number = 0;
+        ctx.font = "15px Arial";
+        ctx.fillStyle = 'black';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        this.graph.nodes.forEach((node: FDGNode) => {
+            ctx.fillText(id.toString(), node.position[0], node.position[1] + 1);
+            id++;
+        });
     }
+
 }

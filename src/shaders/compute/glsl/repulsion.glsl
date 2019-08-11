@@ -4,40 +4,46 @@
 
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-struct PointInfo {
-    int count;
-    int offset;
-};
 
+//layout(binding = 0, r32f) readonly highp uniform image2D[] density_pyramid;
 
 layout (std430, binding = 0) buffer PositionBuffer { vec2 data[]; } positions;
-layout (std430, binding = 1) buffer InfoBuffer { PointInfo infos[]; } infos;
-layout (std430, binding = 2) buffer NeighboursBuffer { int data[]; } neighbours;
-layout (std430, binding = 3) buffer AttractionBuffer { vec2 forces[]; } attraction;
+layout (std430, binding = 1) buffer RepulsionBuffer { vec2 forces[]; } repulsion;
+layout(binding = 2) uniform sampler2D u_density;
 
-uniform float u_stiffness;
-uniform float u_length;
+uniform uint u_pyramid_size;
+uniform vec2 u_dimension;
+
+
+vec2 getForcesForLevel(vec2 pos, vec2 dim, float level) {
+    vec2 force = vec2(0, 0);
+    vec2 off = pos / 2.0;
+    for(float dx = 0.0; dx < 2.0; dx++) {
+        for(float dy = 0.0; dy < 2.0; dy++) {
+            vec2 p = off + vec2(dx, dy);
+            if(p == pos) {
+                continue;
+            }
+
+            vec4 dens = textureLod(u_density, p, level);
+        }
+    }
+    return force;
+}
 
 void main() {
+
     uint id = gl_GlobalInvocationID.x;
-    PointInfo info = infos.infos[id];
+    vec2 position = positions.data[id];
 
     vec2 force = vec2(0, 0);
 
-    if(info.count > 0) {
-        vec2 position = positions.data[id];
-        for(int i = 0; i < info.count; i++) {
-            int neighbourId = neighbours.data[info.offset + i];
-            vec2 neighbour_pos = positions.data[neighbourId];
-
-            // Calculate attraction based on neighbour position
-            // f = k*(distance(A,B)-SpringLength)
-            vec2 dir = normalize(neighbour_pos - position);
-            float distance = distance(neighbour_pos, position);
-            float f = u_stiffness * (distance - u_length);
-            force += dir * f;
-        }
+    for(float l = 0.0; l < float(u_pyramid_size) - 1.0; l++) {
+        float exp = pow(2.0, l);
+        vec2 dim = u_dimension / exp;
+        vec2 pos = position / exp;
+        force += getForcesForLevel(pos, dim, l);
     }
 
-    attraction.forces[id] = force;
+    repulsion.forces[id] = force;
 }

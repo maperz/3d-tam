@@ -1,3 +1,4 @@
+import {formatWithOptions} from 'util';
 import {AppConfig} from '../application/AppConfig';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
@@ -8,11 +9,14 @@ import {PositionUpdateCompute} from '../shaders/compute/PositionUpdateCompute';
 import {RepulsionCompute} from '../shaders/compute/RepulsionCompute';
 import {DensityMapCalculator} from './DensityMapCalculator';
 import {FDGBuffers} from './FDGBuffers';
-import {Texture} from './Texture';
 
 export class FDGCalculator {
 
     readonly NUM_SAMPLES = 200;
+
+
+    width: number;
+    height: number;
 
     initialized = false;
 
@@ -23,9 +27,13 @@ export class FDGCalculator {
     densityMapCalculator: DensityMapCalculator;
 
     repulsionPyramidSizeLoc: WebGLUniformLocation;
-
+    repulsionDimensionLac: WebGLUniformLocation;
 
     init(width: number, height: number) {
+
+        this.width = width;
+        this.height = height;
+
         this.attractionShader = createShaderFromSources(AttractionCompute);
         this.repulsionShader = createShaderFromSources(RepulsionCompute);
         this.updateShader = createShaderFromSources(PositionUpdateCompute);
@@ -34,6 +42,7 @@ export class FDGCalculator {
 
 
         this.repulsionPyramidSizeLoc = this.repulsionShader.getUniformLocation('u_pyramid_size');
+        this.repulsionDimensionLac = this.repulsionShader.getUniformLocation('u_dimension');
 
         this.initialized = true;
     }
@@ -64,6 +73,7 @@ export class FDGCalculator {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.repulsionBuffers);
 
         gl.uniform1ui(this.repulsionPyramidSizeLoc, levels);
+        gl.uniform2f(this.repulsionDimensionLac, this.width, this.height);
 
         //for()
         //gl.bindImageTexture(0, input.texture, 0, false, 0, gl.READ_ONLY, gl.R32F);

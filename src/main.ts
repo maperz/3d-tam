@@ -1,15 +1,12 @@
 import {ComputeApplication} from './application/ComputeApplication';
 import {FDGApplication} from './application/fdg/FDGApplication';
 import {GEDApplication} from './application/GEDApplication';
-import {HeightmapApplication} from './application/HeightmapApplication';
-import {RegionGenerationApplication} from './application/RegionGenerationApplication';
+
 
 function main() {
-    // const app = new HeightmapApplication();
-    // const app = new FDGApplication();
-    // const app = new RegionGenerationApplication();
+    const app = new FDGApplication();
     // const app = new GEDApplication();
-    const app = new ComputeApplication();
+    // const app = new ComputeApplication();
     app.start();
 }
 
