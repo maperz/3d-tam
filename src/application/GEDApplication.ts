@@ -1,4 +1,5 @@
 import {SimpleApplication} from '../engine/application/SimpleApplication';
+import {GedcomPreparator} from '../objects/ged/GedcomPreparator';
 
 import gedcom = require("parse-gedcom");
 
@@ -15,7 +16,8 @@ export class GEDApplication extends SimpleApplication {
 
         results.innerHTML = json;
 
-        console.log(json);
+        const preparator = new GedcomPreparator();
+        preparator.init(input);
     }
 
     onUpdate(deltaTime: number): void {

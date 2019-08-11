@@ -4,8 +4,8 @@ import {GEDApplication} from './application/GEDApplication';
 
 
 function main() {
-    const app = new FDGApplication();
-    // const app = new GEDApplication();
+    //const app = new FDGApplication();
+    const app = new GEDApplication();
     // const app = new ComputeApplication();
     app.start();
 }
