@@ -1,26 +1,53 @@
 import gedcom = require("parse-gedcom");
+import {vec2} from 'gl-matrix';
 import {TPAssert} from '../../engine/error/TPException';
+import {GraphData} from '../GraphData';
+
+interface PersonData {
+    name: string;
+    age: number;
+}
+
+class GedcomGraphData extends GraphData {
+
+    constructor(private persons: Map<number, PersonData>, private connections: Map<number, Set<number>>)
+    {
+        super();
+    }
+
+    getCount(): number {
+        return this.persons.size;
+    }
+
+    getNeighbours(id: number): Array<number> {
+        return Array.from(this.connections.get(id));
+    }
+
+    getPosition(id: number): vec2 {
+        return null;
+    }
+
+    getValue(id: number): number {
+        return this.persons.get(id).age;
+    }
+}
 
 export class GedcomPreparator {
 
-    private personTable: Map<number, string>;
+    private personTable: Map<number, PersonData>;
     private idTranslateTable: Map<string, number>;
     private connectionTable: Map<number, Set<number>>;
 
     init(raw: string) {
         this.idTranslateTable = new Map<string, number>();
-        this.personTable = new Map<number, string>();
+        this.personTable = new Map<number, PersonData>();
         this.connectionTable = new Map<number, Set<number>>();
 
         const parsed = (<GedcomParser>gedcom).parse(raw);
         this.buildPersonTable(parsed);
 
-        console.log(this.personTable);
-        console.log(this.idTranslateTable);
 
         this.buildConnectionTable(parsed);
-
-        console.log(this.connectionTable);
     }
 
     private buildPersonTable(all: Array<GedcomObject>) {
@@ -29,7 +56,12 @@ export class GedcomPreparator {
             const p = people[id];
             this.idTranslateTable.set(p.pointer, id);
             const nameEntry = p.tree.find(e => e.tag === 'NAME');
-            this.personTable.set(id, nameEntry ? nameEntry.data : 'Unnamed');
+
+            // TODO: Read age and normalize
+            const age = Math.random();
+            const data = {name: nameEntry ? nameEntry.data : 'Unnamed', age: age}
+
+            this.personTable.set(id, data);
             this.connectionTable.set(id, new Set());
         }
     }
@@ -47,7 +79,6 @@ export class GedcomPreparator {
 
     private buildConnectionTable(all: Array<GedcomObject>) {
         const families = all.filter(entry => entry.tag === 'FAM');
-        console.log(families);
         for(let fam of families) {
             const parents = [];
             const father = fam.tree.find(e => e.tag === 'HUSB');
@@ -70,5 +101,9 @@ export class GedcomPreparator {
                 }
             }
         }
+    }
+
+    getGraphData(): GraphData {
+        return new GedcomGraphData(this.personTable, this.connectionTable);
     }
 }

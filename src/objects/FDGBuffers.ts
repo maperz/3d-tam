@@ -1,8 +1,11 @@
+import {vec2} from 'gl-matrix';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {GraphData} from './GraphData';
 
 export class FDGBuffers {
+    private width: number;
+    private height: number;
 
     get positionBuffer(): WebGLBuffer {
         TPAssert(this._positionBuffer != null, 'Position Buffer not created yet!');
@@ -46,7 +49,11 @@ export class FDGBuffers {
     private _repulsionBuffers: WebGLBuffer;
     private _valuesBuffer: WebGLBuffer;
 
-    init(graph: GraphData) {
+    init(width: number, height: number, graph: GraphData) {
+
+        this.width = width;
+        this.height = height;
+
         this._numSamples = graph.getCount();
         this._attractionBuffers = this.createAttractionBuffer(graph);
         this._repulsionBuffers = this.createRepulsionBuffer(graph);
@@ -68,8 +75,18 @@ export class FDGBuffers {
         const count = graph.getCount();
         const data = new Array(count * 2).fill(0);
 
+
+        const tw = this.width / 3;
+        const th = this.height / 3;
+
         for(let i = 0; i < graph.getCount(); i++) {
-            const position = graph.getPosition(i);
+            let position = graph.getPosition(i);
+
+            if(!position) {
+                const x = (Math.random() + 1) * tw;
+                const y = (Math.random() + 1) * th;
+                position = vec2.fromValues(x, y);
+            }
             const index = i * 2;
             data[index] = position[0];
             data[index + 1] = position[1];

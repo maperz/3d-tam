@@ -6,9 +6,13 @@ import {TPAssert} from '../engine/error/TPException';
 import {Dilator} from '../objects/Dilator';
 import {FDGBuffers} from '../objects/FDGBuffers';
 import {FDGCalculator} from '../objects/FDGCalculator';
+import {GedcomPreparator} from '../objects/ged/GedcomPreparator';
 import {GradientInterpolator} from '../objects/GradientInterpolator';
+import {GraphData} from '../objects/GraphData';
 import {HeightMapRenderer} from '../objects/HeightMapRenderer';
 import {TestGraphData} from '../objects/TestGraphData';
+
+import gedcom = require("parse-gedcom");
 
 enum RenderMode {
     ShowDilate = 'Show Dilate',
@@ -29,6 +33,9 @@ export class ComputeApplication extends ComputeGLApplication {
 
     readonly DILATE_RADIUS = 1;
     readonly NUM_SAMPLES = 200;
+
+
+    graphData: GraphData;
 
     fdgBuffers: FDGBuffers;
     fdgCalculator: FDGCalculator;
@@ -63,6 +70,15 @@ export class ComputeApplication extends ComputeGLApplication {
         super.start({antialias : false});
     }
 
+
+    loadGraphData(): void {
+        const input = (<HTMLScriptElement>document.getElementById('gedcom')).text;
+        const res = (<GedcomParser>gedcom).parse(input);
+        const preparator = new GedcomPreparator();
+        preparator.init(input);
+        this.graphData = preparator.getGraphData();
+    }
+
     onStart(): void {
 
         const ext = gl.getExtension('EXT_color_buffer_float');
@@ -74,6 +90,11 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         canvas.style.backgroundColor = 'black';
 
+
+        // TODO: Delete This
+        /*
+        * BEGIN DELETE
+        */
         const [positions, values] = this.generateRandomInput(this.NUM_SAMPLES);
 
         this.inputPositions = gl.createBuffer();
@@ -84,12 +105,17 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, this.inputValues);
         gl.bufferData(gl.SHADER_STORAGE_BUFFER, values, gl.STATIC_COPY);
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+        /*
+        * END DELETE
+        * */
+
+        this.loadGraphData();
+
+        this.fdgBuffers = new FDGBuffers();
+        this.fdgBuffers.init(this.WIDTH, this.HEIGHT, this.graphData);
 
         this.dilator = new Dilator();
         this.dilator.init(this.WIDTH, this.HEIGHT, this.DILATE_RADIUS);
-
-        this.fdgBuffers = new FDGBuffers();
-        this.fdgBuffers.init(new TestGraphData());
 
         this.fdgCalculator = new FDGCalculator();
         this.fdgCalculator.init(this.WIDTH, this.HEIGHT);
@@ -218,9 +244,10 @@ export class ComputeApplication extends ComputeGLApplication {
 
         if (this.needsUpdate) {
             this.fdgCalculator.updatePositions(this.fdgBuffers);
-            this.dilateOut = this.dilator.dilate(this.NUM_SAMPLES, this.inputPositions, this.inputValues);
+            //this.dilateOut = this.dilator.dilate(this.NUM_SAMPLES, this.inputPositions, this.inputValues);
+            this.dilateOut = this.dilator.dilate(this.fdgBuffers.numSamples, this.fdgBuffers.positionBuffer, this.fdgBuffers.valuesBuffer);
             this.heightMap = this.gradientInterpolator.calculateGradient(this.dilateOut);
-            this.needsUpdate = false;
+            //this.needsUpdate = false;
         }
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
