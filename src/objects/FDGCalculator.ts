@@ -27,7 +27,13 @@ export class FDGCalculator {
     densityMapCalculator: DensityMapCalculator;
 
     repulsionPyramidSizeLoc: WebGLUniformLocation;
-    repulsionDimensionLac: WebGLUniformLocation;
+    repulsionDimensionLoc: WebGLUniformLocation;
+
+    attractionStiffnessLoc: WebGLUniformLocation;
+    attractionLengthLoc: WebGLUniformLocation;
+
+    private readonly ATTRACTION_STIFFNESS = 0.1;
+    private readonly ATTRACTION_LENGTH = 100;
 
     init(width: number, height: number) {
 
@@ -40,9 +46,11 @@ export class FDGCalculator {
         this.densityMapCalculator = new DensityMapCalculator();
         this.densityMapCalculator.init(width, height);
 
+        this.attractionStiffnessLoc = this.attractionShader.getUniformLocation('u_stiffness');
+        this.attractionLengthLoc = this.attractionShader.getUniformLocation('u_length');
 
         this.repulsionPyramidSizeLoc = this.repulsionShader.getUniformLocation('u_pyramid_size');
-        this.repulsionDimensionLac = this.repulsionShader.getUniformLocation('u_dimension');
+        this.repulsionDimensionLoc = this.repulsionShader.getUniformLocation('u_dimension');
 
         this.initialized = true;
     }
@@ -55,6 +63,9 @@ export class FDGCalculator {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.infosBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.neighboursBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.attractionBuffers);
+
+        gl.uniform1f(this.attractionStiffnessLoc, this.ATTRACTION_STIFFNESS);
+        gl.uniform1f(this.attractionLengthLoc, this.ATTRACTION_LENGTH);
 
         gl.dispatchCompute(this.NUM_SAMPLES / AppConfig.WORK_GROUP_SIZE, 1, 1);
 
@@ -73,7 +84,7 @@ export class FDGCalculator {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.repulsionBuffers);
 
         gl.uniform1ui(this.repulsionPyramidSizeLoc, levels);
-        gl.uniform2f(this.repulsionDimensionLac, this.width, this.height);
+        gl.uniform2f(this.repulsionDimensionLoc, this.width, this.height);
 
         //for()
         //gl.bindImageTexture(0, input.texture, 0, false, 0, gl.READ_ONLY, gl.R32F);

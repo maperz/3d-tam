@@ -3,6 +3,7 @@ import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
+import {ClearCompute} from '../shaders/compute/ClearCompute';
 import {DilationCompute} from '../shaders/compute/DilationCompute';
 
 export class Dilator {
@@ -15,6 +16,10 @@ export class Dilator {
 
     private initialized = false;
 
+    private clearShader: Shader;
+
+    private outputSizeClearShaderLoc: WebGLUniformLocation;
+
     init(width: number, height: number, radius: number) {
         this.radius = radius;
         this.width = width;
@@ -26,12 +31,27 @@ export class Dilator {
         gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
         this.dilationShader = createShaderFromSources(DilationCompute);
+        this.clearShader  = createShaderFromSources(ClearCompute);
+
+        this.outputSizeClearShaderLoc = this.clearShader.getUniformLocation('u_outputSize');
+
         this.initialized = true;
+    }
+
+    private clearPreviousOutput() {
+        this.clearShader.use();
+        gl.uniform2i(this.outputSizeClearShaderLoc, this.width, this.height);
+        gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+        gl.dispatchCompute(Math.ceil(this.width / AppConfig.WORK_GROUP_SIZE), Math.ceil(this.height / AppConfig.WORK_GROUP_SIZE), 1);
+        gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        this.clearShader.unuse();
     }
 
     dilate(samples: number, position: WebGLBuffer, values: WebGLBuffer): WebGLTexture {
 
         TPAssert(this.initialized, 'Dilator needs to be initialized before usage.');
+
+        this.clearPreviousOutput();
 
         this.dilationShader.use();
 
@@ -49,6 +69,9 @@ export class Dilator {
         this.dilationShader.unuse();
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+
+        gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+
 
         return this.output;
     }

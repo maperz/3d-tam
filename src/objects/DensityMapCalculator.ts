@@ -3,6 +3,7 @@ import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
+import {ClearCompute} from '../shaders/compute/ClearCompute';
 import {DensityCompute} from '../shaders/compute/DensityCompute';
 import {RasterizeCompute} from '../shaders/compute/RasterizeCompute';
 import {FDGBuffers} from './FDGBuffers';
@@ -18,6 +19,7 @@ export class DensityMapCalculator {
     private textures: Texture[];
     private densityShader: Shader;
     private rasterizeShader: Shader;
+    private clearShader: Shader;
 
     private levels: number;
 
@@ -26,6 +28,7 @@ export class DensityMapCalculator {
     private numSamplesLoc: WebGLUniformLocation;
 
     private outputSizeLoc: WebGLUniformLocation;
+    private outputSizeClearShaderLoc: WebGLUniformLocation;
 
     init(width: number, height: number) {
         TPAssert(width == height, 'Width and height must be the same, different sizes are not supported');
@@ -44,12 +47,15 @@ export class DensityMapCalculator {
         this.rasterizeShader = createShaderFromSources(RasterizeCompute);
         this.numSamplesLoc = this.rasterizeShader.getUniformLocation('u_num');
 
+        this.clearShader = createShaderFromSources(ClearCompute);
+        this.outputSizeClearShaderLoc = this.clearShader.getUniformLocation('u_outputSize');
 
         this.isInitialized = true;
     }
 
     calculateDensityMap(input: FDGBuffers): Texture[] {
         TPAssert(this.isInitialized, 'DensityMapCalculator needs to be initialized before usage. Use GradientInterpolator::init.');
+        this.clearTextureValues();
         this.rasterizePositions(input);
         this.calculateDensities();
         return this.textures;
@@ -57,6 +63,18 @@ export class DensityMapCalculator {
 
     getTexture(index: number) {
         return this.textures[index];
+    }
+
+    private clearTextureValues() {
+        this.clearShader.use();
+
+        for (let texture of this.textures) {
+            gl.uniform2i(this.outputSizeClearShaderLoc, texture.width, texture.height);
+            gl.bindImageTexture(0, texture.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+            gl.dispatchCompute(Math.ceil(texture.width / AppConfig.WORK_GROUP_SIZE), Math.ceil(texture.height / AppConfig.WORK_GROUP_SIZE), 1);
+        }
+        gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        this.clearShader.unuse();
     }
 
     private generateTextures() {

@@ -56,6 +56,7 @@ export class GedcomPreparator {
             const p = people[id];
             this.idTranslateTable.set(p.pointer, id);
             const nameEntry = p.tree.find(e => e.tag === 'NAME');
+            const birthEntry = p.tree.find(e => e.tag === 'BIRT');
 
             // TODO: Read age and normalize
             const age = Math.random();

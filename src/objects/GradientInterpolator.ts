@@ -1,7 +1,9 @@
+import {AppConfig} from '../application/AppConfig';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
+import {ClearCompute} from '../shaders/compute/ClearCompute';
 import {PullCompute} from '../shaders/compute/PullCompute';
 import {PushCompute} from '../shaders/compute/PushCompute';
 import {Texture} from './Texture';
@@ -21,6 +23,7 @@ export class GradientInterpolator {
 
     private pushShader: Shader;
     private pullShader: Shader;
+    private clearShader: Shader;
 
     private numberIterationsPush: number;
     private numberIterationsPull: number;
@@ -28,6 +31,7 @@ export class GradientInterpolator {
     private pushOutputSizeLoc: WebGLUniformLocation;
     private pullInputSizeLoc: WebGLUniformLocation;
     private pullOutputSizeLoc: WebGLUniformLocation;
+    private outputSizeClearShaderLoc: WebGLUniformLocation;
 
     init(width: number, height: number) {
         TPAssert(width == height, 'Width and height must be the same, different sizes are not supported yet');
@@ -47,6 +51,9 @@ export class GradientInterpolator {
 
         this.pullInputSizeLoc = this.pullShader.getUniformLocation('u_inputSize');
         this.pullOutputSizeLoc = this.pullShader.getUniformLocation('u_outputSize');
+
+        this.clearShader  = createShaderFromSources(ClearCompute);
+        this.outputSizeClearShaderLoc = this.clearShader.getUniformLocation('u_outputSize');
 
         this.isInitialized = true;
     }
@@ -71,10 +78,31 @@ export class GradientInterpolator {
 
     calculateGradient(input: WebGLTexture): WebGLTexture {
         TPAssert(this.isInitialized, 'GradientInterpolator needs to be initialized before usage. Use GradientInterpolator::init.');
+        this.clearAllTextureValues();
         const inputTexture = new Texture(this.width, this.height, input);
         this.doPush(inputTexture);
         const output = this.doPull(inputTexture);
         return output;
+    }
+
+
+    private clearAllTextureValues() {
+        this.clearShader.use();
+
+        for (let texture of this.pushTextures) {
+            gl.uniform2i(this.outputSizeClearShaderLoc, texture.width, texture.height);
+            gl.bindImageTexture(0, texture.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+            gl.dispatchCompute(Math.ceil(texture.width / AppConfig.WORK_GROUP_SIZE), Math.ceil(texture.height / AppConfig.WORK_GROUP_SIZE), 1);
+        }
+
+        for (let texture of this.pullTextures) {
+            gl.uniform2i(this.outputSizeClearShaderLoc, texture.width, texture.height);
+            gl.bindImageTexture(0, texture.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+            gl.dispatchCompute(Math.ceil(texture.width / AppConfig.WORK_GROUP_SIZE), Math.ceil(texture.height / AppConfig.WORK_GROUP_SIZE), 1);
+        }
+
+        gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        this.clearShader.unuse();
     }
 
     private generateTextures() {
@@ -106,7 +134,6 @@ export class GradientInterpolator {
 
         this.numberIterationsPush = this.levels - 1;
         this.numberIterationsPull = this.levels - 1;
-
     }
 
     private doPush(startInput: Texture) {
