@@ -10,9 +10,6 @@ import {GedcomPreparator} from '../objects/ged/GedcomPreparator';
 import {GradientInterpolator} from '../objects/GradientInterpolator';
 import {GraphData} from '../objects/GraphData';
 import {HeightMapRenderer} from '../objects/HeightMapRenderer';
-import {TestGraphData} from '../objects/TestGraphData';
-
-import gedcom = require("parse-gedcom");
 
 enum RenderMode {
     ShowDilate = 'Show Dilate',
@@ -31,9 +28,8 @@ export class ComputeApplication extends ComputeGLApplication {
     readonly WIDTH = 1024;
     readonly HEIGHT = 1024;
 
-    readonly DILATE_RADIUS = 1;
+    readonly DILATE_RADIUS = 2;
     readonly NUM_SAMPLES = 200;
-
 
     graphData: GraphData;
 
@@ -52,9 +48,6 @@ export class ComputeApplication extends ComputeGLApplication {
     heightMapRenderer: HeightMapRenderer;
     perspective: mat4;
 
-    inputPositions: WebGLBuffer;
-    inputValues: WebGLBuffer;
-
     needsUpdate = true;
 
     private settings = {
@@ -62,7 +55,7 @@ export class ComputeApplication extends ComputeGLApplication {
         pullIteration: 10,
         densityIteration: 0,
         logDensity: false,
-        mode : RenderMode.ShowAll,
+        mode : RenderMode.ShowDilate,
         height: 2,
     };
 
@@ -73,7 +66,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
     loadGraphData(): void {
         const input = (<HTMLScriptElement>document.getElementById('gedcom')).text;
-        const res = (<GedcomParser>gedcom).parse(input);
         const preparator = new GedcomPreparator();
         preparator.init(input);
         this.graphData = preparator.getGraphData();
@@ -89,25 +81,6 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.viewport(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         canvas.style.backgroundColor = 'black';
-
-
-        // TODO: Delete This
-        /*
-        * BEGIN DELETE
-        */
-        const [positions, values] = this.generateRandomInput(this.NUM_SAMPLES);
-
-        this.inputPositions = gl.createBuffer();
-        gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, this.inputPositions);
-        gl.bufferData(gl.SHADER_STORAGE_BUFFER, positions, gl.STATIC_COPY);
-
-        this.inputValues = gl.createBuffer();
-        gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, this.inputValues);
-        gl.bufferData(gl.SHADER_STORAGE_BUFFER, values, gl.STATIC_COPY);
-        gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
-        /*
-        * END DELETE
-        * */
 
         this.loadGraphData();
 
@@ -244,7 +217,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
         if (this.needsUpdate) {
             this.fdgCalculator.updatePositions(this.fdgBuffers);
-            //this.dilateOut = this.dilator.dilate(this.NUM_SAMPLES, this.inputPositions, this.inputValues);
             this.dilateOut = this.dilator.dilate(this.fdgBuffers.numSamples, this.fdgBuffers.positionBuffer, this.fdgBuffers.valuesBuffer);
             this.heightMap = this.gradientInterpolator.calculateGradient(this.dilateOut);
             //this.needsUpdate = false;

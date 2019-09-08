@@ -6,6 +6,10 @@ layout(binding = 0, r32f) writeonly highp uniform image2D u_output;
 
 uniform ivec2 u_outputSize;
 
+uniform float u_value;
+uniform float u_border_value;
+uniform int u_setborder;
+
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
 
@@ -13,6 +17,12 @@ void main() {
         return;
     }
 
-    imageStore(u_output, pos, vec4(0.0));
+    if(u_setborder > 0 && pos.x == 0 ||  pos.x == u_outputSize.x - 1 ||
+        pos.y == 0 ||  pos.y == u_outputSize.y - 1) {
+        imageStore(u_output, pos, vec4(u_border_value));
+        return;
+    }
+
+    imageStore(u_output, pos, vec4(u_value));
 
 }

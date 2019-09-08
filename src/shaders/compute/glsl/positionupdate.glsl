@@ -12,7 +12,7 @@ void main() {
     uint id = gl_GlobalInvocationID.x;
 
     vec2 f_attr = attraction.forces[id];
-    vec2 f_rep = attraction.forces[id];
+    vec2 f_rep = repulsion.forces[id];
     vec2 pos = positions.data[id];
     positions.data[id] = pos + f_attr + f_rep;
 }

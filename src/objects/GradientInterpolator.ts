@@ -89,7 +89,20 @@ export class GradientInterpolator {
     private clearAllTextureValues() {
         this.clearShader.use();
 
+        let firstLayer = true;
+        gl.uniform1f(this.clearShader.getUniformLocation('u_value'), 0.0);
+        gl.uniform1f(this.clearShader.getUniformLocation('u_border_value'), 0.000000001);
+
         for (let texture of this.pushTextures) {
+
+            if(firstLayer) {
+                gl.uniform1i(this.clearShader.getUniformLocation('u_setborder'), 1);
+                firstLayer = false;
+            }
+            else {
+                gl.uniform1i(this.clearShader.getUniformLocation('u_setborder'), 0);
+            }
+
             gl.uniform2i(this.outputSizeClearShaderLoc, texture.width, texture.height);
             gl.bindImageTexture(0, texture.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
             gl.dispatchCompute(Math.ceil(texture.width / AppConfig.WORK_GROUP_SIZE), Math.ceil(texture.height / AppConfig.WORK_GROUP_SIZE), 1);

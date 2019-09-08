@@ -1,4 +1,3 @@
-import {formatWithOptions} from 'util';
 import {AppConfig} from '../application/AppConfig';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
@@ -9,11 +8,11 @@ import {PositionUpdateCompute} from '../shaders/compute/PositionUpdateCompute';
 import {RepulsionCompute} from '../shaders/compute/RepulsionCompute';
 import {DensityMapCalculator} from './DensityMapCalculator';
 import {FDGBuffers} from './FDGBuffers';
+import {Texture} from './Texture';
 
 export class FDGCalculator {
 
     readonly NUM_SAMPLES = 200;
-
 
     width: number;
     height: number;
@@ -32,8 +31,8 @@ export class FDGCalculator {
     attractionStiffnessLoc: WebGLUniformLocation;
     attractionLengthLoc: WebGLUniformLocation;
 
-    private readonly ATTRACTION_STIFFNESS = 0.1;
-    private readonly ATTRACTION_LENGTH = 100;
+    private readonly ATTRACTION_STIFFNESS = 0.02;
+    private readonly ATTRACTION_LENGTH = 200;
 
     init(width: number, height: number) {
 
@@ -77,7 +76,7 @@ export class FDGCalculator {
         this.attractionShader.unuse();
     }
 
-    private calculateRepulsionForces(buffers: FDGBuffers, density: WebGLTexture, levels: number) {
+    private calculateRepulsionForces(buffers: FDGBuffers, pyramid: Texture[], levels: number) {
         this.repulsionShader.use();
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
@@ -86,8 +85,10 @@ export class FDGCalculator {
         gl.uniform1ui(this.repulsionPyramidSizeLoc, levels);
         gl.uniform2f(this.repulsionDimensionLoc, this.width, this.height);
 
-        //for()
-        //gl.bindImageTexture(0, input.texture, 0, false, 0, gl.READ_ONLY, gl.R32F);
+        for(let l = 0; l < levels; l++)
+        {
+            gl.bindImageTexture(0, pyramid[l].texture, 0, false, l, gl.READ_ONLY, gl.R32F);
+        }
 
         gl.dispatchCompute(this.NUM_SAMPLES / AppConfig.WORK_GROUP_SIZE, 1, 1);
 
@@ -116,13 +117,12 @@ export class FDGCalculator {
     updatePositions(buffers: FDGBuffers) {
         TPAssert(this.initialized, 'FDGCalculator needs to be initialized first before usage.');
 
-        this.densityMapCalculator.calculateDensityMap(buffers);
-
-        const density = this.densityMapCalculator.getDensityTexture();
+        const pyramid = this.densityMapCalculator.calculateDensityMap(buffers);
+        //const density = this.densityMapCalculator.getDensityTexture();
         const levels = this.densityMapCalculator.getLevels();
 
         this.calculateAttractionForces(buffers);
-        this.calculateRepulsionForces(buffers, density, levels);
+        this.calculateRepulsionForces(buffers, pyramid, levels);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
         this.calculatePositionUpdates(buffers);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);

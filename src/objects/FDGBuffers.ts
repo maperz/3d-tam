@@ -72,9 +72,9 @@ export class FDGBuffers {
         // Y: y-value of position
         */
         const buffer = gl.createBuffer();
+
         const count = graph.getCount();
         const data = new Array(count * 2).fill(0);
-
 
         const tw = this.width / 3;
         const th = this.height / 3;
@@ -149,9 +149,11 @@ export class FDGBuffers {
 
         for(let i = 0; i < graph.getCount(); i++) {
             const neighbours = graph.getNeighbours(i);
-            data.push(neighbours);
+            for(let neighbour of neighbours) {
+                data.push(neighbour);
+            }
         }
-
+        
         const infos = new Int32Array(data);
 
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);

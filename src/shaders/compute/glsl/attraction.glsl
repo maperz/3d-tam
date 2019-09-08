@@ -9,7 +9,6 @@ struct PointInfo {
     int offset;
 };
 
-
 layout (std430, binding = 0) buffer PositionBuffer { vec2 data[]; } positions;
 layout (std430, binding = 1) buffer InfoBuffer { PointInfo infos[]; } infos;
 layout (std430, binding = 2) buffer NeighboursBuffer { int data[]; } neighbours;

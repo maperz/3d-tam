@@ -52,18 +52,47 @@ export class GedcomPreparator {
 
     private buildPersonTable(all: Array<GedcomObject>) {
         const people = all.filter(entry => entry.tag === 'INDI');
+
+        let minYear = Infinity, maxYear = 0;
+        const yearRegex = /(\d{4})/g;
+
         for(let id = 0; id < people.length; id++) {
             const p = people[id];
             this.idTranslateTable.set(p.pointer, id);
             const nameEntry = p.tree.find(e => e.tag === 'NAME');
             const birthEntry = p.tree.find(e => e.tag === 'BIRT');
 
+            let age : number | null = null;
             // TODO: Read age and normalize
-            const age = Math.random();
+            if(birthEntry) {
+                const treeEntry = birthEntry.tree.find(e => e.tag === 'DATE')
+                const ageDescription : string | null = (treeEntry ? treeEntry.data : "").trim();
+                const matches = yearRegex.exec(ageDescription);
+                if(matches && matches.length > 0) {
+                    age = Number.parseInt(matches[0]);
+                    minYear = Math.min(age, minYear);
+                    maxYear = Math.max(age, maxYear);
+                }
+
+            }
+
             const data = {name: nameEntry ? nameEntry.data : 'Unnamed', age: age}
 
             this.personTable.set(id, data);
             this.connectionTable.set(id, new Set());
+        }
+
+        const diff = maxYear - minYear > 0 ? maxYear - minYear : 1;
+        for(let id = 0; id < people.length; id++) {
+            let person = this.personTable.get(id);
+            if(person.age == null) {
+                // TODO: This edgecase should be carefully considered and maybe not set to maxAge
+                person.age = maxYear;
+            }
+            person.age = (person.age - minYear) / diff;
+            // Don't set the age to zero since it won't be distinguishable from non values
+            person.age = Math.max(person.age, 0.0000001);
+            this.personTable.set(id, person);
         }
     }
 

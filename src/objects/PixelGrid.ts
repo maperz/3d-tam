@@ -55,9 +55,9 @@ export class PixelGrid {
 
     private createChunk(startRow: number, endRow: number) {
         // console.log('Creating chunk from ' + startRow + ' to ' + endRow);
-        const vertices = [];
-        const indices = [];
-        const pixels = [];
+        const vertices: number[] = [];
+        const indices: number[] = [];
+        const pixels: number[] = [];
 
         const offsetX = -this.width / 2.0;
         const offsetY = -this.height / 2.0;

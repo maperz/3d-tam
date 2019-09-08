@@ -14,9 +14,15 @@ function _main() {
     try {
         main();
     } catch (exception) {
-        document.getElementById('error').removeAttribute('hidden');
-        document.getElementById('error').innerHTML = exception.stack;
         console.error('Exception thrown at main', exception.stack);
+        const error = document.getElementById('error');
+
+        if(error == null) {
+            return;
+        }
+
+        error.removeAttribute('hidden');
+        error.innerHTML = exception.stack;
     }
 }
 
