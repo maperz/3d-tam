@@ -153,7 +153,7 @@ export class FDGBuffers {
                 data.push(neighbour);
             }
         }
-        
+
         const infos = new Int32Array(data);
 
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);

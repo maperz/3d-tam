@@ -55,7 +55,7 @@ export class ComputeApplication extends ComputeGLApplication {
         pullIteration: 10,
         densityIteration: 0,
         logDensity: false,
-        mode : RenderMode.ShowDilate,
+        mode : RenderMode.ShowAll,
         height: 2,
     };
 
@@ -97,7 +97,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.gradientInterpolator.init(this.WIDTH, this.HEIGHT);
 
         this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, this.WIDTH, this.HEIGHT);
+        this.heightMapRenderer.init(10, 10, 128, 128, this.WIDTH, this.HEIGHT);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = mat4.perspective(mat4.create(), 70, aspect, 0.1, 30);

@@ -3,7 +3,7 @@ export class PixelGrid {
 
     private readonly vertices = new Array<Float32Array>();
     private readonly indices = new Array<Uint16Array>();
-    private readonly pixels = new Array<Int32Array>();
+    private readonly pixels = new Array<Float32Array>();
     private readonly chunkCount: number;
 
     private readonly MAX_INDICES_PER_CHUNK = 2 ** 16 - 10; // - 10 For Tolerance
@@ -14,18 +14,18 @@ export class PixelGrid {
 
     constructor(private width: number,
                 private height: number,
-                private pixelX: number,
-                private pixelY: number) {
+                private tilesX: number,
+                private tilesY: number) {
 
-        this.tileSizeX = width / (pixelX - 1);
-        this.tileSizeY = height / (pixelY - 1);
+        this.tileSizeX = width / (tilesX - 1);
+        this.tileSizeY = height / (tilesY - 1);
 
         const indicesPerTile = 6;
-        const tilesPerRow = (pixelX - 1);
+        const tilesPerRow = (tilesX - 1);
         const indicesPerRow = indicesPerTile * tilesPerRow;
 
         const rowsPerChunk = Math.floor(this.MAX_INDICES_PER_CHUNK / indicesPerRow);
-        const totalRows = pixelY;
+        const totalRows = tilesY;
 
         this.chunkCount = Math.ceil(totalRows / rowsPerChunk);
 
@@ -49,7 +49,7 @@ export class PixelGrid {
         return this.indices;
     }
 
-    getPixels(): Int32Array[] {
+    getPixels(): Float32Array[] {
         return this.pixels;
     }
 
@@ -63,19 +63,19 @@ export class PixelGrid {
         const offsetY = -this.height / 2.0;
 
         for (let y = startRow; y <= endRow; ++y) {
-            for (let x = 0; x < this.pixelX; ++x) {
+            for (let x = 0; x < this.tilesX; ++x) {
                 const positionX = offsetX + x * this.tileSizeX;
                 const positionY = offsetY + y * this.tileSizeY;
                 vertices.push(positionX, positionY);
-                pixels.push(x, y);
+                pixels.push(x / this.tilesX, y / this.tilesY);
             }
         }
 
         const numRows = endRow - startRow;
         for (let y = 0; y < numRows; ++y) {
-            for (let x = 0; x < this.pixelX - 1; ++x) {
-                const i = x + this.pixelX * y;
-                const iPlusRow = i + this.pixelX;
+            for (let x = 0; x < this.tilesX - 1; ++x) {
+                const i = x + this.tilesX * y;
+                const iPlusRow = i + this.tilesX;
 
                 // TODO: This is incomplete
                 indices.push(i, i + 1);
@@ -88,7 +88,7 @@ export class PixelGrid {
 
         this.vertices.push(new Float32Array(vertices));
         this.indices.push(new Uint16Array(indices));
-        this.pixels.push(new Int32Array(pixels));
+        this.pixels.push(new Float32Array(pixels));
     }
 
 }

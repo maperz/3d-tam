@@ -14,10 +14,17 @@ export class HeightMapRenderer {
 
     private shader: Shader;
     private chunkInfos: ChunkDrawInfo[];
+    private pixelsX: number;
+    private pixelsY: number;
 
-    init(width: number, height: number, pixelsX: number, pixelsY: number) {
+    // TODO: Add numTilesX and numTilesY to control the resolution
+    init(width: number, height: number, tilesX: number, tilesY: number, pixelsX: number, pixelsY: number) {
+
+        this.pixelsX = pixelsX;
+        this.pixelsY = pixelsY;
+
         this.shader = createShaderFromSources(HeightMapShader);
-        const grid = new PixelGrid(width, height, pixelsX, pixelsY);
+        const grid = new PixelGrid(width, height, tilesX, tilesY);
 
         this.chunkInfos = new Array<ChunkDrawInfo>();
 
@@ -55,6 +62,8 @@ export class HeightMapRenderer {
         const colorLocation = this.shader.getUniformLocation('u_color');
         gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
 
+        gl.uniform2f(this.shader.getUniformLocation('u_size'), this.pixelsX, this.pixelsY);
+
         const heightLocation = this.shader.getUniformLocation('u_height');
         gl.uniform1f(heightLocation, height);
 
@@ -67,7 +76,7 @@ export class HeightMapRenderer {
         this.shader.unuse();
     }
 
-    private createChunkInfo(vertices: Float32Array, indices: Uint16Array, pixels: Int32Array): ChunkDrawInfo {
+    private createChunkInfo(vertices: Float32Array, indices: Uint16Array, pixels: Float32Array): ChunkDrawInfo {
 
         const vao = gl.createVertexArray();
         gl.bindVertexArray(vao);
@@ -91,7 +100,7 @@ export class HeightMapRenderer {
         gl.bindBuffer(gl.ARRAY_BUFFER, pixelBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, pixels, gl.STATIC_DRAW);
         gl.enableVertexAttribArray(1);
-        gl.vertexAttribIPointer(1, 2, gl.INT, 0, 0);
+        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
         gl.bindVertexArray(null);
 
         return new ChunkDrawInfo(vao, elements);
