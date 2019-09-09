@@ -4,5 +4,5 @@ export const RepulsionCompute = new GLSLSources(
     'RepulsionCompute',
     null,
     null,
-    require('./glsl/repulsion.glsl')
+    require('./glsl/bruteforce_repulsion.glsl')
 );

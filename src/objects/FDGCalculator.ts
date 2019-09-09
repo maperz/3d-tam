@@ -32,7 +32,7 @@ export class FDGCalculator {
     attractionLengthLoc: WebGLUniformLocation;
 
     private readonly ATTRACTION_STIFFNESS = 0.02;
-    private readonly ATTRACTION_LENGTH = 200;
+    private readonly ATTRACTION_LENGTH = 50;
 
     init(width: number, height: number) {
 
@@ -81,8 +81,12 @@ export class FDGCalculator {
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.repulsionBuffers);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.infosBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.neighboursBuffer);
 
         gl.uniform1ui(this.repulsionPyramidSizeLoc, levels);
+        gl.uniform1i(this.repulsionShader.getUniformLocation('u_totalCount'), buffers.numSamples);
+
         gl.uniform2f(this.repulsionDimensionLoc, this.width, this.height);
 
         for(let l = 0; l < levels; l++)
@@ -94,6 +98,9 @@ export class FDGCalculator {
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, null);
+
 
         this.repulsionShader.unuse();
     }

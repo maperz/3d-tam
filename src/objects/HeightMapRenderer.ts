@@ -17,7 +17,6 @@ export class HeightMapRenderer {
     private pixelsX: number;
     private pixelsY: number;
 
-    // TODO: Add numTilesX and numTilesY to control the resolution
     init(width: number, height: number, tilesX: number, tilesY: number, pixelsX: number, pixelsY: number) {
 
         this.pixelsX = pixelsX;

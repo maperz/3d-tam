@@ -37,17 +37,33 @@ export class FDGBuffers {
         return this._valuesBuffer;
     }
 
+    get connectionsBuffer(): WebGLBuffer {
+        TPAssert(this._connectionsBuffer != null, 'Connections Buffer not created yet!');
+        return this._connectionsBuffer;
+    }
+
     get numSamples(): number {
         return this._numSamples;
     }
 
+    get count(): number {
+        return this._numSamples;
+    }
+
+    get connectionsCount(): number {
+        return this._numConnections;
+    }
+
     private _numSamples: number = 0;
+    private _numConnections: number = 0;
+
     private _positionBuffer: WebGLBuffer;
     private _infosBuffer: WebGLBuffer;
     private _neighboursBuffer: WebGLBuffer;
     private _attractionBuffers: WebGLBuffer;
     private _repulsionBuffers: WebGLBuffer;
     private _valuesBuffer: WebGLBuffer;
+    private _connectionsBuffer: WebGLBuffer;
 
     init(width: number, height: number, graph: GraphData) {
 
@@ -61,6 +77,7 @@ export class FDGBuffers {
         this._infosBuffer = this.createInfoBuffer(graph);
         this._neighboursBuffer = this.createNeighboursBuffer(graph);
         this._valuesBuffer = this.createValuesBuffer(graph);
+        [this._connectionsBuffer, this._numConnections] = this.createConnectionsBuffer(graph);
     }
 
     private createPositionsBuffer(graph: GraphData): WebGLBuffer {
@@ -227,5 +244,38 @@ export class FDGBuffers {
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
 
         return buffer;
+    }
+
+    private createConnectionsBuffer(graph: GraphData): [WebGLBuffer, number] {
+        /* Connections buffer has following entries:
+        //
+        // | Id_0a |  Id_0b | Id_1a ...
+        //
+        // Id_0a: First id of node in connection 0
+        // Id_0a: Second id of node in connection 0
+        */
+
+        const buffer = gl.createBuffer();
+
+        let count = 0;
+        let data = [];
+
+        for(let i = 0; i < graph.getCount(); i++) {
+            const neighbours = graph.getNeighbours(i);
+            for(const n of neighbours) {
+                if(n > i) {
+                    data.push(i, n);
+                    count++;
+                }
+            }
+        }
+
+        const values = new Int32Array(data);
+
+        gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
+        gl.bufferData(gl.SHADER_STORAGE_BUFFER, values, gl.STATIC_COPY);
+        gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+
+        return [buffer, count];
     }
 }

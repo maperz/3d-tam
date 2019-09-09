@@ -6,18 +6,20 @@ import {TPAssert} from '../engine/error/TPException';
 import {Dilator} from '../objects/Dilator';
 import {FDGBuffers} from '../objects/FDGBuffers';
 import {FDGCalculator} from '../objects/FDGCalculator';
+import {FDGDebugRenderer} from '../objects/FDGDebugRenderer';
 import {GedcomPreparator} from '../objects/ged/GedcomPreparator';
 import {GradientInterpolator} from '../objects/GradientInterpolator';
 import {GraphData} from '../objects/GraphData';
 import {HeightMapRenderer} from '../objects/HeightMapRenderer';
 
 enum RenderMode {
-    ShowDilate = 'Show Dilate',
-    ShowPush = 'Show Push',
-    ShowPull = 'Show Pull',
-    ShowDensity = 'Show Density',
-    Show3D = 'Show 3D',
-    ShowAll = 'Show All',
+    Dilate = 'Show Dilate',
+    Push = 'Show Push',
+    Pull = 'Show Pull',
+    Density = 'Show Density',
+    Scene3D = 'Show 3D Scene',
+    All = 'Show All',
+    FDGDebug = 'FDG Debug',
 }
 
 export class ComputeApplication extends ComputeGLApplication {
@@ -46,23 +48,23 @@ export class ComputeApplication extends ComputeGLApplication {
     modelRotationY: number = 0;
 
     heightMapRenderer: HeightMapRenderer;
-    perspective: mat4;
+    fdgDebugRenderer: FDGDebugRenderer;
 
-    needsUpdate = true;
+    perspective: mat4;
 
     private settings = {
         pushIteration: 1,
         pullIteration: 10,
         densityIteration: 0,
         logDensity: false,
-        mode : RenderMode.ShowAll,
+        mode : RenderMode.FDGDebug,
         height: 2,
+        updateGraph: true
     };
 
     start(): void {
         super.start({antialias : false});
     }
-
 
     loadGraphData(): void {
         const input = (<HTMLScriptElement>document.getElementById('gedcom')).text;
@@ -97,7 +99,10 @@ export class ComputeApplication extends ComputeGLApplication {
         this.gradientInterpolator.init(this.WIDTH, this.HEIGHT);
 
         this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, 128, 128, this.WIDTH, this.HEIGHT);
+        this.heightMapRenderer.init(10, 10, 1024,  1024, this.WIDTH, this.HEIGHT);
+
+        this.fdgDebugRenderer = new FDGDebugRenderer();
+        this.fdgDebugRenderer.init(this.fdgBuffers);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = mat4.perspective(mat4.create(), 70, aspect, 0.1, 30);
@@ -125,16 +130,19 @@ export class ComputeApplication extends ComputeGLApplication {
         // TODO: Change items to something relative to iterations
         gui.add(this.settings, 'densityIteration', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         gui.add(this.settings, 'mode', [
-            RenderMode.ShowAll,
-            RenderMode.ShowDilate,
-            RenderMode.ShowPush,
-            RenderMode.ShowPull,
-            RenderMode.ShowDensity,
-            RenderMode.Show3D,
+            RenderMode.All,
+            RenderMode.Dilate,
+            RenderMode.Push,
+            RenderMode.Pull,
+            RenderMode.Density,
+            RenderMode.Scene3D,
+            RenderMode.FDGDebug
         ]);
         gui.add(this.settings, 'logDensity');
 
         gui.add(this.settings, 'height', 0, 5);
+        gui.add(this.settings, 'updateGraph');
+
     }
 
     renderPush(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
@@ -215,7 +223,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     onUpdate(deltaTime: number): void {
 
-        if (this.needsUpdate) {
+        if (this.settings.updateGraph) {
             this.fdgCalculator.updatePositions(this.fdgBuffers);
             this.dilateOut = this.dilator.dilate(this.fdgBuffers.numSamples, this.fdgBuffers.positionBuffer, this.fdgBuffers.valuesBuffer);
             this.heightMap = this.gradientInterpolator.calculateGradient(this.dilateOut);
@@ -226,32 +234,32 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.clearDepth(1.0);
 
         switch (this.settings.mode) {
-            case RenderMode.ShowPush: {
+            case RenderMode.Push: {
                 this.renderPush();
                 break;
             }
 
-            case RenderMode.ShowPull: {
+            case RenderMode.Pull: {
                 this.renderPull();
                 break;
             }
 
-            case RenderMode.ShowDilate: {
+            case RenderMode.Dilate: {
                 this.renderDilate();
                 break;
             }
 
-            case RenderMode.Show3D: {
+            case RenderMode.Scene3D: {
                 this.render3d(deltaTime);
                 break;
             }
 
-            case RenderMode.ShowDensity: {
+            case RenderMode.Density: {
                 this.renderDensity();
                 break;
             }
 
-            case RenderMode.ShowAll: {
+            case RenderMode.All: {
                 //this.renderDilate(0,0, this.CANVAS_WIDTH/2,this.CANVAS_HEIGHT/2)
                 this.renderDensity(0, 0, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2);
                 this.renderPush(0, this.CANVAS_HEIGHT / 2, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT);
@@ -259,21 +267,11 @@ export class ComputeApplication extends ComputeGLApplication {
                 this.render3d(deltaTime, this.CANVAS_WIDTH / 2, 0, this.CANVAS_WIDTH / 2, this.CANVAS_HEIGHT / 2);
                 break;
             }
+
+            case RenderMode.FDGDebug: {
+                gl.viewport(0, 0, this.WIDTH, this.HEIGHT);
+                this.fdgDebugRenderer.drawDebugInfo(this.WIDTH , this.HEIGHT);
+            }
         }
     }
-
-    private generateRandomInput(samples: number): [Float32Array, Float32Array] {
-        const positions = new Float32Array(samples * 2);
-        const values = new Float32Array(samples);
-
-        for (let x = 0; x < samples; ++x) {
-            const pos = vec2.fromValues(Math.random(), Math.random());
-            positions[x * 2] = pos[0] * this.WIDTH;
-            positions[x * 2 + 1] = pos[1] * this.HEIGHT;
-            values[x] = Math.random();
-        }
-
-        return [positions, values];
-    }
-
 }
