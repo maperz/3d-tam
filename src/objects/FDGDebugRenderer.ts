@@ -3,8 +3,8 @@ import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
-import {FDGDebugLineShader} from '../shaders/fdgdebug/FDGDebugLineShader';
-import {FDGDebugShader} from '../shaders/fdgdebug/FDGDebugShader';
+import {FDGDebugLineShader} from '../shaders/debug/FDGDebugLineShader';
+import {FDGDebugShader} from '../shaders/debug/FDGDebugShader';
 import {FDGBuffers} from './FDGBuffers';
 
 export class FDGDebugRenderer {
@@ -76,7 +76,7 @@ export class FDGDebugRenderer {
         gl.uniform1f(sizeLocation, this.NODE_SIZE);
 
         gl.bindVertexArray(this.quadVao);
-        gl.drawArraysInstanced(gl.TRIANGLES, 0, 12, this.buffers.count);
+        gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.buffers.count);
         gl.bindVertexArray(null);
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
@@ -101,7 +101,7 @@ export class FDGDebugRenderer {
         gl.uniform1f(sizeLocation, this.EDGE_SIZE);
 
         gl.bindVertexArray(this.quadVao);
-        gl.drawArraysInstanced(gl.TRIANGLES, 0, 12, this.buffers.connectionsCount);
+        gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.buffers.connectionsCount);
         gl.bindVertexArray(null);
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);

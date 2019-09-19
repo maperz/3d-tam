@@ -11,6 +11,7 @@ import {GedcomPreparator} from '../objects/ged/GedcomPreparator';
 import {GradientInterpolator} from '../objects/GradientInterpolator';
 import {GraphData} from '../objects/GraphData';
 import {HeightMapRenderer} from '../objects/HeightMapRenderer';
+import {Transformer} from '../objects/Transformer';
 
 enum RenderMode {
     Dilate = 'Show Dilate',
@@ -18,6 +19,7 @@ enum RenderMode {
     Pull = 'Show Pull',
     Density = 'Show Density',
     Scene3D = 'Show 3D Scene',
+    Scene3DFlat = 'Show 3D Scene Flat',
     All = 'Show All',
     FDGDebug = 'FDG Debug',
 }
@@ -50,6 +52,8 @@ export class ComputeApplication extends ComputeGLApplication {
     heightMapRenderer: HeightMapRenderer;
     fdgDebugRenderer: FDGDebugRenderer;
 
+    transformer: Transformer;
+
     perspective: mat4;
 
     private settings = {
@@ -57,9 +61,10 @@ export class ComputeApplication extends ComputeGLApplication {
         pullIteration: 10,
         densityIteration: 0,
         logDensity: false,
-        mode : RenderMode.FDGDebug,
+        mode : RenderMode.Scene3D,
         height: 2,
-        updateGraph: true
+        updateGraph: true,
+        showPerson: false,
     };
 
     start(): void {
@@ -99,10 +104,13 @@ export class ComputeApplication extends ComputeGLApplication {
         this.gradientInterpolator.init(this.WIDTH, this.HEIGHT);
 
         this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, 1024,  1024, this.WIDTH, this.HEIGHT);
+        this.heightMapRenderer.init(10, 10, 128,  128, this.WIDTH, this.HEIGHT);
 
         this.fdgDebugRenderer = new FDGDebugRenderer();
         this.fdgDebugRenderer.init(this.fdgBuffers);
+
+        this.transformer = new Transformer();
+        this.transformer.init(this.WIDTH, this.HEIGHT);
 
         const aspect = canvas.width / canvas.height;
         this.perspective = mat4.perspective(mat4.create(), 70, aspect, 0.1, 30);
@@ -136,12 +144,14 @@ export class ComputeApplication extends ComputeGLApplication {
             RenderMode.Pull,
             RenderMode.Density,
             RenderMode.Scene3D,
-            RenderMode.FDGDebug
+            RenderMode.Scene3DFlat,
+            RenderMode.FDGDebug,
         ]);
         gui.add(this.settings, 'logDensity');
 
         gui.add(this.settings, 'height', 0, 5);
         gui.add(this.settings, 'updateGraph');
+        gui.add(this.settings, 'showPerson');
 
     }
 
@@ -218,7 +228,7 @@ export class ComputeApplication extends ComputeGLApplication {
         const model = mat4.mul(mat4.create(), rotationX, rotationY);
         const view = mat4.translate(mat4.create(), mat4.create(), vec3.fromValues(0, 0, -15));
 
-        this.heightMapRenderer.drawWireFrame(this.dilateOut, this.heightMap, this.settings.height, model, view, this.perspective);
+        this.heightMapRenderer.drawWireFrame(this.fdgBuffers, this.heightMap, this.settings.height, model, view, this.perspective, this.settings.showPerson);
     }
 
     onUpdate(deltaTime: number): void {
@@ -226,7 +236,11 @@ export class ComputeApplication extends ComputeGLApplication {
         if (this.settings.updateGraph) {
             this.fdgCalculator.updatePositions(this.fdgBuffers);
             this.dilateOut = this.dilator.dilate(this.fdgBuffers.numSamples, this.fdgBuffers.positionBuffer, this.fdgBuffers.valuesBuffer);
-            this.heightMap = this.gradientInterpolator.calculateGradient(this.dilateOut);
+            const gradient = this.gradientInterpolator.calculateGradient(this.dilateOut);
+            this.heightMap = gradient;
+            if(this.settings.mode == RenderMode.Scene3DFlat) {
+                this.heightMap = this.transformer.transform(gradient);
+            }
             //this.needsUpdate = false;
         }
 
@@ -249,7 +263,8 @@ export class ComputeApplication extends ComputeGLApplication {
                 break;
             }
 
-            case RenderMode.Scene3D: {
+            case RenderMode.Scene3D:
+            case RenderMode.Scene3DFlat: {
                 this.render3d(deltaTime);
                 break;
             }

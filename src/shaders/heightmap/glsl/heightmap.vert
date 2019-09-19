@@ -5,7 +5,6 @@ layout (location=0) in vec2 a_position;
 layout (location=1) in vec2 a_pixel;
 
 layout(binding = 0, r32f) readonly highp uniform image2D u_heightmap;
-layout(binding = 1, r32f) readonly highp uniform image2D u_dilated;
 
 uniform float u_height;
 
@@ -29,6 +28,6 @@ void main()
     gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
 
     //v_color = vec4(v_pixelvalue, 0.0, 0.0, 1.0);
-    v_color = vec4(v_pixelvalue, 0.0, 0.0, 1.0);
+    v_color = vec4(0.0, v_pixelvalue, 0.0, 1.0);
     //v_color = vec4(1.0);
 }
