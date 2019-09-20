@@ -180,7 +180,7 @@ export class ComputeApplication extends ComputeGLApplication {
         }
 
         function displayContents(contents) {
-            (<HTMLScriptElement>document.getElementById('gedcom')).tex = contents;
+            (<HTMLScriptElement>document.getElementById('gedcom')).text = contents;
             app.loadGraphData();
             app.initApp();
         }
@@ -188,7 +188,7 @@ export class ComputeApplication extends ComputeGLApplication {
         document.getElementById('upload')
             .addEventListener('change', readSingleFile, false);
 
-        gui.add(fileLoader, 'loadFile').name('Load CSV file');
+        gui.add(fileLoader, 'loadFile').name('Load GED file');
         gui.add(restartObject,'Restart');
     }
 
