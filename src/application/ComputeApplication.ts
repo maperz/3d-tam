@@ -65,6 +65,7 @@ export class ComputeApplication extends ComputeGLApplication {
         height: 2,
         updateGraph: true,
         showPerson: false,
+        numUpdates: 1,
     };
 
     start(): void {
@@ -152,6 +153,7 @@ export class ComputeApplication extends ComputeGLApplication {
         gui.add(this.settings, 'height', 0, 5);
         gui.add(this.settings, 'updateGraph');
         gui.add(this.settings, 'showPerson');
+        gui.add(this.settings, 'numUpdates');
 
     }
 
@@ -234,7 +236,9 @@ export class ComputeApplication extends ComputeGLApplication {
     onUpdate(deltaTime: number): void {
 
         if (this.settings.updateGraph) {
-            this.fdgCalculator.updatePositions(this.fdgBuffers);
+            for(let i = 0; i < this.settings.numUpdates; i++){
+                this.fdgCalculator.updatePositions(this.fdgBuffers);
+            }
             this.dilateOut = this.dilator.dilate(this.fdgBuffers.numSamples, this.fdgBuffers.positionBuffer, this.fdgBuffers.valuesBuffer);
             const gradient = this.gradientInterpolator.calculateGradient(this.dilateOut);
             this.heightMap = gradient;
