@@ -92,6 +92,16 @@ export class ComputeApplication extends ComputeGLApplication {
 
         this.loadGraphData();
 
+        this.initGUI();
+
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+
+        this.initApp();
+    }
+
+    initApp() {
+
         this.fdgBuffers = new FDGBuffers();
         this.fdgBuffers.init(this.WIDTH, this.HEIGHT, this.graphData);
 
@@ -118,12 +128,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
         // create frameBuffer to read from texture
         this.frameBuffer = gl.createFramebuffer();
-
-        this.initGUI();
-
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-
     }
 
     initGUI(): void {
@@ -131,7 +135,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
         gui.remember(this.settings);
         const iterations = [];
-        for (let iteration = 1; iteration <= this.gradientInterpolator.getNumberIterationsPush(); iteration++) {
+        for (let iteration = 1; iteration <= 10; iteration++) {
             iterations.push(iteration);
         }
         gui.add(this.settings, 'pushIteration', iterations);
@@ -149,12 +153,43 @@ export class ComputeApplication extends ComputeGLApplication {
             RenderMode.FDGDebug,
         ]);
         gui.add(this.settings, 'logDensity');
-
         gui.add(this.settings, 'height', 0, 5);
         gui.add(this.settings, 'updateGraph');
         gui.add(this.settings, 'showPerson');
-        gui.add(this.settings, 'numUpdates');
+        gui.add(this.settings, 'numUpdates', 0, 1000);
 
+        const app = this;
+        const restartObject = {Restart: function(){ app.initApp(); }};
+        const fileLoader = {
+            loadFile : function() {
+                document.getElementById('upload').click();
+            }
+        };
+
+        function readSingleFile(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = reader.result;
+                displayContents(contents);
+            };
+            reader.readAsText(file);
+        }
+
+        function displayContents(contents) {
+            (<HTMLScriptElement>document.getElementById('gedcom')).tex = contents;
+            app.loadGraphData();
+            app.initApp();
+        }
+
+        document.getElementById('upload')
+            .addEventListener('change', readSingleFile, false);
+
+        gui.add(fileLoader, 'loadFile').name('Load CSV file');
+        gui.add(restartObject,'Restart');
     }
 
     renderPush(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
