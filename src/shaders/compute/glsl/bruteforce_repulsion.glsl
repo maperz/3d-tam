@@ -2,7 +2,6 @@
 
 #define WORKGROUP_SIZE 16
 #define MAX_PYRAMID_SIZE 16
-#define MAX_PERSONS_COUNT 1024
 
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
@@ -27,35 +26,15 @@ void main() {
     uint id = gl_GlobalInvocationID.x;
     PointInfo info = infos.infos[id];
 
-
-    bool notNeighbour[MAX_PERSONS_COUNT];
-
-    for(int i = 0; i < u_totalCount; ++i){
-        notNeighbour[i] = true;
-    }
-
-
-    notNeighbour[id] = false;
-
-
-    if(info.count > 0) {
-        for(int i = 0; i < info.count; i++) {
-            int neighbourId = neighbours.data[info.offset + i];
-            notNeighbour[neighbourId] = false;
-        }
-    }
-
     vec2 force = vec2(0, 0);
 
     vec2 position = positions.data[id];
     for(int i = 0; i < u_totalCount; ++i){
-        if(notNeighbour[i]) {
-            vec2 other_pos = positions.data[i];
-            vec2 vec = position - other_pos;
-            float dist = length(vec);
-            vec2 f = normalize(vec) / max(1.0, dist * dist) * 1000.0;
-            force += f;
-        }
+        vec2 other_pos = positions.data[i];
+        vec2 vec = position - other_pos;
+        float dist = length(vec);
+        vec2 f = normalize(vec) / max(1.0, dist * dist) * 1000.0;
+        force += f;
     }
 
     repulsion.forces[id] = force;

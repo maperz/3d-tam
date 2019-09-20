@@ -1,4 +1,5 @@
 import {AppConfig} from '../application/AppConfig';
+import {APP_SETTINGS} from '../application/Settings';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
@@ -12,7 +13,7 @@ import {Texture} from './Texture';
 
 export class FDGCalculator {
 
-    readonly NUM_SAMPLES = 200;
+    NUM_SAMPLER = 200;
 
     width: number;
     height: number;
@@ -30,9 +31,6 @@ export class FDGCalculator {
 
     attractionStiffnessLoc: WebGLUniformLocation;
     attractionLengthLoc: WebGLUniformLocation;
-
-    private readonly ATTRACTION_STIFFNESS = 0.02;
-    private readonly ATTRACTION_LENGTH = 50;
 
     init(width: number, height: number) {
 
@@ -63,10 +61,10 @@ export class FDGCalculator {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.neighboursBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.attractionBuffers);
 
-        gl.uniform1f(this.attractionStiffnessLoc, this.ATTRACTION_STIFFNESS);
-        gl.uniform1f(this.attractionLengthLoc, this.ATTRACTION_LENGTH);
+        gl.uniform1f(this.attractionStiffnessLoc, APP_SETTINGS.attraction_stiffness);
+        gl.uniform1f(this.attractionLengthLoc, APP_SETTINGS.attraction_length);
 
-        gl.dispatchCompute(this.NUM_SAMPLES / AppConfig.WORK_GROUP_SIZE, 1, 1);
+        gl.dispatchCompute(buffers.numSamples / AppConfig.WORK_GROUP_SIZE, 1, 1);
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
@@ -94,7 +92,7 @@ export class FDGCalculator {
             gl.bindImageTexture(0, pyramid[l].texture, 0, false, l, gl.READ_ONLY, gl.R32F);
         }
 
-        gl.dispatchCompute(this.NUM_SAMPLES / AppConfig.WORK_GROUP_SIZE, 1, 1);
+        gl.dispatchCompute(buffers.numSamples / AppConfig.WORK_GROUP_SIZE, 1, 1);
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
@@ -112,7 +110,11 @@ export class FDGCalculator {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.attractionBuffers);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.repulsionBuffers);
 
-        gl.dispatchCompute(this.NUM_SAMPLES / AppConfig.WORK_GROUP_SIZE, 1, 1);
+
+        gl.uniform2f(this.updateShader.getUniformLocation('u_gravity'), APP_SETTINGS.gravity_x, APP_SETTINGS.gravity_y);
+        gl.uniform2f(this.updateShader.getUniformLocation('u_center'), this.width / 2, this.height / 2);
+
+        gl.dispatchCompute(buffers.numSamples / AppConfig.WORK_GROUP_SIZE, 1, 1);
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
@@ -127,6 +129,7 @@ export class FDGCalculator {
         const pyramid = this.densityMapCalculator.calculateDensityMap(buffers);
         //const density = this.densityMapCalculator.getDensityTexture();
         const levels = this.densityMapCalculator.getLevels();
+
 
         this.calculateAttractionForces(buffers);
         this.calculateRepulsionForces(buffers, pyramid, levels);

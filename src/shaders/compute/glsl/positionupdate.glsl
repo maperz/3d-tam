@@ -8,11 +8,20 @@ layout (std430, binding = 0) buffer PositionBuffer { vec2 data[]; } positions;
 layout (std430, binding = 1) buffer AttractionBuffer { vec2 forces[]; } attraction;
 layout (std430, binding = 2) buffer RepulsionBuffer { vec2 forces[]; } repulsion;
 
+uniform vec2 u_gravity;
+uniform vec2 u_center;
+
 void main() {
     uint id = gl_GlobalInvocationID.x;
 
     vec2 f_attr = attraction.forces[id];
     vec2 f_rep = repulsion.forces[id];
     vec2 pos = positions.data[id];
-    positions.data[id] = pos + f_attr + f_rep;
+
+    vec2 f_grav = vec2(0, 0);
+    if(u_center != pos) {
+        f_grav = normalize(u_center - pos) * u_gravity;
+    }
+
+    positions.data[id] = pos + f_attr + f_rep + f_grav;
 }
