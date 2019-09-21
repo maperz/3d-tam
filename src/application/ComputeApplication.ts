@@ -1,5 +1,5 @@
 import {GUI} from 'dat.gui';
-import {mat4, vec3} from 'gl-matrix';
+import {mat4, vec2, vec3} from 'gl-matrix';
 import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
@@ -39,6 +39,11 @@ export class ComputeApplication extends ComputeGLApplication {
     frameBuffer: WebGLFramebuffer;
 
     modelRotationY: number = 0;
+    modelRotationX: number = 30;
+    distanceCamera: number = 15;
+
+    mouseDragging = false;
+    lastMouseMove : vec2;
 
     heightMapRenderer: HeightMapRenderer;
     fdgDebugRenderer: FDGDebugRenderer;
@@ -46,6 +51,9 @@ export class ComputeApplication extends ComputeGLApplication {
     transformer: Transformer;
 
     perspective: mat4;
+
+
+
 
     start(): void {
         super.start({antialias : false});
@@ -72,6 +80,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.loadGraphData();
 
         this.initGUI();
+        this.initControlls();
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
@@ -114,7 +123,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
         gui.remember(APP_SETTINGS);
         const iterations = [];
-        for (let iteration = 1; iteration <= 10; iteration++) {
+        for (let iteration = 1; iteration <= Math.log2(this.WIDTH); iteration++) {
             iterations.push(iteration);
         }
         gui.add(APP_SETTINGS, 'pushIteration', iterations);
@@ -139,10 +148,9 @@ export class ComputeApplication extends ComputeGLApplication {
         gui.add(APP_SETTINGS, 'gravity_y', 0, 10, 0.01);
         gui.add(APP_SETTINGS, 'numUpdates', 0, 1000, 1);
 
-        const app = this;
-        const restartObject = {Restart: function(){ app.initApp(); }};
+        const restartObject = {Restart: () => { this.initApp(); }};
         const fileLoader = {
-            loadFile : function() {
+            loadFile : () => {
                 document.getElementById('upload').click();
             }
         };
@@ -153,17 +161,13 @@ export class ComputeApplication extends ComputeGLApplication {
                 return;
             }
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const contents = reader.result;
-                displayContents(contents);
+            reader.onload = e => {
+                const contents = String(reader.result);
+                (<HTMLScriptElement>document.getElementById('gedcom')).text = contents;
+                this.loadGraphData();
+                this.initApp();
             };
             reader.readAsText(file);
-        }
-
-        function displayContents(contents) {
-            (<HTMLScriptElement>document.getElementById('gedcom')).text = contents;
-            app.loadGraphData();
-            app.initApp();
         }
 
         document.getElementById('upload')
@@ -239,12 +243,12 @@ export class ComputeApplication extends ComputeGLApplication {
 
         gl.viewport(x, y, width, height);
 
-        this.modelRotationY += 5 * deltaTime;
+        //this.modelRotationY += 5 * deltaTime;
 
         const rotationY = mat4.rotateY(mat4.create(), mat4.identity(mat4.create()), this.modelRotationY / 180 * Math.PI);
-        const rotationX = mat4.rotateX(mat4.create(), mat4.identity(mat4.create()), 30 / 180 * Math.PI);
+        const rotationX = mat4.rotateX(mat4.create(), mat4.identity(mat4.create()), this.modelRotationX / 180 * Math.PI);
         const model = mat4.mul(mat4.create(), rotationX, rotationY);
-        const view = mat4.translate(mat4.create(), mat4.create(), vec3.fromValues(0, 0, -15));
+        const view = mat4.translate(mat4.create(), mat4.create(), vec3.fromValues(0, 0, -this.distanceCamera));
 
         this.heightMapRenderer.drawWireFrame(this.fdgBuffers, this.heightMap, APP_SETTINGS.height, model, view, this.perspective, APP_SETTINGS.showPerson);
     }
@@ -308,5 +312,34 @@ export class ComputeApplication extends ComputeGLApplication {
                 this.fdgDebugRenderer.drawDebugInfo(this.WIDTH , this.HEIGHT);
             }
         }
+    }
+
+    private initControlls() {
+
+        canvas.addEventListener('mousedown', e => {
+            this.mouseDragging = true;
+            this.lastMouseMove = vec2.fromValues(e.x, e.y);
+        });
+
+        canvas.addEventListener('mouseup', e => {
+            this.mouseDragging = false;
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if(this.mouseDragging) {
+                const pos = vec2.fromValues(e.x, e.y);
+                const delta = vec2.sub(vec2.create(), pos, this.lastMouseMove);
+                this.lastMouseMove = pos;
+                this.modelRotationX += delta[1];
+                this.modelRotationY += delta[0];
+            }
+        });
+
+        canvas.addEventListener('wheel', e => {
+            const direction = Math.sign(e.deltaY);
+            this.distanceCamera += direction;
+            this.distanceCamera = Math.max(5, this.distanceCamera);
+            this.distanceCamera = Math.min(20, this.distanceCamera);
+        });
     }
 }
