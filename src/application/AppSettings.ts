@@ -10,6 +10,9 @@ export enum RenderMode {
 }
 
 export const AppSettings = {
+
+    resolution: 1024,
+
     pushIteration: 1,
     pullIteration: 10,
     densityIteration: 0,

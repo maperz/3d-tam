@@ -19,8 +19,8 @@ export class ComputeApplication extends ComputeGLApplication {
     readonly CANVAS_WIDTH = 1024;
     readonly CANVAS_HEIGHT = 1024;
 
-    readonly WIDTH = 2048;
-    readonly HEIGHT = 2048;
+    WIDTH: number;
+    HEIGHT: number;
 
     readonly DILATE_RADIUS = 2;
     readonly NUM_SAMPLES = 200;
@@ -93,6 +93,9 @@ export class ComputeApplication extends ComputeGLApplication {
 
     initApp() {
 
+        this.WIDTH = AppSettings.resolution;
+        this.HEIGHT = AppSettings.resolution;
+
         this.fdgBuffers = new FDGBuffers();
         this.fdgBuffers.init(this.WIDTH, this.HEIGHT, this.graphData);
 
@@ -157,6 +160,7 @@ export class ComputeApplication extends ComputeGLApplication {
         gui.add(AppSettings, 'gravity_x', 0, 10, 0.01).name('GravityX');
         gui.add(AppSettings, 'gravity_y', 0, 10, 0.01).name('GravityY');
         gui.add(AppSettings, 'numUpdates', 0, 1000, 1).name('Number of updates');
+        gui.add(AppSettings, 'resolution', 1024).name('Resolution');
 
         const restartObject = {Restart: () => { this.initApp(); }};
         const fileLoader = {
@@ -318,7 +322,7 @@ export class ComputeApplication extends ComputeGLApplication {
             }
 
             case RenderMode.FDGDebug: {
-                gl.viewport(0, 0, this.WIDTH, this.HEIGHT);
+                gl.viewport(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
                 this.fdgDebugRenderer.drawDebugInfo(this.WIDTH , this.HEIGHT);
             }
         }
