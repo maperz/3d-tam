@@ -19,13 +19,16 @@ export const AppSettings = {
 
     logDensity: false,
     mode : RenderMode.Scene3D,
-    heightMapFactor: 2,
     updateGraph: true,
     showPerson: false,
     numUpdates: 1,
     dilateRadius: 2,
 
-// FDG
+    // Heightmap
+    heightMapFactor: 2,
+    heightMapResolution: 128,
+
+    // FDG
     attraction_stiffness : 0.02,
     attraction_length : 20,
     gravity_x : 0,

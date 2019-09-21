@@ -114,7 +114,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.gradientInterpolator.init(this.WIDTH, this.HEIGHT);
 
         this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, 128,  128, this.WIDTH, this.HEIGHT);
+        this.heightMapRenderer.init(10, 10, AppSettings.heightMapResolution,  AppSettings.heightMapResolution, this.WIDTH, this.HEIGHT);
 
         this.fdgDebugRenderer = new FDGDebugRenderer();
         this.fdgDebugRenderer.init(this.fdgBuffers);
@@ -153,10 +153,19 @@ export class ComputeApplication extends ComputeGLApplication {
             }
         });
 
-        gui.add(AppSettings, 'heightMapFactor', 1, 5, 0.2).name('Height');
         gui.add(AppSettings, 'updateGraph').name('Update Graph');
         gui.add(AppSettings, 'showPerson').name('Show Person');
         gui.add(AppSettings, 'dilateRadius', 0, 10, 1).name('Dilate Radius');
+
+        const heightMapSettings = gui.addFolder('HeightMap Settings');
+        heightMapSettings.add(AppSettings, 'heightMapFactor', 1, 5, 0.2).name('Height');
+        heightMapSettings.add(AppSettings, 'heightMapResolution').onChange(value => {
+            const log = Math.log2(value);
+            if(!Number.isInteger(log)) {
+                // Only support power of 2
+                AppSettings.heightMapResolution = Math.pow(2, Math.ceil(log));
+            }
+        });
 
         const iterationSettings = gui.addFolder('Display Settings');
         iterationSettings.add(AppSettings, 'pushIteration', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]).name('Push Iteration').onChange(
