@@ -15,15 +15,17 @@ export const AppSettings = {
 
     pushIteration: 1,
     pullIteration: 10,
-    densityIteration: 0,
+    densityIteration: 1,
+
     logDensity: false,
     mode : RenderMode.Scene3D,
     heightMapFactor: 2,
     updateGraph: true,
     showPerson: false,
     numUpdates: 1,
+    dilateRadius: 2,
 
-    // FDG
+// FDG
     attraction_stiffness : 0.02,
     attraction_length : 20,
     gravity_x : 0,

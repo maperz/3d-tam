@@ -12,7 +12,6 @@ export class Dilator {
     private height: number;
     private output: WebGLTexture;
     private dilationShader: Shader;
-    private radius: number;
 
     private initialized = false;
 
@@ -20,8 +19,7 @@ export class Dilator {
 
     private outputSizeClearShaderLoc: WebGLUniformLocation;
 
-    init(width: number, height: number, radius: number) {
-        this.radius = radius;
+    init(width: number, height: number) {
         this.width = width;
         this.height = height;
 
@@ -47,7 +45,7 @@ export class Dilator {
         this.clearShader.unuse();
     }
 
-    dilate(samples: number, position: WebGLBuffer, values: WebGLBuffer): WebGLTexture {
+    dilate(radius: number, samples: number, position: WebGLBuffer, values: WebGLBuffer): WebGLTexture {
 
         TPAssert(this.initialized, 'Dilator needs to be initialized before usage.');
 
@@ -61,7 +59,7 @@ export class Dilator {
         gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
         gl.uniform1ui(this.dilationShader.getUniformLocation('u_num'), samples);
-        gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), this.radius);
+        gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), radius);
         gl.uniform2ui(this.dilationShader.getUniformLocation('u_outputSize'), this.width, this.height);
 
         gl.dispatchCompute(Math.ceil(samples / AppConfig.WORK_GROUP_SIZE), 1, 1);

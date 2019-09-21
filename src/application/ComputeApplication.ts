@@ -1,4 +1,4 @@
-import {GUI} from 'dat.gui';
+import {GUI, GUIController} from 'dat.gui';
 import {mat4, vec2, vec3} from 'gl-matrix';
 import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {canvas, gl} from '../engine/Context';
@@ -16,14 +16,12 @@ import {AppSettings, RenderMode} from './AppSettings';
 
 export class ComputeApplication extends ComputeGLApplication {
 
-    readonly CANVAS_WIDTH = 1024;
-    readonly CANVAS_HEIGHT = 1024;
+    forceFullscreen = false;
+    CANVAS_WIDTH = 1024;
+    CANVAS_HEIGHT = 1024;
 
     WIDTH: number;
     HEIGHT: number;
-
-    readonly DILATE_RADIUS = 2;
-    readonly NUM_SAMPLES = 200;
 
     graphData: GraphData;
 
@@ -69,6 +67,13 @@ export class ComputeApplication extends ComputeGLApplication {
         const ext = gl.getExtension('EXT_color_buffer_float');
         TPAssert(ext != null, 'Cannot render to floating point FBOs!');
 
+        if(this.forceFullscreen) {
+            this.CANVAS_WIDTH  = window.innerWidth || document.documentElement.clientWidth ||
+                document.body.clientWidth;
+            this.CANVAS_HEIGHT = window.innerHeight|| document.documentElement.clientHeight||
+                document.body.clientHeight;
+        }
+
         canvas.width = this.CANVAS_WIDTH;
         canvas.height = this.CANVAS_HEIGHT;
         gl.viewport(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
@@ -100,7 +105,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.fdgBuffers.init(this.WIDTH, this.HEIGHT, this.graphData);
 
         this.dilator = new Dilator();
-        this.dilator.init(this.WIDTH, this.HEIGHT, this.DILATE_RADIUS);
+        this.dilator.init(this.WIDTH, this.HEIGHT);
 
         this.fdgCalculator = new FDGCalculator();
         this.fdgCalculator.init(this.WIDTH, this.HEIGHT);
@@ -124,6 +129,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.frameBuffer = gl.createFramebuffer();
     }
 
+
     initGUI(): void {
         const gui: GUI = new GUI({width: 300});
 
@@ -139,28 +145,45 @@ export class ComputeApplication extends ComputeGLApplication {
             RenderMode.Scene3DFlat,
             RenderMode.FDGDebug,
         ]).name('Render Mode');
-        const iterations = [];
-        for (let iteration = 1; iteration <= Math.log2(this.WIDTH); iteration++) {
-            iterations.push(iteration);
-        }
-        gui.add(AppSettings, 'pushIteration', iterations).name('Push Iteration');
-        gui.add(AppSettings, 'pullIteration', iterations).name('Pull Iteration');
-        // TODO: Change items to something relative to iterations
-        gui.add(AppSettings, 'densityIteration', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).name('Density Iteration');
+        gui.add(AppSettings, 'resolution', 1024).name('Resolution (Pow2)').onChange(value => {
+            const log = Math.log2(value);
+            if(!Number.isInteger(log)) {
+                // Only support power of 2
+                AppSettings.resolution = Math.pow(2, Math.ceil(log));
+            }
+        });
 
-        gui.add(AppSettings, 'logDensity').name('Log Density')
         gui.add(AppSettings, 'heightMapFactor', 1, 5, 0.2).name('Height');
         gui.add(AppSettings, 'updateGraph').name('Update Graph');
         gui.add(AppSettings, 'showPerson').name('Show Person');
+        gui.add(AppSettings, 'dilateRadius', 0, 10, 1).name('Dilate Radius');
 
-        gui.add(AppSettings, 'attraction_stiffness').name('Attraction Stiffness');
-        gui.add(AppSettings, 'attraction_length', 0.1).name('Attraction Length');
+        const iterationSettings = gui.addFolder('Display Settings');
+        iterationSettings.add(AppSettings, 'pushIteration', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]).name('Push Iteration').onChange(
+            value => {
+                AppSettings.pushIteration = Math.min(Math.log2(AppSettings.resolution), value);
+            }
+        );
+        iterationSettings.add(AppSettings, 'pullIteration', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]).name('Pull Iteration').onChange(
+            value => {
+                AppSettings.pullIteration = Math.min(Math.log2(AppSettings.resolution), value);
+            }
+        );
+        iterationSettings.add(AppSettings, 'densityIteration', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]).name('Density Iteration').onChange(
+            value => {
+                AppSettings.densityIteration = Math.min(Math.log2(AppSettings.resolution), value);
+            }
+        );
+        iterationSettings.add(AppSettings, 'logDensity').name('Log Density');
 
+        const fdgSettings = gui.addFolder('FDG Settings');
 
-        gui.add(AppSettings, 'gravity_x', 0, 10, 0.01).name('GravityX');
-        gui.add(AppSettings, 'gravity_y', 0, 10, 0.01).name('GravityY');
-        gui.add(AppSettings, 'numUpdates', 0, 1000, 1).name('Number of updates');
-        gui.add(AppSettings, 'resolution', 1024).name('Resolution');
+        fdgSettings.add(AppSettings, 'attraction_stiffness').name('Attraction Stiffness');
+        fdgSettings.add(AppSettings, 'attraction_length', 0.1).name('Attraction Length');
+
+        fdgSettings.add(AppSettings, 'gravity_x', 0, 10, 0.01).name('GravityX');
+        fdgSettings.add(AppSettings, 'gravity_y', 0, 10, 0.01).name('GravityY');
+        fdgSettings.add(AppSettings, 'numUpdates', 0, 1000, 1).name('Number of updates');
 
         const restartObject = {Restart: () => { this.initApp(); }};
         const fileLoader = {
@@ -176,7 +199,7 @@ export class ComputeApplication extends ComputeGLApplication {
                 return;
             }
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = () => {
                 const contents = String(reader.result);
                 (<HTMLScriptElement>document.getElementById('gedcom')).text = contents;
                 app.loadGraphData();
@@ -273,7 +296,7 @@ export class ComputeApplication extends ComputeGLApplication {
             for(let i = 0; i < AppSettings.numUpdates; i++){
                 this.fdgCalculator.updatePositions(this.fdgBuffers);
             }
-            this.dilateOut = this.dilator.dilate(this.fdgBuffers.numSamples, this.fdgBuffers.positionBuffer, this.fdgBuffers.valuesBuffer);
+            this.dilateOut = this.dilator.dilate(AppSettings.dilateRadius, this.fdgBuffers.numSamples, this.fdgBuffers.positionBuffer, this.fdgBuffers.valuesBuffer);
             const gradient = this.gradientInterpolator.calculateGradient(this.dilateOut);
             this.heightMap = gradient;
             if(AppSettings.mode == RenderMode.Scene3DFlat) {
