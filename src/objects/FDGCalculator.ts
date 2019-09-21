@@ -1,5 +1,5 @@
 import {AppConfig} from '../application/AppConfig';
-import {APP_SETTINGS} from '../application/Settings';
+import {AppSettings} from '../application/AppSettings';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
@@ -12,8 +12,6 @@ import {FDGBuffers} from './FDGBuffers';
 import {Texture} from './Texture';
 
 export class FDGCalculator {
-
-    NUM_SAMPLER = 200;
 
     width: number;
     height: number;
@@ -61,8 +59,8 @@ export class FDGCalculator {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.neighboursBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.attractionBuffers);
 
-        gl.uniform1f(this.attractionStiffnessLoc, APP_SETTINGS.attraction_stiffness);
-        gl.uniform1f(this.attractionLengthLoc, APP_SETTINGS.attraction_length);
+        gl.uniform1f(this.attractionStiffnessLoc, AppSettings.attraction_stiffness);
+        gl.uniform1f(this.attractionLengthLoc, AppSettings.attraction_length);
 
         gl.dispatchCompute(buffers.numSamples / AppConfig.WORK_GROUP_SIZE, 1, 1);
 
@@ -111,7 +109,7 @@ export class FDGCalculator {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.repulsionBuffers);
 
 
-        gl.uniform2f(this.updateShader.getUniformLocation('u_gravity'), APP_SETTINGS.gravity_x, APP_SETTINGS.gravity_y);
+        gl.uniform2f(this.updateShader.getUniformLocation('u_gravity'), AppSettings.gravity_x, AppSettings.gravity_y);
         gl.uniform2f(this.updateShader.getUniformLocation('u_center'), this.width / 2, this.height / 2);
 
         gl.dispatchCompute(buffers.numSamples / AppConfig.WORK_GROUP_SIZE, 1, 1);

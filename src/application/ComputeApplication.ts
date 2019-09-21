@@ -12,15 +12,15 @@ import {GradientInterpolator} from '../objects/GradientInterpolator';
 import {GraphData} from '../objects/GraphData';
 import {HeightMapRenderer} from '../objects/HeightMapRenderer';
 import {Transformer} from '../objects/Transformer';
-import {APP_SETTINGS, RenderMode} from './Settings';
+import {AppSettings, RenderMode} from './AppSettings';
 
 export class ComputeApplication extends ComputeGLApplication {
 
     readonly CANVAS_WIDTH = 1024;
     readonly CANVAS_HEIGHT = 1024;
 
-    readonly WIDTH = 1024;
-    readonly HEIGHT = 1024;
+    readonly WIDTH = 2048;
+    readonly HEIGHT = 2048;
 
     readonly DILATE_RADIUS = 2;
     readonly NUM_SAMPLES = 200;
@@ -51,8 +51,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     perspective: mat4;
 
-
-
+    fpsDisplayer: HTMLSpanElement;
 
     start(): void {
         super.start({antialias : false});
@@ -75,6 +74,11 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.viewport(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         canvas.style.backgroundColor = 'black';
+
+        this.fpsDisplayer = <HTMLSpanElement>document.getElementById('fps');
+        window.setInterval(e => {
+            this.displayFPS();
+        }, 1000);
 
         this.loadGraphData();
 
@@ -120,16 +124,16 @@ export class ComputeApplication extends ComputeGLApplication {
     initGUI(): void {
         const gui: GUI = new GUI({width: 300});
 
-        gui.remember(APP_SETTINGS);
+        gui.remember(AppSettings);
         const iterations = [];
         for (let iteration = 1; iteration <= Math.log2(this.WIDTH); iteration++) {
             iterations.push(iteration);
         }
-        gui.add(APP_SETTINGS, 'pushIteration', iterations);
-        gui.add(APP_SETTINGS, 'pullIteration', iterations);
+        gui.add(AppSettings, 'pushIteration', iterations).name('Push Iteration');
+        gui.add(AppSettings, 'pullIteration', iterations).name('Pull Iteration');
         // TODO: Change items to something relative to iterations
-        gui.add(APP_SETTINGS, 'densityIteration', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-        gui.add(APP_SETTINGS, 'mode', [
+        gui.add(AppSettings, 'densityIteration', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).name('Density Iteration');
+        gui.add(AppSettings, 'mode', [
             RenderMode.All,
             RenderMode.Dilate,
             RenderMode.Push,
@@ -138,14 +142,14 @@ export class ComputeApplication extends ComputeGLApplication {
             RenderMode.Scene3D,
             RenderMode.Scene3DFlat,
             RenderMode.FDGDebug,
-        ]);
-        gui.add(APP_SETTINGS, 'logDensity');
-        gui.add(APP_SETTINGS, 'height', 0, 5);
-        gui.add(APP_SETTINGS, 'updateGraph');
-        gui.add(APP_SETTINGS, 'showPerson');
-        gui.add(APP_SETTINGS, 'gravity_x', 0, 10, 0.01);
-        gui.add(APP_SETTINGS, 'gravity_y', 0, 10, 0.01);
-        gui.add(APP_SETTINGS, 'numUpdates', 0, 1000, 1);
+        ]).name('Render Mode');
+        gui.add(AppSettings, 'logDensity').name('Log Density')
+        gui.add(AppSettings, 'heightMapFactor', 1, 5, 0.2).name('Height');
+        gui.add(AppSettings, 'updateGraph').name('Update Graph');
+        gui.add(AppSettings, 'showPerson').name('Show Person');
+        gui.add(AppSettings, 'gravity_x', 0, 10, 0.01).name('GravityX');
+        gui.add(AppSettings, 'gravity_y', 0, 10, 0.01).name('GravityY');
+        gui.add(AppSettings, 'numUpdates', 0, 1000, 1).name('Number of updates');
 
         const restartObject = {Restart: () => { this.initApp(); }};
         const fileLoader = {
@@ -154,6 +158,7 @@ export class ComputeApplication extends ComputeGLApplication {
             }
         };
 
+        const app = this;
         function readSingleFile(e) {
             const file = e.target.files[0];
             if (!file) {
@@ -163,8 +168,8 @@ export class ComputeApplication extends ComputeGLApplication {
             reader.onload = e => {
                 const contents = String(reader.result);
                 (<HTMLScriptElement>document.getElementById('gedcom')).text = contents;
-                this.loadGraphData();
-                this.initApp();
+                app.loadGraphData();
+                app.initApp();
             };
             reader.readAsText(file);
         }
@@ -179,7 +184,7 @@ export class ComputeApplication extends ComputeGLApplication {
     renderPush(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
-        const iteration = APP_SETTINGS.pushIteration;
+        const iteration = AppSettings.pushIteration;
         const index =  iteration - 1;
         const output = this.gradientInterpolator.getPushTexture(index);
         const fraction = 2 ** iteration;
@@ -193,7 +198,7 @@ export class ComputeApplication extends ComputeGLApplication {
     renderPull(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
-        const iteration = APP_SETTINGS.pullIteration;
+        const iteration = AppSettings.pullIteration;
         const index =  iteration - 1;
         const output = this.gradientInterpolator.getPullTexture(index);
         const w = 2 ** iteration;
@@ -217,7 +222,7 @@ export class ComputeApplication extends ComputeGLApplication {
     renderDensity(x: number = 0, y: number = 0, width: number = this.CANVAS_WIDTH, height: number = this.CANVAS_HEIGHT) {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
-        const iteration = APP_SETTINGS.densityIteration;
+        const iteration = AppSettings.densityIteration;
         const output = this.fdgCalculator.getDMC().getTexture(iteration);
 
         const fraction = 2 ** iteration;
@@ -230,7 +235,7 @@ export class ComputeApplication extends ComputeGLApplication {
             0, 0, w, h,
             x, y, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
 
-        if (APP_SETTINGS.logDensity) {
+        if (AppSettings.logDensity) {
             const pixels = new Float32Array(w * h );
             gl.readPixels(0, 0, w, h, gl.RED, gl.FLOAT, pixels);
             console.log(pixels);
@@ -249,19 +254,18 @@ export class ComputeApplication extends ComputeGLApplication {
         const model = mat4.mul(mat4.create(), rotationX, rotationY);
         const view = mat4.translate(mat4.create(), mat4.create(), vec3.fromValues(0, 0, -this.distanceCamera));
 
-        this.heightMapRenderer.drawWireFrame(this.fdgBuffers, this.heightMap, APP_SETTINGS.height, model, view, this.perspective, APP_SETTINGS.showPerson);
+        this.heightMapRenderer.drawWireFrame(this.fdgBuffers, this.heightMap, AppSettings.heightMapFactor, model, view, this.perspective, AppSettings.showPerson);
     }
 
     onUpdate(deltaTime: number): void {
-
-        if (APP_SETTINGS.updateGraph) {
-            for(let i = 0; i < APP_SETTINGS.numUpdates; i++){
+        if (AppSettings.updateGraph) {
+            for(let i = 0; i < AppSettings.numUpdates; i++){
                 this.fdgCalculator.updatePositions(this.fdgBuffers);
             }
             this.dilateOut = this.dilator.dilate(this.fdgBuffers.numSamples, this.fdgBuffers.positionBuffer, this.fdgBuffers.valuesBuffer);
             const gradient = this.gradientInterpolator.calculateGradient(this.dilateOut);
             this.heightMap = gradient;
-            if(APP_SETTINGS.mode == RenderMode.Scene3DFlat) {
+            if(AppSettings.mode == RenderMode.Scene3DFlat) {
                 this.heightMap = this.transformer.transform(gradient);
             }
             //this.needsUpdate = false;
@@ -270,7 +274,7 @@ export class ComputeApplication extends ComputeGLApplication {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.clearDepth(1.0);
 
-        switch (APP_SETTINGS.mode) {
+        switch (AppSettings.mode) {
             case RenderMode.Push: {
                 this.renderPush();
                 break;
@@ -313,6 +317,10 @@ export class ComputeApplication extends ComputeGLApplication {
         }
     }
 
+    private displayFPS() {
+        this.fpsDisplayer.innerText = String(this.fps);
+    }
+
     private clamp(value: number, min: number, max: number) {
         return Math.min(max, Math.max(min, value));
     }
@@ -320,7 +328,7 @@ export class ComputeApplication extends ComputeGLApplication {
     private initControlls() {
 
         canvas.addEventListener('mousedown', e => {
-            if([RenderMode.Scene3D, RenderMode.Scene3DFlat, RenderMode.All].includes(APP_SETTINGS.mode)) {
+            if([RenderMode.Scene3D, RenderMode.Scene3DFlat, RenderMode.All].includes(AppSettings.mode)) {
                 this.mouseDragging = true;
                 this.lastMouseMove = vec2.fromValues(e.x, e.y);
             }
@@ -341,7 +349,7 @@ export class ComputeApplication extends ComputeGLApplication {
         });
 
         canvas.addEventListener('wheel', e => {
-            if([RenderMode.Scene3D, RenderMode.Scene3DFlat, RenderMode.All].includes(APP_SETTINGS.mode)) {
+            if([RenderMode.Scene3D, RenderMode.Scene3DFlat, RenderMode.All].includes(AppSettings.mode)) {
                 const direction = Math.sign(e.deltaY);
                 this.distanceCamera = this.clamp(this.distanceCamera + direction, 5, 30);
             }

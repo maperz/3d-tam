@@ -9,13 +9,13 @@ export enum RenderMode {
     FDGDebug = 'FDG Debug',
 }
 
-export const APP_SETTINGS = {
+export const AppSettings = {
     pushIteration: 1,
     pullIteration: 10,
     densityIteration: 0,
     logDensity: false,
     mode : RenderMode.Scene3D,
-    height: 2,
+    heightMapFactor: 2,
     updateGraph: true,
     showPerson: false,
     numUpdates: 1,
