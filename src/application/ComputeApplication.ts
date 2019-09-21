@@ -14,7 +14,6 @@ import {HeightMapRenderer} from '../objects/HeightMapRenderer';
 import {Transformer} from '../objects/Transformer';
 import {APP_SETTINGS, RenderMode} from './Settings';
 
-
 export class ComputeApplication extends ComputeGLApplication {
 
     readonly CANVAS_WIDTH = 1024;
@@ -314,11 +313,17 @@ export class ComputeApplication extends ComputeGLApplication {
         }
     }
 
+    private clamp(value: number, min: number, max: number) {
+        return Math.min(max, Math.max(min, value));
+    }
+
     private initControlls() {
 
         canvas.addEventListener('mousedown', e => {
-            this.mouseDragging = true;
-            this.lastMouseMove = vec2.fromValues(e.x, e.y);
+            if([RenderMode.Scene3D, RenderMode.Scene3DFlat, RenderMode.All].includes(APP_SETTINGS.mode)) {
+                this.mouseDragging = true;
+                this.lastMouseMove = vec2.fromValues(e.x, e.y);
+            }
         });
 
         canvas.addEventListener('mouseup', e => {
@@ -330,16 +335,16 @@ export class ComputeApplication extends ComputeGLApplication {
                 const pos = vec2.fromValues(e.x, e.y);
                 const delta = vec2.sub(vec2.create(), pos, this.lastMouseMove);
                 this.lastMouseMove = pos;
-                this.modelRotationX += delta[1];
+                this.modelRotationX = this.clamp(this.modelRotationX + delta[1], 0, 90);
                 this.modelRotationY += delta[0];
             }
         });
 
         canvas.addEventListener('wheel', e => {
-            const direction = Math.sign(e.deltaY);
-            this.distanceCamera += direction;
-            this.distanceCamera = Math.max(5, this.distanceCamera);
-            this.distanceCamera = Math.min(20, this.distanceCamera);
+            if([RenderMode.Scene3D, RenderMode.Scene3DFlat, RenderMode.All].includes(APP_SETTINGS.mode)) {
+                const direction = Math.sign(e.deltaY);
+                this.distanceCamera = this.clamp(this.distanceCamera + direction, 5, 30);
+            }
         });
     }
 }
