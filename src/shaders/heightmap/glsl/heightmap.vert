@@ -14,14 +14,20 @@ uniform mat4 u_proj;
 
 uniform vec2 u_size;
 
+uniform vec2 u_gridSize;
+
 uniform vec4 u_color;
 
 out vec4 v_color;
 out float v_pixelvalue;
 
+out vec2 v_gridPosition;
+out vec3 v_position;
+out vec2 v_gridSize;
+
 void main()
 {
-    v_pixelvalue = imageLoad(u_heightmap, ivec2(a_pixel.x * u_size.x, a_pixel.y * u_size.y)).r;
+    v_pixelvalue = imageLoad(u_heightmap, ivec2(a_pixel * u_size)).r;
 
     float height =  v_pixelvalue * log((1.0+u_height));
     vec3 position = vec3(a_position.x,  height, a_position.y);
@@ -30,4 +36,9 @@ void main()
     //v_color = vec4(v_pixelvalue, 0.0, 0.0, 1.0);
     v_color = vec4(0.0, v_pixelvalue, 0.0, 1.0);
     //v_color = vec4(1.0);
+
+    v_position = position;
+    v_gridSize = u_gridSize;
+    v_gridPosition = a_pixel * u_gridSize;
+
 }

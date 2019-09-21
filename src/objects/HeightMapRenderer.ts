@@ -6,6 +6,7 @@ import {createShaderFromSources} from '../engine/utils/Utils';
 import {PersonDebugShader} from '../shaders/debug/PersonDebugShader';
 import {HeightMapShader} from '../shaders/heightmap/HeightMapShader';
 import {FDGBuffers} from './FDGBuffers';
+import {NormalsCalculator} from './NormalsCalculator';
 import {PixelGrid} from './PixelGrid';
 
 class ChunkDrawInfo {
@@ -25,6 +26,7 @@ export class HeightMapRenderer {
 
     private cubeVAO: WebGLVertexArrayObject;
 
+    private normalsCalculator: NormalsCalculator;
 
     private createInstanceInfo() {
         const vao = gl.createVertexArray();
@@ -73,9 +75,16 @@ export class HeightMapRenderer {
             const chunkInfo = this.createChunkInfo(vertices, indices, pixels);
             this.chunkInfos.push(chunkInfo);
         }
+
+        this.normalsCalculator = new NormalsCalculator();
+        this.normalsCalculator.init(tilesX, tilesY, pixelsX, pixelsY, width / tilesX, height / tilesY);
+
+        this.createInstanceInfo();
     }
 
     drawWireFrame(buffer: FDGBuffers, heightMapTexture: WebGLTexture, height: number, model: mat4, view: mat4, proj: mat4, renderPerson: boolean = false) {
+
+        this.normalsCalculator.calculateNormals(heightMapTexture, height);
 
         TPAssert(this.shader != null, 'Shader == null! Forgot to init HeightMapRenderer?');
 
@@ -100,14 +109,16 @@ export class HeightMapRenderer {
         const heightLocation = this.shader.getUniformLocation('u_height');
         gl.uniform1f(heightLocation, height);
 
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, this.normalsCalculator.getNormalsBuffer());
+        gl.uniform2f(this.shader.getUniformLocation('u_gridSize'), this.normalsCalculator.tilesX, this.normalsCalculator.tilesY);
+
         for (const chunkInfo of this.chunkInfos) {
             gl.bindVertexArray(chunkInfo.vao);
             gl.drawElements(gl.LINES , chunkInfo.elements, gl.UNSIGNED_SHORT, 0);
             gl.bindVertexArray(null);
         }
 
-
-        this.createInstanceInfo();
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
 
         this.shader.unuse();
 
