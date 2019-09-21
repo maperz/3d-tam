@@ -78,7 +78,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.fpsDisplayer = <HTMLSpanElement>document.getElementById('fps');
         window.setInterval(e => {
             this.displayFPS();
-        }, 1000);
+        }, 500);
 
         this.loadGraphData();
 
@@ -124,15 +124,8 @@ export class ComputeApplication extends ComputeGLApplication {
     initGUI(): void {
         const gui: GUI = new GUI({width: 300});
 
+        gui.useLocalStorage = true;
         gui.remember(AppSettings);
-        const iterations = [];
-        for (let iteration = 1; iteration <= Math.log2(this.WIDTH); iteration++) {
-            iterations.push(iteration);
-        }
-        gui.add(AppSettings, 'pushIteration', iterations).name('Push Iteration');
-        gui.add(AppSettings, 'pullIteration', iterations).name('Pull Iteration');
-        // TODO: Change items to something relative to iterations
-        gui.add(AppSettings, 'densityIteration', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).name('Density Iteration');
         gui.add(AppSettings, 'mode', [
             RenderMode.All,
             RenderMode.Dilate,
@@ -143,10 +136,24 @@ export class ComputeApplication extends ComputeGLApplication {
             RenderMode.Scene3DFlat,
             RenderMode.FDGDebug,
         ]).name('Render Mode');
+        const iterations = [];
+        for (let iteration = 1; iteration <= Math.log2(this.WIDTH); iteration++) {
+            iterations.push(iteration);
+        }
+        gui.add(AppSettings, 'pushIteration', iterations).name('Push Iteration');
+        gui.add(AppSettings, 'pullIteration', iterations).name('Pull Iteration');
+        // TODO: Change items to something relative to iterations
+        gui.add(AppSettings, 'densityIteration', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).name('Density Iteration');
+
         gui.add(AppSettings, 'logDensity').name('Log Density')
         gui.add(AppSettings, 'heightMapFactor', 1, 5, 0.2).name('Height');
         gui.add(AppSettings, 'updateGraph').name('Update Graph');
         gui.add(AppSettings, 'showPerson').name('Show Person');
+
+        gui.add(AppSettings, 'attraction_stiffness').name('Attraction Stiffness');
+        gui.add(AppSettings, 'attraction_length', 0.1).name('Attraction Length');
+
+
         gui.add(AppSettings, 'gravity_x', 0, 10, 0.01).name('GravityX');
         gui.add(AppSettings, 'gravity_y', 0, 10, 0.01).name('GravityY');
         gui.add(AppSettings, 'numUpdates', 0, 1000, 1).name('Number of updates');
