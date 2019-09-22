@@ -27,6 +27,7 @@ export const AppSettings = {
     // Heightmap
     heightMapFactor: 2,
     heightMapResolution: 128,
+    personSize: 0.5,
 
     // FDG
     attraction_stiffness : 0.02,

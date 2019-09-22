@@ -3,7 +3,6 @@ body {
     overflow:  hidden;
 }
 
-
 #fps-holder {
     display:inline-block;
     position: fixed;
@@ -12,13 +11,14 @@ body {
     color: white;
     font-family: Helvetica, Arial, sans-serif;
     font-size: 14px;
+    z-index: 10;
 }
 
 #error {
-    position: fixed;
     font-family: "Arial";
     background: red;
     color: white;
     white-space: pre-line;
     padding: 20px;
+    z-index: 100;
 }

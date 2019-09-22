@@ -1,5 +1,6 @@
-import {mat4} from 'gl-matrix';
-import {gl} from '../engine/Context';
+import {mat4, vec2} from 'gl-matrix';
+import {AppSettings} from '../application/AppSettings';
+import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
@@ -26,7 +27,10 @@ export class HeightMapRenderer {
 
     private cubeVAO: WebGLVertexArrayObject;
 
+    private selectedId = -1;
     private normalsCalculator: NormalsCalculator;
+
+    private cubeFramebuffer: WebGLFramebuffer;
 
     private createInstanceInfo() {
         const vao = gl.createVertexArray();
@@ -80,55 +84,87 @@ export class HeightMapRenderer {
         this.normalsCalculator.init(tilesX, tilesY, pixelsX, pixelsY, width / tilesX, height / tilesY);
 
         this.createInstanceInfo();
+
+        this.cubeFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.cubeFramebuffer);
+
+        const fboTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, fboTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fboTexture, 0);
+
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        canvas.addEventListener('mousemove', e => {
+            const rgba = new Uint8Array(4);
+            const x = e.x;
+            const y = canvas.width - e.y;
+            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.cubeFramebuffer);
+            gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+            if(!rgba.every(v => v === 0)) {
+                const id = (rgba[0] + (rgba[1] << 8) + (rgba[2] << 16) + (rgba[3] << 24 )) - 1;
+                this.selectedId = id;
+            }
+            else {
+                this.selectedId = -1;
+            }
+        });
     }
 
     drawWireFrame(buffer: FDGBuffers, heightMapTexture: WebGLTexture, height: number, model: mat4, view: mat4, proj: mat4, renderPerson: boolean = false) {
-
-        this.normalsCalculator.calculateNormals(heightMapTexture, height);
-
         TPAssert(this.shader != null, 'Shader == null! Forgot to init HeightMapRenderer?');
 
-        this.shader.use();
+        if(heightMapTexture) {
+            this.normalsCalculator.calculateNormals(heightMapTexture, height);
 
-        const modelMatrixLocation = this.shader.getUniformLocation('u_model');
-        gl.uniformMatrix4fv(modelMatrixLocation, false, model);
+            this.shader.use();
 
-        const viewMatrixLocation = this.shader.getUniformLocation('u_view');
-        gl.uniformMatrix4fv(viewMatrixLocation, false, view);
+            const modelMatrixLocation = this.shader.getUniformLocation('u_model');
+            gl.uniformMatrix4fv(modelMatrixLocation, false, model);
 
-        const projectionMatrixLocation = this.shader.getUniformLocation('u_proj');
-        gl.uniformMatrix4fv(projectionMatrixLocation, false, proj);
+            const viewMatrixLocation = this.shader.getUniformLocation('u_view');
+            gl.uniformMatrix4fv(viewMatrixLocation, false, view);
 
-        gl.bindImageTexture(0, heightMapTexture, 0, false, 0, gl.READ_ONLY, gl.R32F);
+            const projectionMatrixLocation = this.shader.getUniformLocation('u_proj');
+            gl.uniformMatrix4fv(projectionMatrixLocation, false, proj);
 
-        const colorLocation = this.shader.getUniformLocation('u_color');
-        gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
+            gl.bindImageTexture(0, heightMapTexture, 0, false, 0, gl.READ_ONLY, gl.R32F);
 
-        gl.uniform2f(this.shader.getUniformLocation('u_size'), this.pixelsX, this.pixelsY);
+            const colorLocation = this.shader.getUniformLocation('u_color');
+            gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
 
-        const heightLocation = this.shader.getUniformLocation('u_height');
-        gl.uniform1f(heightLocation, height);
+            gl.uniform2f(this.shader.getUniformLocation('u_size'), this.pixelsX, this.pixelsY);
 
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, this.normalsCalculator.getNormalsBuffer());
-        gl.uniform2f(this.shader.getUniformLocation('u_gridSize'), this.normalsCalculator.tilesX, this.normalsCalculator.tilesY);
+            const heightLocation = this.shader.getUniformLocation('u_height');
+            gl.uniform1f(heightLocation, height);
 
-        for (const chunkInfo of this.chunkInfos) {
-            gl.bindVertexArray(chunkInfo.vao);
-            gl.drawElements(gl.LINES , chunkInfo.elements, gl.UNSIGNED_SHORT, 0);
-            gl.bindVertexArray(null);
+            gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, this.normalsCalculator.getNormalsBuffer());
+            gl.uniform2f(this.shader.getUniformLocation('u_gridSize'), this.normalsCalculator.tilesX, this.normalsCalculator.tilesY);
+
+            for (const chunkInfo of this.chunkInfos) {
+                gl.bindVertexArray(chunkInfo.vao);
+                gl.drawElements(gl.LINES , chunkInfo.elements, gl.UNSIGNED_SHORT, 0);
+                gl.bindVertexArray(null);
+            }
+
+            gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
+
+            this.shader.unuse();
         }
 
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
-
-        this.shader.unuse();
-
         if(renderPerson) {
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.cubeFramebuffer);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            this.renderPersonDebug(buffer, height, model, view, proj, true);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
             this.renderPersonDebug(buffer, height, model, view, proj);
         }
     }
 
-    private createChunkInfo(vertices: Float32Array, indices: Uint16Array, pixels: Float32Array): ChunkDrawInfo {
 
+    private createChunkInfo(vertices: Float32Array, indices: Uint16Array, pixels: Float32Array): ChunkDrawInfo {
         const vao = gl.createVertexArray();
         gl.bindVertexArray(vao);
 
@@ -158,7 +194,7 @@ export class HeightMapRenderer {
     }
 
 
-    public renderPersonDebug(buffers: FDGBuffers, height: number, model: mat4, view: mat4, proj: mat4) {
+    public renderPersonDebug(buffers: FDGBuffers, height: number, model: mat4, view: mat4, proj: mat4, renderIds : boolean = false) {
         this.personDebug.use();
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
@@ -173,8 +209,13 @@ export class HeightMapRenderer {
         const projectionMatrixLocation = this.personDebug.getUniformLocation('u_proj');
         gl.uniformMatrix4fv(projectionMatrixLocation, false, proj);
 
+
+        gl.uniform1ui(this.personDebug.getUniformLocation('u_renderIds'), renderIds ? 1 : 0);
+        gl.uniform1i(this.personDebug.getUniformLocation('u_selectedId'), this.selectedId);
+
         gl.uniform2f(this.personDebug.getUniformLocation('u_sizeMap'), this.width, this.height);
         gl.uniform2f(this.personDebug.getUniformLocation('u_scale'), this.width / this.pixelsX, this.height / this.pixelsY);
+        gl.uniform1f(this.personDebug.getUniformLocation('u_cubeSize'), AppSettings.personSize);
 
         const heightLocation = this.personDebug.getUniformLocation('u_height');
         gl.uniform1f(heightLocation, height);

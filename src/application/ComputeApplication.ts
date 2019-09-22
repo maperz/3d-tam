@@ -154,7 +154,8 @@ export class ComputeApplication extends ComputeGLApplication {
         });
 
         gui.add(AppSettings, 'updateGraph').name('Update Graph');
-        gui.add(AppSettings, 'showPerson').name('Show Person');
+
+
         gui.add(AppSettings, 'dilateRadius', 0, 10, 1).name('Dilate Radius');
 
         const heightMapSettings = gui.addFolder('HeightMap Settings');
@@ -216,6 +217,10 @@ export class ComputeApplication extends ComputeGLApplication {
             };
             reader.readAsText(file);
         }
+
+        const debugFolder = gui.addFolder('Debug Settings');
+        debugFolder.add(AppSettings, 'showPerson').name('Show Person');
+        debugFolder.add(AppSettings, 'personSize', 0, 3, 0.1).name('Person Size');
 
         document.getElementById('upload')
             .addEventListener('change', readSingleFile, false);
