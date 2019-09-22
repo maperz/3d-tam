@@ -114,7 +114,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.gradientInterpolator.init(this.WIDTH, this.HEIGHT);
 
         this.heightMapRenderer = new HeightMapRenderer();
-        this.heightMapRenderer.init(10, 10, AppSettings.heightMapResolution,  AppSettings.heightMapResolution, this.WIDTH, this.HEIGHT);
+        this.heightMapRenderer.init(10, 10, AppSettings.heightMapResolution,  AppSettings.heightMapResolution, this.WIDTH, this.HEIGHT, this.graphData);
 
         this.fdgDebugRenderer = new FDGDebugRenderer();
         this.fdgDebugRenderer.init(this.fdgBuffers);

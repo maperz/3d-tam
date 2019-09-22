@@ -30,6 +30,10 @@ class GedcomGraphData extends GraphData {
     getValue(id: number): number {
         return this.persons.get(id).age;
     }
+
+    getName(id: number): string {
+        return this.persons.get(id).name;
+    }
 }
 
 export class GedcomPreparator {

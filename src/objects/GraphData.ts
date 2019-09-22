@@ -9,4 +9,7 @@ export abstract class GraphData {
     abstract getNeighbours(id: number): Array<number>;
 
     abstract getPosition(id: number): vec2;
+
+    abstract getName(id: number): string;
+
 }

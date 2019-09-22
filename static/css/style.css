@@ -22,3 +22,13 @@ body {
     padding: 20px;
     z-index: 100;
 }
+
+#info-tooltip {
+    display:block;
+    position:fixed;
+    overflow:hidden;
+    z-index: 100;
+    background: #787878;
+    padding: 4px;
+    color: white;
+}

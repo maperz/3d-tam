@@ -7,6 +7,7 @@ import {createShaderFromSources} from '../engine/utils/Utils';
 import {PersonDebugShader} from '../shaders/debug/PersonDebugShader';
 import {HeightMapShader} from '../shaders/heightmap/HeightMapShader';
 import {FDGBuffers} from './FDGBuffers';
+import {GraphData} from './GraphData';
 import {NormalsCalculator} from './NormalsCalculator';
 import {PixelGrid} from './PixelGrid';
 
@@ -32,6 +33,8 @@ export class HeightMapRenderer {
 
     private cubeFramebuffer: WebGLFramebuffer;
 
+    private tooltip: HTMLDivElement;
+
     private createInstanceInfo() {
         const vao = gl.createVertexArray();
         gl.bindVertexArray(vao);
@@ -53,7 +56,7 @@ export class HeightMapRenderer {
     }
 
 
-    init(width: number, height: number, tilesX: number, tilesY: number, pixelsX: number, pixelsY: number) {
+    init(width: number, height: number, tilesX: number, tilesY: number, pixelsX: number, pixelsY: number, graphData: GraphData) {
 
         this.width = width;
         this.height = height;
@@ -96,19 +99,34 @@ export class HeightMapRenderer {
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
+
+        this.tooltip = <HTMLDivElement>document.getElementById('info-tooltip');
+        this.tooltip.style.visibility = 'hidden';
+
         canvas.addEventListener('mousemove', e => {
-            const rgba = new Uint8Array(4);
-            const x = e.x;
-            const y = canvas.width - e.y;
-            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.cubeFramebuffer);
-            gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
-            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-            if(!rgba.every(v => v === 0)) {
-                const id = (rgba[0] + (rgba[1] << 8) + (rgba[2] << 16) + (rgba[3] << 24 )) - 1;
-                this.selectedId = id;
+            if(AppSettings.showPerson) {
+                const rgba = new Uint8Array(4);
+                const x = e.x;
+                const y = canvas.width - e.y;
+                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.cubeFramebuffer);
+                gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+                gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+                if(!rgba.every(v => v === 0)) {
+                    const id = (rgba[0] + (rgba[1] << 8) + (rgba[2] << 16) + (rgba[3] << 24 )) - 1;
+                    this.selectedId = id;
+                    this.tooltip.style.visibility = '';
+                    this.tooltip.style.top = (e.y + 10).toString() + 'px';
+                    this.tooltip.style.left = (e.x + 10).toString() + 'px';
+                    this.tooltip.innerText = graphData.getName(id);
+                }
+                else {
+                    this.selectedId = -1;
+                    this.tooltip.style.visibility = 'hidden';
+                }
             }
             else {
                 this.selectedId = -1;
+                this.tooltip.style.visibility = 'hidden';
             }
         });
     }
