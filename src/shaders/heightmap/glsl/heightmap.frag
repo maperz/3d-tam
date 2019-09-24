@@ -32,7 +32,7 @@ void main() {
     vec3 normal = getNormal(v_gridPosition);
     vec3 lightDir = normalize(lightPos - v_position);
 
-    float light = clamp(dot(normal, lightDir), 0.0, 1.0);
+    float light = clamp(dot(normal, lightDir), 0.2, 1.0);
 
     color = vec4(0, light, 0, 1);
     //color = v_color;

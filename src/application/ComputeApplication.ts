@@ -53,10 +53,14 @@ export class ComputeApplication extends ComputeGLApplication {
 
     start(): void {
         super.start({antialias : false});
+        this.setStartLoopManually(true);
     }
 
     loadGraphData(): void {
-        const input = (<HTMLScriptElement>document.getElementById('gedcom')).text;
+        const xhttp = new XMLHttpRequest();
+        xhttp.open("GET", "/gedcom/default.ged", false);
+        xhttp.send();
+        const input = xhttp.responseText
         const preparator = new GedcomPreparator();
         preparator.init(input);
         this.graphData = preparator.getGraphData();

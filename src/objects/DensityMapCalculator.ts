@@ -87,6 +87,8 @@ export class DensityMapCalculator {
             const texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, w, h);
+            // HERE
+            //gl.generateMipmap(gl.TEXTURE_2D);
             this.textures.push(new Texture(w, h, texture));
         }
     }
