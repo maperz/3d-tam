@@ -51,23 +51,27 @@ export class ComputeApplication extends ComputeGLApplication {
 
     fpsDisplayer: HTMLSpanElement;
 
+    initialized: boolean = false;
+
     start(): void {
         super.start({antialias : false});
         this.setStartLoopManually(true);
+        this.loadInitialGraphData();
     }
 
-    loadGraphData(): void {
+    loadInitialGraphData(){
+        // Load initial Gedcom file
         const xhttp = new XMLHttpRequest();
-        xhttp.open("GET", "/gedcom/default.ged", false);
+        xhttp.open("GET", "/gedcom/default.ged");
         xhttp.send();
-        const input = xhttp.responseText
-        const preparator = new GedcomPreparator();
-        preparator.init(input);
-        this.graphData = preparator.getGraphData();
+        const app = this;
+        xhttp.onload = e => {
+            app.onInputChanged(xhttp.responseText);
+        };
     }
+
 
     onStart(): void {
-
         const ext = gl.getExtension('EXT_color_buffer_float');
         TPAssert(ext != null, 'Cannot render to floating point FBOs!');
 
@@ -89,14 +93,19 @@ export class ComputeApplication extends ComputeGLApplication {
             this.displayFPS();
         }, 500);
 
-        this.loadGraphData();
-
         this.initGUI();
         this.initControlls();
 
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
 
+    }
+
+    onInputChanged(input: string) {
+        const preparator = new GedcomPreparator();
+        preparator.init(input);
+        this.graphData = preparator.getGraphData();
+        console.log(`Loaded GraphData with ${this.graphData.getCount()} entries.`);
         this.initApp();
     }
 
@@ -131,12 +140,12 @@ export class ComputeApplication extends ComputeGLApplication {
 
         // create frameBuffer to read from texture
         this.frameBuffer = gl.createFramebuffer();
+        this.initialized = true;
     }
 
 
     initGUI(): void {
         const gui: GUI = new GUI({width: 300});
-
         gui.useLocalStorage = true;
         gui.remember(AppSettings);
         gui.add(AppSettings, 'mode', [
@@ -215,9 +224,7 @@ export class ComputeApplication extends ComputeGLApplication {
             const reader = new FileReader();
             reader.onload = () => {
                 const contents = String(reader.result);
-                (<HTMLScriptElement>document.getElementById('gedcom')).text = contents;
-                app.loadGraphData();
-                app.initApp();
+                app.onInputChanged(contents);
             };
             reader.readAsText(file);
         }
@@ -310,6 +317,11 @@ export class ComputeApplication extends ComputeGLApplication {
     }
 
     onUpdate(deltaTime: number): void {
+
+        if(!this.initialized) {
+            return;
+        }
+
         if (AppSettings.updateGraph) {
             for(let i = 0; i < AppSettings.numUpdates; i++){
                 this.fdgCalculator.updatePositions(this.fdgBuffers);
