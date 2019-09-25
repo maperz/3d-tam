@@ -34,4 +34,5 @@ export const AppSettings = {
     attraction_length : 20,
     gravity_x : 0,
     gravity_y : 0,
+    repulsionForce: 1000
 };

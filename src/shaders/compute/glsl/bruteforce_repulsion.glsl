@@ -22,6 +22,8 @@ uniform vec2 u_dimension;
 
 uniform int u_totalCount;
 
+uniform float u_repulsionForce;
+
 void main() {
     uint id = gl_GlobalInvocationID.x;
     PointInfo info = infos.infos[id];
@@ -33,7 +35,7 @@ void main() {
         vec2 other_pos = positions.data[i];
         vec2 vec = position - other_pos;
         float dist = length(vec);
-        vec2 f = normalize(vec) / max(1.0, dist * dist) * 1000.0;
+        vec2 f = normalize(vec) / max(1.0, dist * dist) * u_repulsionForce;
         force += f;
     }
 

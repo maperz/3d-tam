@@ -91,7 +91,7 @@ export class GedcomPreparator {
             let person = this.personTable.get(id);
             if(person.age == null) {
                 // TODO: This edgecase should be carefully considered and maybe not set to maxAge
-                person.age = maxYear;
+                person.age = minYear;
             }
             person.age = (person.age - minYear) / diff;
             // Don't set the age to zero since it won't be distinguishable from non values

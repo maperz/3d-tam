@@ -207,6 +207,7 @@ export class ComputeApplication extends ComputeGLApplication {
         fdgSettings.add(AppSettings, 'gravity_x', 0, 10, 0.01).name('GravityX');
         fdgSettings.add(AppSettings, 'gravity_y', 0, 10, 0.01).name('GravityY');
         fdgSettings.add(AppSettings, 'numUpdates', 0, 1000, 1).name('Number of updates');
+        fdgSettings.add(AppSettings, 'repulsionForce', 0, 10000, 10).name('Repulsion Force');
 
         const restartObject = {Restart: () => { this.initApp(); }};
         const fileLoader = {

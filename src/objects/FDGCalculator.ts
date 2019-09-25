@@ -82,6 +82,7 @@ export class FDGCalculator {
 
         gl.uniform1ui(this.repulsionPyramidSizeLoc, levels);
         gl.uniform1i(this.repulsionShader.getUniformLocation('u_totalCount'), buffers.numSamples);
+        gl.uniform1f(this.repulsionShader.getUniformLocation('u_repulsionForce'), AppSettings.repulsionForce);
 
         gl.uniform2f(this.repulsionDimensionLoc, this.width, this.height);
 
