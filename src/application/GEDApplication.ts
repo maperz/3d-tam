@@ -1,23 +1,33 @@
 import {SimpleApplication} from '../engine/application/SimpleApplication';
-import {GedcomPreparator} from '../objects/ged/GedcomPreparator';
+import {FamilyGraph} from '../gedcom/FamilyGraph';
 
-import gedcom = require("parse-gedcom");
 
 export class GEDApplication extends SimpleApplication {
 
     onStart(): void {
-        document.getElementById('canvas').remove();
-        const input = (<HTMLScriptElement>document.getElementById('gedcom')).text;
-        const res = (<GedcomParser>gedcom).parse(input);
-        const json = JSON.stringify(res, null, 2);
+        this.loadInitialGraphData();
+    }
 
-        const results = document.body.appendChild(document.createElement('pre'));
-        results.style.overflow = 'auto';
+    loadInitialGraphData(){
+        // Load initial Gedcom file
+        const xhttp = new XMLHttpRequest();
+        xhttp.open("GET", "/gedcom/default.ged");
+        xhttp.send();
+        const app = this;
+        xhttp.onload = e => {
+            app.onLoadedGedcom(xhttp.responseText);
+        };
+    }
 
-        results.innerHTML = json;
+    onLoadedGedcom(input: string) {
+        const graph = new FamilyGraph();
+        graph.loadGedcom(input);
 
-        const preparator = new GedcomPreparator();
-        preparator.init(input);
+        graph.estimateMissingDates(20);
+        //
+        //console.log(input);
+
+        console.log(graph);
     }
 
     onUpdate(deltaTime: number): void {

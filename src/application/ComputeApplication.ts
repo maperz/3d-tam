@@ -3,6 +3,8 @@ import {mat4, vec2, vec3} from 'gl-matrix';
 import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
+import {FamilyGraph} from '../gedcom/FamilyGraph';
+import {FamilyGraphData} from '../gedcom/FamilyGraphData';
 import {Dilator} from '../objects/Dilator';
 import {FDGBuffers} from '../objects/FDGBuffers';
 import {FDGCalculator} from '../objects/FDGCalculator';
@@ -23,6 +25,8 @@ export class ComputeApplication extends ComputeGLApplication {
     WIDTH: number;
     HEIGHT: number;
 
+
+    familyGraph: FamilyGraph;
     graphData: GraphData;
 
     fdgBuffers: FDGBuffers;
@@ -102,9 +106,11 @@ export class ComputeApplication extends ComputeGLApplication {
     }
 
     onInputChanged(input: string) {
-        const preparator = new GedcomPreparator();
-        preparator.init(input);
-        this.graphData = preparator.getGraphData();
+        this.familyGraph = new FamilyGraph();
+        this.familyGraph.loadGedcom(input);
+        this.familyGraph.estimateMissingDates(20);
+        this.graphData = new FamilyGraphData(this.familyGraph);
+
         console.log(`Loaded GraphData with ${this.graphData.getCount()} entries.`);
         this.initApp();
     }
