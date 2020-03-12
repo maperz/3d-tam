@@ -31,7 +31,7 @@ module.exports = {
   },
   mode: 'development',
   devServer: {
-    contentBase: [`${__dirname}/dist`, `${__dirname}/static/`, `${__dirname}/static/css`, `${__dirname}/static/gedcom`],
+    contentBase: [`${__dirname}/dist`, `${__dirname}/static/`, `${__dirname}/static/css`, `${__dirname}/static/gedcom`, `${__dirname}/static/images`],
     // open: true,
     port: 4000,
     disableHostCheck: true,

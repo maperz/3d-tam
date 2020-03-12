@@ -78,9 +78,15 @@ export class PixelGrid {
                 const iPlusRow = i + this.tilesX;
 
                 // TODO: This is incomplete
-                indices.push(i, i + 1);
-                indices.push(i, iPlusRow);
-                indices.push(iPlusRow, i + 1);
+                indices.push(i);
+                indices.push(i + 1);
+                indices.push(iPlusRow);
+
+                indices.push(i + 1);
+                indices.push(iPlusRow + 1);
+                indices.push(iPlusRow);
+
+                //indices.push(iPlusRow, i + 1);
                 // indices.push(iPlusRow, iPlusRow + 1);
                 // indices.push(iPlusRow + 1, i + 1);
             }

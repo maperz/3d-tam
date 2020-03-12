@@ -1,116 +1,120 @@
-import {vec2} from "gl-matrix";
-import {TPAssert} from '../engine/error/TPException';
-import {GraphData} from '../objects/GraphData';
-import {FamilyGraph} from './FamilyGraph';
+import { vec2 } from "gl-matrix";
+import { TPAssert } from "../engine/error/TPException";
+import { GraphData } from "../objects/GraphData";
+import { FamilyGraph } from "./FamilyGraph";
 
 export class FamilyGraphData extends GraphData {
+  private readonly stringIds: Array<string>;
+  private reverseStringIds: Map<string, number>;
 
+  private readonly values: Array<number>;
+  private readonly connections: Array<Set<number>>;
 
-    private readonly stringIds : Array<string>;
-    private reverseStringIds : Map<string, number>;
+  private minDate: number = null;
+  private maxDate: number = null;
 
-    private readonly values: Array<number>;
-    private readonly connections: Array<Set<number>>;
+  constructor(private graph: FamilyGraph) {
+    super();
 
-    constructor(private graph: FamilyGraph)
-    {
-        super();
+    this.stringIds = [];
+    this.values = [];
+    this.reverseStringIds = new Map();
+    this.connections = [];
 
-        this.stringIds = [];
-        this.values = [];
-        this.reverseStringIds = new Map();
-        this.connections = [];
-
-        for(let id of graph.persons.keys()) {
-            this.reverseStringIds.set(id, this.stringIds.length)
-            this.stringIds.push(id);
-        }
-
-        if(this.getCount() > 0) {
-            this.calculateValues();
-            this.calculateConnections();
-        }
+    for (let id of graph.persons.keys()) {
+      this.reverseStringIds.set(id, this.stringIds.length);
+      this.stringIds.push(id);
     }
 
-    private calculateValues() {
-        let minDate: number = null;
-        let maxDate: number = null;
+    if (this.getCount() > 0) {
+      this.calculateValues();
+      this.calculateConnections();
+    }
+  }
 
-        for(let p of this.graph.persons.values()) {
-            if(p.bdate == null) {
-                continue;
-            }
+  private calculateValues() {
+    this.maxDate = null;
+    this.maxDate = null;
 
-            if(minDate == null) {
-                minDate = p.bdate.getTime();
-            }
-            else if(p.bdate.getTime() < minDate) {
-                minDate = p.bdate.getTime();
-            }
-
-            if(maxDate == null) {
-                maxDate = p.bdate.getTime();
-            }
-            else if(p.bdate.getTime() > maxDate) {
-                maxDate = p.bdate.getTime();
-            }
-        }
-
-        let range: number = maxDate - minDate;
-        TPAssert(range > 0, "Range between min and max date cannot be zero!");
-
-        for(let p of this.graph.persons.values()) {
-            let date = p.bdate ? p.bdate.getTime() : minDate;
-            let value = (date - minDate) / range;
-            this.values.push(value);
-        }
+    for (let p of this.graph.persons.values()) {
+      if (p.bdate == null) {
+        continue;
+      } else if (this.minDate == null || p.bdate.getTime() < this.minDate) {
+        this.minDate = p.bdate.getTime();
+      } else if (this.maxDate == null || p.bdate.getTime() > this.maxDate) {
+        this.maxDate = p.bdate.getTime();
+      }
     }
 
-    private getIndex(gedcomId: string): number {
-        const id = this.reverseStringIds.get(gedcomId);
-        TPAssert(id != null, `Could not find entry for gedcomId: '${gedcomId}'`);
-        return id;
+    let range: number = this.maxDate - this.minDate;
+    TPAssert(range > 0, "Range between min and max date cannot be zero!");
+
+    console.log(
+      `Age range loaded between ${this.minDate} and ${this.maxDate}.`
+    );
+
+    for (let p of this.graph.persons.values()) {
+      let date = p.bdate ? p.bdate.getTime() : this.minDate;
+      let value = (date - this.minDate) / range;
+
+      // Clamp value so that we do not reach zero values.
+      // This is achieved by adding 1ms to minDate.
+      const minValue = 1 / range;
+      value = Math.max(value, minValue);
+      this.values.push(value);
     }
+  }
 
-    private calculateConnections() {
-        for(let p of this.graph.persons.values()) {
-            const conns = new Set<number>();
+  private getIndex(gedcomId: string): number {
+    const id = this.reverseStringIds.get(gedcomId);
+    TPAssert(id != null, `Could not find entry for gedcomId: '${gedcomId}'`);
+    return id;
+  }
 
-            if(p.getFather()) {
-                conns.add(this.getIndex(p.getFather().getId()));
-            }
-            if(p.getMother()) {
-                conns.add(this.getIndex(p.getMother().getId()));
-            }
+  private calculateConnections() {
+    for (let p of this.graph.persons.values()) {
+      const conns = new Set<number>();
 
-            for(let c of p.getChildren()) {
-                conns.add(this.getIndex(c.getId()));
-            }
+      if (p.getFather()) {
+        conns.add(this.getIndex(p.getFather().getId()));
+      }
+      if (p.getMother()) {
+        conns.add(this.getIndex(p.getMother().getId()));
+      }
 
-            this.connections.push(conns);
-        }
+      for (let c of p.getChildren()) {
+        conns.add(this.getIndex(c.getId()));
+      }
+
+      this.connections.push(conns);
     }
+  }
 
-    getCount(): number {
-        return this.stringIds.length;
-    }
+  getCount(): number {
+    return this.stringIds.length;
+  }
 
-    getNeighbours(id: number): Array<number> {
-        return Array.from(this.connections[id]);
+  getNeighbours(id: number): Array<number> {
+    return Array.from(this.connections[id]);
+  }
 
-    }
+  getPosition(id: number): vec2 {
+    return null;
+  }
 
-    getPosition(id: number): vec2 {
-        return null;
-    }
+  getValue(id: number): number {
+    return this.values[id];
+  }
 
-    getValue(id: number): number {
-        return this.values[id];
-    }
+  getName(id: number): string {
+    const stringId = this.stringIds[id];
+    return this.graph.persons.get(stringId).getFullName();
+  }
 
-    getName(id: number): string {
-        const stringId = this.stringIds[id]
-        return this.graph.persons.get(stringId).getFullName();
-    }
+  getDate(id: number): Date {
+    const value = this.values[id];
+    const range = this.maxDate - this.minDate;
+    const date = value * range + this.minDate;
+    return new Date(date);
+  }
 }
-

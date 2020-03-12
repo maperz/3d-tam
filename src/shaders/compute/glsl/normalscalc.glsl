@@ -52,6 +52,7 @@ void main() {
     vec3 norm_abc = normalize(cross(a_3d - b_3d, c_3d - a_3d));
     vec3 norm_bcd = normalize(cross(b_3d - d_3d, c_3d - b_3d));
 
+
     // Store them in normals buffer
 
     normals.data[index * 2u] = norm_abc;
