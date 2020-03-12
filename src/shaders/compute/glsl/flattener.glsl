@@ -9,7 +9,6 @@ uniform uvec2 u_outputSize;
 
 float transform(float x) {
 
-
     for(float i = 0.0; i < 1.0; i += 0.1) {
         if(x < i) {
             return i;

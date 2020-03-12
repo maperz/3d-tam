@@ -5,12 +5,15 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(binding = 0, r32f) readonly highp uniform image2D u_input;
 layout(binding = 1, r32f) writeonly highp uniform image2D u_output;
 
-uniform ivec2 u_outputSize;
+//layout(binding=0, r32f) uniform sampler2D pyramid;
+//uniform uint level;
 
 void main() {
     ivec2 output_pos = ivec2(gl_GlobalInvocationID.xy);
 
-    if(output_pos.x >= u_outputSize.x || output_pos.y >= u_outputSize.y)
+    ivec2 output_size = imageSize(u_output);
+
+    if(output_pos.x >= output_size.x || output_pos.y >= output_size.y)
         return;
 
     ivec2 input_pos = output_pos * 2;

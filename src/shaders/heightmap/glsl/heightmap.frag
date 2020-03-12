@@ -25,6 +25,17 @@ vec3 getNormal(vec2 pos) {
     return normals.data[quadId * 2 + offset];
 }
 
+
+uint getColorBasedOnHeight(float x) {
+    float x_10 = x * 10.0;
+    for(uint i = 0u; i < 10u; i += 1u) {
+        if(x_10 < float(i)) {
+            return i;
+        }
+    }
+    return 10u;
+}
+
 void main() {
 
     vec3 lightPos = vec3(0, 10, 0);
@@ -37,6 +48,13 @@ void main() {
     color = vec4(0, light, 0, 1);
     //color = v_color;
 
-
+    const uint length = 3u;
+    vec3 c[length];
     //color = vec4(normal, 1.0);
+    c[0] = vec3(1, 0, 0);
+    c[1] = vec3(0, 1, 0);
+    c[2] = vec3(0, 0, 1);
+
+    uint index = getColorBasedOnHeight(v_position.y);
+    color = vec4(c[index % length] * light, 1.0);
 }

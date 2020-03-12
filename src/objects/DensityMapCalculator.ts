@@ -30,6 +30,8 @@ export class DensityMapCalculator {
     private outputSizeLoc: WebGLUniformLocation;
     private outputSizeClearShaderLoc: WebGLUniformLocation;
 
+    private pyramid: WebGLTexture;
+
     init(width: number, height: number) {
         TPAssert(width == height, 'Width and height must be the same, different sizes are not supported');
         const exponent = Math.log2(width);
@@ -87,10 +89,17 @@ export class DensityMapCalculator {
             const texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, w, h);
-            // HERE
-            //gl.generateMipmap(gl.TEXTURE_2D);
             this.textures.push(new Texture(w, h, texture));
         }
+
+        // Generate Pyramid
+        this.pyramid = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.pyramid);
+        gl.texStorage2D(gl.TEXTURE_2D, this.levels, gl.R32F, this.width, this.height);
+
+        //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+        //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 8);
     }
 
     private rasterizePositions(buffers: FDGBuffers) {
@@ -134,6 +143,10 @@ export class DensityMapCalculator {
 
             gl.dispatchCompute(num_groups_x, num_groups_y, 1);
             gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+            //gl.bindTexture(gl.TEXTURE_2D, this.pyramid);
+            //gl.texImage2D(gl.TEXTURE_2D, iteration + 1, gl.R32F, output.width, output.height, 0, gl.R32F, gl.UNSIGNED_BYTE, )
+
         }
 
         this.densityShader.unuse();

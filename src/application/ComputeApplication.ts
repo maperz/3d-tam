@@ -3,13 +3,13 @@ import {mat4, vec2, vec3} from 'gl-matrix';
 import {ComputeGLApplication} from '../engine/application/ComputeGLApplication';
 import {canvas, gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
+import {Profiler} from '../engine/Profiler';
 import {FamilyGraph} from '../gedcom/FamilyGraph';
 import {FamilyGraphData} from '../gedcom/FamilyGraphData';
 import {Dilator} from '../objects/Dilator';
 import {FDGBuffers} from '../objects/FDGBuffers';
 import {FDGCalculator} from '../objects/FDGCalculator';
 import {FDGDebugRenderer} from '../objects/FDGDebugRenderer';
-import {GedcomPreparator} from '../objects/ged/GedcomPreparator';
 import {GradientInterpolator} from '../objects/GradientInterpolator';
 import {GraphData} from '../objects/GraphData';
 import {HeightMapRenderer} from '../objects/HeightMapRenderer';
@@ -74,7 +74,6 @@ export class ComputeApplication extends ComputeGLApplication {
         };
     }
 
-
     onStart(): void {
         const ext = gl.getExtension('EXT_color_buffer_float');
         TPAssert(ext != null, 'Cannot render to floating point FBOs!');
@@ -117,6 +116,8 @@ export class ComputeApplication extends ComputeGLApplication {
 
     initApp() {
 
+        Profiler.startSession('InitApp');
+
         this.WIDTH = AppSettings.resolution;
         this.HEIGHT = AppSettings.resolution;
 
@@ -129,8 +130,10 @@ export class ComputeApplication extends ComputeGLApplication {
         this.fdgCalculator = new FDGCalculator();
         this.fdgCalculator.init(this.WIDTH, this.HEIGHT);
 
+        Profiler.startSession('Gradient Interpolator');
         this.gradientInterpolator = new GradientInterpolator();
         this.gradientInterpolator.init(this.WIDTH, this.HEIGHT);
+        Profiler.stopSession();
 
         this.heightMapRenderer = new HeightMapRenderer();
         this.heightMapRenderer.init(10, 10, AppSettings.heightMapResolution,  AppSettings.heightMapResolution, this.WIDTH, this.HEIGHT, this.graphData);
@@ -147,6 +150,8 @@ export class ComputeApplication extends ComputeGLApplication {
         // create frameBuffer to read from texture
         this.frameBuffer = gl.createFramebuffer();
         this.initialized = true;
+        Profiler.stopSession();
+        Profiler.printTree();
     }
 
 
