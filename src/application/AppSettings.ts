@@ -30,7 +30,7 @@ export const AppSettings = {
 
     // Heightmap
     heightMapFactor: 2,
-    heightMapResolution: 128,
+    heightMapResolution: 512,
     personSize: 0.5,
 
     // FDG
@@ -41,8 +41,8 @@ export const AppSettings = {
     repulsionForce: 1000,
 
     // Drawing
-    useLights: false,
+    useLights: true,
     wireframe: false,
-    colorRamp: "colormap.png"
+    colorRamp: "turbo.png"
     
 };
