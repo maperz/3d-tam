@@ -1,11 +1,11 @@
 import { GUI } from "dat.gui";
-import { AppSettings, RenderMode } from "./AppSettings";
-import { Application } from "../engine/application/Application";
+import { AppSettings, RenderMode, ColorRamps } from "./AppSettings";
 
 export class AppGUI {
   init(
     restartCallback: Function,
-    inputLoadedCallback: Function
+    inputLoadedCallback: Function,
+    colorRampChanged: Function
   ) {
     const gui: GUI = new GUI({ width: 300 });
     gui.useLocalStorage = true;
@@ -159,6 +159,12 @@ export class AppGUI {
       }
     };
 
+    const colorRampLoader = {
+      loadColorRamp: () => {
+        document.getElementById("color-ramp-upload").click();
+      }
+    };
+
     function readSingleFile(e) {
       const file = e.target.files[0];
       if (!file) {
@@ -178,11 +184,30 @@ export class AppGUI {
     renderFolder.add(AppSettings, "showPerson").name("Show Person");
     renderFolder.add(AppSettings, "personSize", 0, 3, 0.1).name("Person Size");
 
-    document
-      .getElementById("upload")
-      .addEventListener("change", readSingleFile, false);
+    renderFolder.add(AppSettings, "colorRamp", ColorRamps).onChange(url => {
+      colorRampChanged(`images/${url}`);
+    });
+
+    function loadColorRamp(e) {
+      if (e.target.files && e.target.files[0]) {
+        var img = document.querySelector('img');
+        colorRampChanged(URL.createObjectURL(this.files[0]));
+      }
+    }
+
+    renderFolder.add(colorRampLoader, "loadColorRamp").name("Load ColorRamp");
 
     gui.add(fileLoader, "loadFile").name("Load GED file");
     gui.add(restartObject, "Restart");
+
+    document
+    .getElementById("upload")
+    .addEventListener("change", readSingleFile, false);
+
+    document
+    .getElementById("color-ramp-upload")
+    .addEventListener("change",loadColorRamp, false);
+
+
   }
 }

@@ -16,7 +16,7 @@ import { ConstraintEngine } from "../objects/ConstraintEngine";
 import { AppGUI } from "./AppGUI";
 
 export class ComputeApplication extends ComputeGLApplication {
-  forceFullscreen = false;
+  forceFullscreen = true;
   CANVAS_WIDTH = 1024;
   CANVAS_HEIGHT = 1024;
 
@@ -53,6 +53,7 @@ export class ComputeApplication extends ComputeGLApplication {
   fpsDisplayer: HTMLSpanElement;
 
   initialized: boolean = false;
+  lastColorRampUrl: string = null;
 
   gui: AppGUI = null;
 
@@ -100,12 +101,18 @@ export class ComputeApplication extends ComputeGLApplication {
     }, 500);
 
     this.gui = new AppGUI();
-    this.gui.init(this.initApp.bind(this), this.onInputChanged.bind(this));
+    this.gui.init(this.initApp.bind(this), this.onInputChanged.bind(this), this.onColorRampChanged.bind(this));
 
     this.initControlls();
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
+  }
+
+  onColorRampChanged(url: string) {
+    if(this.heightMapRenderer) {
+      this.heightMapRenderer.setColorRamp(url);
+    }
   }
 
   onInputChanged(input: string) {
@@ -315,6 +322,7 @@ export class ComputeApplication extends ComputeGLApplication {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
 
     gl.viewport(x, y, width, height);
+
 
     //this.modelRotationY += 5 * deltaTime;
 

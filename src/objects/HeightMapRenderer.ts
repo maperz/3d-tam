@@ -1,4 +1,4 @@
-import { mat4, vec2 } from "gl-matrix";
+import { mat4 } from "gl-matrix";
 import { AppSettings } from "../application/AppSettings";
 import { canvas, gl } from "../engine/Context";
 import { TPAssert } from "../engine/error/TPException";
@@ -7,7 +7,6 @@ import { createShaderFromSources } from "../engine/utils/Utils";
 import { PersonDebugShader } from "../shaders/debug/PersonDebugShader";
 import { HeightMapShader } from "../shaders/heightmap/HeightMapShader";
 import { FDGBuffers } from "./FDGBuffers";
-import { GraphData } from "./GraphData";
 import { NormalsCalculator } from "./NormalsCalculator";
 import { PixelGrid } from "./PixelGrid";
 import { FamilyGraphData } from "../gedcom/FamilyGraphData";
@@ -60,15 +59,10 @@ export class HeightMapRenderer {
     this.cubeVAO = vao;
   }
 
-  loadColorRamp(url: string): WebGLTexture {
+  setColorRamp(url: string) {
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    // Because images have to be download over the internet
-    // they might take a moment until they are ready.
-    // Until then put a single pixel in the texture so we can
-    // use it immediately. When the image has finished downloading
-    // we'll update the texture with the contents of the image.
     const level = 0;
     const internalFormat = gl.RGBA;
     const width = 1;
@@ -104,10 +98,17 @@ export class HeightMapRenderer {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    };
+      this.colorRampTexture = texture;
+      gl.bindTexture(gl.TEXTURE_2D, null);
+
+    }.bind(this);
     image.src = url;
 
-    return texture;
+    if (!this.colorRampTexture) {
+      // Set this here on first time immediately
+      this.colorRampTexture = texture;
+    }
+    gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
   init(
@@ -190,7 +191,8 @@ export class HeightMapRenderer {
       if (AppSettings.showPerson) {
         const rgba = new Uint8Array(4);
         const x = e.x;
-        const y = canvas.width - e.y;
+        const y = canvas.height - e.y;
+
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.cubeFramebuffer);
         gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
@@ -213,7 +215,7 @@ export class HeightMapRenderer {
       }
     });
 
-    this.colorRampTexture = this.loadColorRamp("images/GnBu.png");
+    this.setColorRamp(`images/${AppSettings.colorRamp}`);
     this.colorRampLoc = this.shader.getUniformLocation("u_colorRamp");
     this.useLightsLoc = this.shader.getUniformLocation("u_useLights");
   }

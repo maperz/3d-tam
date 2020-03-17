@@ -9,6 +9,10 @@ export enum RenderMode {
     FDGDebug = 'FDG Debug',
 }
 
+export const ColorRamps = [
+    "block.png", "Blues.png", "GnBu.png", "inferno.png", "turbo.png"
+]
+
 export const AppSettings = {
 
     resolution: 1024,
@@ -39,4 +43,6 @@ export const AppSettings = {
     // Drawing
     useLights: false,
     wireframe: false,
+    colorRamp: "colormap.png"
+    
 };
