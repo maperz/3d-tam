@@ -50,6 +50,8 @@ export class ConstraintEngine {
     renderConstraints(radius: number, samples: number, position: WebGLBuffer, values: WebGLBuffer, indexBuffer: WebGLBuffer, indiciesCount: number): WebGLTexture {
         
         TPAssert(this.initialized, 'ConstraintEngine needs to be initialized before usage.');
+        const oldClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -80,6 +82,7 @@ export class ConstraintEngine {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
         this.shader.unuse();
+        gl.clearColor(oldClearColor[0], oldClearColor[1], oldClearColor[2], oldClearColor[3]);
         return this.output;
     }
 }

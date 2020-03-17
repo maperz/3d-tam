@@ -308,8 +308,11 @@ export class HeightMapRenderer {
 
     if (renderPerson) {
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.cubeFramebuffer);
+      const oldClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+      gl.clearColor(0.0, 0.0, 0.0, 0.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.renderPersonDebug(buffer, height, model, view, proj, true);
+      gl.clearColor(oldClearColor[0], oldClearColor[1], oldClearColor[2], oldClearColor[3]);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
       this.renderPersonDebug(buffer, height, model, view, proj);
     }
@@ -417,10 +420,7 @@ export class HeightMapRenderer {
 
     this.personDebug.unuse();
   }
-
-
 }
-
 
 const CUBEDATA = new Float32Array([
   // Front face

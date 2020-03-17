@@ -16,7 +16,7 @@ import { ConstraintEngine } from "../objects/ConstraintEngine";
 import { AppGUI } from "./AppGUI";
 
 export class ComputeApplication extends ComputeGLApplication {
-  forceFullscreen = false;
+  forceFullscreen = true;
   CANVAS_WIDTH = 1024;
   CANVAS_HEIGHT = 1024;
 
@@ -92,7 +92,7 @@ export class ComputeApplication extends ComputeGLApplication {
     canvas.width = this.CANVAS_WIDTH;
     canvas.height = this.CANVAS_HEIGHT;
     gl.viewport(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     canvas.style.backgroundColor = "black";
 
     this.fpsDisplayer = <HTMLSpanElement>document.getElementById("fps");
