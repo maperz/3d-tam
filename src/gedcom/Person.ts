@@ -54,7 +54,7 @@ export class Person
     {
         for (let f of this.families)
             if (f.children.includes(this))
-                return f.husband;
+                return f.wife;
         return null;
     }
 

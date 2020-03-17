@@ -100,7 +100,6 @@ export class HeightMapRenderer {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       this.colorRampTexture = texture;
       gl.bindTexture(gl.TEXTURE_2D, null);
-
     }.bind(this);
     image.src = url;
 
@@ -418,7 +417,10 @@ export class HeightMapRenderer {
 
     this.personDebug.unuse();
   }
+
+
 }
+
 
 const CUBEDATA = new Float32Array([
   // Front face

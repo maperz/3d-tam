@@ -33,7 +33,8 @@ export class FamilyGraph
 
         for (let i = 0; i < lines.length; i++)
         {
-            let tokens = lines[i].split(" ");
+            let line = lines[i].trim();
+            let tokens = line.split(" ");
             if (tokens[0] == "0" && tokens.length > 2)
             {
                 let nodeType = tokens[2].trim();

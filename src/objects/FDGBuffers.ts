@@ -12,6 +12,11 @@ export class FDGBuffers {
         return this._positionBuffer;
     }
 
+    get edgeIndexBuffer(): WebGLBuffer {
+        TPAssert(this._edgeIndexBuffer != null, 'Edge Index Buffer not created yet!');
+        return this._edgeIndexBuffer;
+    }
+
     get infosBuffer(): WebGLBuffer {
         TPAssert(this._infosBuffer != null, 'Infos Buffer not created yet!');
         return this._infosBuffer;
@@ -54,8 +59,13 @@ export class FDGBuffers {
         return this._numConnections;
     }
 
+    get edgeIndiciesCount(): number {
+        return this._numIndicies;
+    }
+
     private _numSamples: number = 0;
     private _numConnections: number = 0;
+    private _numIndicies: number = 0;
 
     private _positionBuffer: WebGLBuffer;
     private _infosBuffer: WebGLBuffer;
@@ -64,6 +74,7 @@ export class FDGBuffers {
     private _repulsionBuffers: WebGLBuffer;
     private _valuesBuffer: WebGLBuffer;
     private _connectionsBuffer: WebGLBuffer;
+    private _edgeIndexBuffer: WebGLBuffer;
 
     init(width: number, height: number, graph: GraphData) {
 
@@ -78,6 +89,8 @@ export class FDGBuffers {
         this._neighboursBuffer = this.createNeighboursBuffer(graph);
         this._valuesBuffer = this.createValuesBuffer(graph);
         [this._connectionsBuffer, this._numConnections] = this.createConnectionsBuffer(graph);
+
+        [this._edgeIndexBuffer, this._numIndicies] = this.createEdgeIndexBuffer(graph);
     }
 
     private createPositionsBuffer(graph: GraphData): WebGLBuffer {
@@ -277,5 +290,31 @@ export class FDGBuffers {
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
 
         return [buffer, count];
+    }
+
+    private createEdgeIndexBuffer(graph: GraphData): [WebGLBuffer, number]  {
+        // Indices for all lines between graph nodes
+
+        const buffer = gl.createBuffer();
+
+        const data = [];
+
+        for(let i = 0; i < graph.getCount(); i++) {
+            const neighbours = graph.getNeighbours(i);
+            for(let neighbour of neighbours) {
+                if(neighbour > i) {
+                    data.push(i, neighbour);
+                }
+            }
+        }
+        console.log(data);
+
+        const values = new Int16Array(data);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, values, gl.STATIC_COPY);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+        return [buffer, values.length];
     }
 }

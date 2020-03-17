@@ -1,23 +1,25 @@
-import {AppConfig} from '../application/AppConfig';
 import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
-import {ClearCompute} from '../shaders/compute/ClearCompute';
-import {DilationCompute} from '../shaders/compute/DilationCompute';
+import { ConstraintShader } from '../shaders/constraint/ConstraintShader';
+import { mat4 } from 'gl-matrix';
 
 export class ConstraintEngine {
 
     private width: number;
     private height: number;
     private output: WebGLTexture;
-    private dilationShader: Shader;
+    private shader: Shader;
 
     private initialized = false;
 
-    private clearShader: Shader;
+    private frameBuffer: WebGLFramebuffer;
 
-    private outputSizeClearShaderLoc: WebGLUniformLocation;
+    private radiusLocation : WebGLUniformLocation;
+    private projMatrixLocation: WebGLUniformLocation;
+
+    private projMatrix: mat4;
 
     init(width: number, height: number) {
         this.width = width;
@@ -28,49 +30,56 @@ export class ConstraintEngine {
         gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.width, this.height);
         gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
 
-        this.dilationShader = createShaderFromSources(DilationCompute);
-        this.clearShader  = createShaderFromSources(ClearCompute);
+        this.shader = createShaderFromSources(ConstraintShader);
 
-        this.outputSizeClearShaderLoc = this.clearShader.getUniformLocation('u_outputSize');
+        // Create and bind the framebuffer
+        this.frameBuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.output, 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+
+        this.radiusLocation = this.shader.getUniformLocation("u_radius");
+        this.projMatrixLocation = this.shader.getUniformLocation('u_proj');
+        this.projMatrix = mat4.ortho(mat4.create(), 0, this.width, 0, this.height, -1, 1);
 
         this.initialized = true;
     }
 
-    private clearPreviousOutput() {
-        this.clearShader.use();
-        gl.uniform2i(this.outputSizeClearShaderLoc, this.width, this.height);
-        gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
-        gl.dispatchCompute(Math.ceil(this.width / AppConfig.WORK_GROUP_SIZE), Math.ceil(this.height / AppConfig.WORK_GROUP_SIZE), 1);
-        gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
-        this.clearShader.unuse();
-    }
 
-    dilate(radius: number, samples: number, position: WebGLBuffer, values: WebGLBuffer): WebGLTexture {
+    renderConstraints(radius: number, samples: number, position: WebGLBuffer, values: WebGLBuffer, indexBuffer: WebGLBuffer, indiciesCount: number): WebGLTexture {
+        
+        TPAssert(this.initialized, 'ConstraintEngine needs to be initialized before usage.');
 
-        TPAssert(this.initialized, 'Dilator needs to be initialized before usage.');
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.viewport(0, 0, this.width, this.height);
 
-        this.clearPreviousOutput();
+        this.shader.use();
 
-        this.dilationShader.use();
+        let positionLoc = this.shader.getAttribLocation('a_position');
+        gl.enableVertexAttribArray(positionLoc);
 
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, position);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, values);
+        gl.bindBuffer(gl.ARRAY_BUFFER, position);
 
-        gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+        gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0,0) ;
 
-        gl.uniform1ui(this.dilationShader.getUniformLocation('u_num'), samples);
-        gl.uniform1i(this.dilationShader.getUniformLocation('u_size'), radius);
-        gl.uniform2ui(this.dilationShader.getUniformLocation('u_outputSize'), this.width, this.height);
+        let valuesLoc = this.shader.getAttribLocation('a_value');
+        gl.enableVertexAttribArray(valuesLoc);
+        gl.bindBuffer(gl.ARRAY_BUFFER, values);
+        gl.vertexAttribPointer(valuesLoc, 1, gl.FLOAT, false, 0,0) ;
 
-        gl.dispatchCompute(Math.ceil(samples / AppConfig.WORK_GROUP_SIZE), 1, 1);
-        gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
-        this.dilationShader.unuse();
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+        gl.uniformMatrix4fv(this.projMatrixLocation, false, this.projMatrix);
 
-        gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+        gl.uniform1f(this.radiusLocation, radius);
 
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        gl.drawElements(gl.LINES, indiciesCount, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        this.shader.unuse();
         return this.output;
     }
 }

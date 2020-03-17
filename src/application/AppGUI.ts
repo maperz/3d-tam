@@ -186,7 +186,7 @@ export class AppGUI {
 
     renderFolder.add(AppSettings, "colorRamp", ColorRamps).onChange(url => {
       colorRampChanged(`images/${url}`);
-    });
+    }).name("Color Ramp");
 
     function loadColorRamp(e) {
       if (e.target.files && e.target.files[0]) {

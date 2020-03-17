@@ -16,7 +16,7 @@ import { ConstraintEngine } from "../objects/ConstraintEngine";
 import { AppGUI } from "./AppGUI";
 
 export class ComputeApplication extends ComputeGLApplication {
-  forceFullscreen = true;
+  forceFullscreen = false;
   CANVAS_WIDTH = 1024;
   CANVAS_HEIGHT = 1024;
 
@@ -365,11 +365,13 @@ export class ComputeApplication extends ComputeGLApplication {
       for (let i = 0; i < AppSettings.numUpdates; i++) {
         this.fdgCalculator.updatePositions(this.fdgBuffers);
       }
-      this.dilateOut = this.constraintEngine.dilate(
+      this.dilateOut = this.constraintEngine.renderConstraints(
         AppSettings.dilateRadius,
         this.fdgBuffers.numSamples,
         this.fdgBuffers.positionBuffer,
-        this.fdgBuffers.valuesBuffer
+        this.fdgBuffers.valuesBuffer,
+        this.fdgBuffers.edgeIndexBuffer,
+        this.fdgBuffers.edgeIndiciesCount
       );
       const gradient = this.gradientInterpolator.calculateGradient(
         this.dilateOut
