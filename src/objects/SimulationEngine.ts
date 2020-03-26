@@ -10,8 +10,9 @@ import {RepulsionCompute} from '../shaders/compute/RepulsionCompute';
 import {DensityMapCalculator} from './DensityMapCalculator';
 import {FDGBuffers} from './FDGBuffers';
 import {Texture} from './Texture';
+import { vec2 } from 'gl-matrix';
 
-export class FDGCalculator {
+export class SimulationEngine {
 
     width: number;
     height: number;
@@ -30,6 +31,10 @@ export class FDGCalculator {
     attractionStiffnessLoc: WebGLUniformLocation;
     attractionLengthLoc: WebGLUniformLocation;
 
+    selectedIdLoc: WebGLUniformLocation;
+    dragForceLoc: WebGLUniformLocation;
+
+
     init(width: number, height: number) {
 
         this.width = width;
@@ -47,9 +52,11 @@ export class FDGCalculator {
         this.repulsionPyramidSizeLoc = this.repulsionShader.getUniformLocation('u_pyramid_size');
         this.repulsionDimensionLoc = this.repulsionShader.getUniformLocation('u_dimension');
 
+        this.selectedIdLoc = this.updateShader.getUniformLocation('u_selectedId');
+        this.dragForceLoc = this.updateShader.getUniformLocation('u_f_drag');
+
         this.initialized = true;
     }
-
 
     private calculateAttractionForces(buffers: FDGBuffers) {
         this.attractionShader.use();
@@ -102,7 +109,7 @@ export class FDGCalculator {
         this.repulsionShader.unuse();
     }
 
-    private calculatePositionUpdates(buffers: FDGBuffers) {
+    private calculatePositionUpdates(buffers: FDGBuffers, selected?: number, dragForce?: vec2) {
         this.updateShader.use();
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
@@ -113,6 +120,15 @@ export class FDGCalculator {
         gl.uniform2f(this.updateShader.getUniformLocation('u_gravity'), AppSettings.gravity_x, AppSettings.gravity_y);
         gl.uniform2f(this.updateShader.getUniformLocation('u_center'), this.width / 2, this.height / 2);
 
+        let selectedId = -1;
+        let force = vec2.fromValues(0, 0);
+        if(selected && dragForce) {
+            selectedId = selected;
+            force = dragForce;
+        }
+        gl.uniform1i(this.selectedIdLoc, selectedId);
+        gl.uniform2f(this.dragForceLoc, force[0], force[1]);
+
         gl.dispatchCompute(buffers.numSamples / AppConfig.WORK_GROUP_SIZE, 1, 1);
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
@@ -122,7 +138,7 @@ export class FDGCalculator {
         this.updateShader.unuse();
     }
 
-    updatePositions(buffers: FDGBuffers) {
+    updatePositions(buffers: FDGBuffers, selected?: number, dragForce?: vec2) {
         TPAssert(this.initialized, 'FDGCalculator needs to be initialized first before usage.');
 
         const pyramid = this.densityMapCalculator.calculateDensityMap(buffers);
@@ -133,7 +149,7 @@ export class FDGCalculator {
         this.calculateAttractionForces(buffers);
         this.calculateRepulsionForces(buffers, pyramid, levels);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
-        this.calculatePositionUpdates(buffers);
+        this.calculatePositionUpdates(buffers, selected, dragForce);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
     }
 

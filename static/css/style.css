@@ -1,34 +1,36 @@
 body {
-    margin: 0;
-    overflow:  hidden;
+  margin: 0;
+  overflow: hidden;
 }
 
 #fps-holder {
-    display:inline-block;
-    position: fixed;
-    top: 8px;
-    left: 8px;
-    color: white;
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    z-index: 10;
+  display: inline-block;
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  color: white;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  z-index: 10;
 }
 
 #error {
-    font-family: "Arial";
-    background: red;
-    color: white;
-    white-space: pre-line;
-    padding: 20px;
-    z-index: 100;
+  font-family: "Arial";
+  background: red;
+  color: white;
+  white-space: pre-line;
+  padding: 20px;
+  z-index: 100;
 }
 
 #info-tooltip {
-    display:block;
-    position:fixed;
-    overflow:hidden;
-    z-index: 100;
-    background: #787878;
-    padding: 4px;
-    color: white;
+  display: block;
+  position: fixed;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 2px;
+  padding: 8px;
+  color: white;
 }

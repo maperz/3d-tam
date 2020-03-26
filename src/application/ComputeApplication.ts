@@ -6,7 +6,7 @@ import { Profiler } from "../engine/Profiler";
 import { FamilyGraph } from "../gedcom/FamilyGraph";
 import { FamilyGraphData } from "../gedcom/FamilyGraphData";
 import { FDGBuffers } from "../objects/FDGBuffers";
-import { FDGCalculator } from "../objects/FDGCalculator";
+import { SimulationEngine } from "../objects/SimulationEngine";
 import { FDGDebugRenderer } from "../objects/FDGDebugRenderer";
 import { GradientInterpolator } from "../objects/GradientInterpolator";
 import { HeightMapRenderer } from "../objects/HeightMapRenderer";
@@ -27,7 +27,7 @@ export class ComputeApplication extends ComputeGLApplication {
   graphData: FamilyGraphData;
 
   fdgBuffers: FDGBuffers;
-  fdgCalculator: FDGCalculator;
+  simuEngine: SimulationEngine;
   constraintEngine: ConstraintEngine;
   gradientInterpolator: GradientInterpolator;
 
@@ -54,6 +54,11 @@ export class ComputeApplication extends ComputeGLApplication {
 
   initialized: boolean = false;
   lastColorRampUrl: string = null;
+
+  private tooltip: HTMLDivElement;
+  private selectedPerson: number = null;
+  private grabbedPerson: number = null;
+  private grabPoint : vec2 = null;
 
   gui: AppGUI = null;
 
@@ -95,13 +100,20 @@ export class ComputeApplication extends ComputeGLApplication {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     canvas.style.backgroundColor = "black";
 
+    this.tooltip = <HTMLDivElement>document.getElementById("info-tooltip");
+    this.tooltip.style.visibility = "hidden";
+
     this.fpsDisplayer = <HTMLSpanElement>document.getElementById("fps");
     window.setInterval(e => {
       this.displayFPS();
     }, 500);
 
     this.gui = new AppGUI();
-    this.gui.init(this.initApp.bind(this), this.onInputChanged.bind(this), this.onColorRampChanged.bind(this));
+    this.gui.init(
+      this.initApp.bind(this),
+      this.onInputChanged.bind(this),
+      this.onColorRampChanged.bind(this)
+    );
 
     this.initControlls();
 
@@ -110,7 +122,7 @@ export class ComputeApplication extends ComputeGLApplication {
   }
 
   onColorRampChanged(url: string) {
-    if(this.heightMapRenderer) {
+    if (this.heightMapRenderer) {
       this.heightMapRenderer.setColorRamp(url);
     }
   }
@@ -137,8 +149,8 @@ export class ComputeApplication extends ComputeGLApplication {
     this.constraintEngine = new ConstraintEngine();
     this.constraintEngine.init(this.WIDTH, this.HEIGHT);
 
-    this.fdgCalculator = new FDGCalculator();
-    this.fdgCalculator.init(this.WIDTH, this.HEIGHT);
+    this.simuEngine = new SimulationEngine();
+    this.simuEngine.init(this.WIDTH, this.HEIGHT);
 
     Profiler.startSession("Gradient Interpolator");
     this.gradientInterpolator = new GradientInterpolator();
@@ -152,8 +164,7 @@ export class ComputeApplication extends ComputeGLApplication {
       AppSettings.heightMapResolution,
       AppSettings.heightMapResolution,
       this.WIDTH,
-      this.HEIGHT,
-      this.graphData
+      this.HEIGHT
     );
 
     this.fdgDebugRenderer = new FDGDebugRenderer();
@@ -278,7 +289,7 @@ export class ComputeApplication extends ComputeGLApplication {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
     const iteration = AppSettings.densityIteration;
-    const output = this.fdgCalculator.getDMC().getTexture(iteration);
+    const output = this.simuEngine.getDMC().getTexture(iteration);
 
     const fraction = 2 ** iteration;
 
@@ -323,7 +334,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
     gl.viewport(x, y, width, height);
 
-
     //this.modelRotationY += 5 * deltaTime;
 
     const rotationY = mat4.rotateY(
@@ -363,7 +373,11 @@ export class ComputeApplication extends ComputeGLApplication {
 
     if (AppSettings.updateGraph) {
       for (let i = 0; i < AppSettings.numUpdates; i++) {
-        this.fdgCalculator.updatePositions(this.fdgBuffers);
+        this.simuEngine.updatePositions(
+          this.fdgBuffers,
+          this.grabbedPerson,
+          this.grabPoint
+        );
       }
       this.dilateOut = this.constraintEngine.renderConstraints(
         AppSettings.dilateRadius,
@@ -462,20 +476,58 @@ export class ComputeApplication extends ComputeGLApplication {
       ) {
         this.mouseDragging = true;
         this.lastMouseMove = vec2.fromValues(e.x, e.y);
+
+        if (this.selectedPerson) {
+          this.grabbedPerson = this.selectedPerson;
+          this.grabPoint = this.lastMouseMove;
+        }
+        canvas.style.cursor = this.selectedPerson ? "grabbing" : "move";
       }
     });
 
     canvas.addEventListener("mouseup", e => {
       this.mouseDragging = false;
+      canvas.style.cursor = "";
+      this.tooltip.style.visibility = "hidden";
+      this.grabbedPerson = null;
     });
 
     canvas.addEventListener("mousemove", e => {
-      if (this.mouseDragging) {
-        const pos = vec2.fromValues(e.x, e.y);
-        const delta = vec2.sub(vec2.create(), pos, this.lastMouseMove);
-        this.lastMouseMove = pos;
+      const pos = vec2.fromValues(e.x, e.y);
+      const delta = vec2.sub(vec2.create(), pos, this.lastMouseMove);
+      this.lastMouseMove = pos;
+      
+      if (this.mouseDragging && this.selectedPerson == null) {
         this.modelRotationX = this.clamp(this.modelRotationX + delta[1], 0, 90);
         this.modelRotationY += delta[0];
+      }
+
+      if (this.mouseDragging && this.grabbedPerson) {
+        this.grabPoint = pos;
+        this.tooltip.style.visibility = "hidden";
+      }
+
+      if (!this.mouseDragging) {
+        this.selectedPerson = this.heightMapRenderer.getPersonAt(
+          e.x,
+          canvas.height - e.y
+        );
+        this.heightMapRenderer.setSelectedPerson(this.selectedPerson);
+        if (this.selectedPerson) {
+          canvas.style.cursor = "grab";
+          const name = this.graphData.getName(this.selectedPerson);
+          const date = this.graphData
+            .getDate(this.selectedPerson)
+            .getFullYear();
+          this.tooltip.style.visibility = "";
+          this.tooltip.style.top = (e.y + 10).toString() + "px";
+          this.tooltip.style.left = (e.x + 10).toString() + "px";
+          this.tooltip.innerText = name + ` [${date}]`;
+          200;
+        } else {
+          canvas.style.cursor = "";
+          this.tooltip.style.visibility = "hidden";
+        }
       }
     });
 

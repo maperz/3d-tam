@@ -75,6 +75,10 @@ export class ConstraintEngine {
 
         gl.uniform1f(this.radiusLocation, radius);
 
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        gl.drawArrays(gl.POINTS, 0, samples);
+
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
         gl.drawElements(gl.LINES, indiciesCount, gl.UNSIGNED_SHORT, 0);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);

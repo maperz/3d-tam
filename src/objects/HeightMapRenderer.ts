@@ -9,7 +9,7 @@ import { HeightMapShader } from "../shaders/heightmap/HeightMapShader";
 import { FDGBuffers } from "./FDGBuffers";
 import { NormalsCalculator } from "./NormalsCalculator";
 import { PixelGrid } from "./PixelGrid";
-import { FamilyGraphData } from "../gedcom/FamilyGraphData";
+import { Person } from "../gedcom/Person";
 
 class ChunkDrawInfo {
   constructor(public vao: WebGLVertexArrayObject, public elements: number) {}
@@ -32,12 +32,12 @@ export class HeightMapRenderer {
 
   private cubeFramebuffer: WebGLFramebuffer;
 
-  private tooltip: HTMLDivElement;
-
   private colorRampTexture: WebGLTexture;
 
   private useLightsLoc: WebGLUniformLocation;
   private colorRampLoc: WebGLUniformLocation;
+  private invertColorRampLoc: WebGLUniformLocation;
+  private heightLinesNumLoc: WebGLUniformLocation;
 
   private createInstanceInfo() {
     const vao = gl.createVertexArray();
@@ -117,7 +117,6 @@ export class HeightMapRenderer {
     tilesY: number,
     pixelsX: number,
     pixelsY: number,
-    graphData: FamilyGraphData
   ) {
     this.width = width;
     this.height = height;
@@ -183,40 +182,31 @@ export class HeightMapRenderer {
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-    this.tooltip = <HTMLDivElement>document.getElementById("info-tooltip");
-    this.tooltip.style.visibility = "hidden";
-
-    canvas.addEventListener("mousemove", e => {
-      if (AppSettings.showPerson) {
-        const rgba = new Uint8Array(4);
-        const x = e.x;
-        const y = canvas.height - e.y;
-
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.cubeFramebuffer);
-        gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-        if (!rgba.every(v => v === 0)) {
-          const id =
-            rgba[0] + (rgba[1] << 8) + (rgba[2] << 16) + (rgba[3] << 24) - 1;
-          this.selectedId = id;
-          this.tooltip.style.visibility = "";
-          this.tooltip.style.top = (e.y + 10).toString() + "px";
-          this.tooltip.style.left = (e.x + 10).toString() + "px";
-          this.tooltip.innerText =
-            graphData.getName(id) + ` [${graphData.getDate(id).getFullYear()}]`;
-        } else {
-          this.selectedId = -1;
-          this.tooltip.style.visibility = "hidden";
-        }
-      } else {
-        this.selectedId = -1;
-        this.tooltip.style.visibility = "hidden";
-      }
-    });
-
     this.setColorRamp(`images/${AppSettings.colorRamp}`);
     this.colorRampLoc = this.shader.getUniformLocation("u_colorRamp");
     this.useLightsLoc = this.shader.getUniformLocation("u_useLights");
+    this.invertColorRampLoc = this.shader.getUniformLocation("u_invertColorRamp");
+    this.heightLinesNumLoc = this.shader.getUniformLocation("u_numHeightLines");
+  }
+
+  setSelectedPerson(id: number) {
+    this.selectedId = id != null ? id : -1;
+  }
+
+  getPersonAt(x: number, y : number): number {
+    if (AppSettings.showPerson) 
+    {
+      const rgba = new Uint8Array(4);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.cubeFramebuffer);
+      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+      if (!rgba.every(v => v === 0)) {
+        const id =
+          rgba[0] + (rgba[1] << 8) + (rgba[2] << 16) + (rgba[3] << 24) - 1;
+        return id;
+      } 
+    } 
+    return null;
   }
 
   draw(
@@ -243,6 +233,8 @@ export class HeightMapRenderer {
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.colorRampTexture);
       gl.uniform1i(this.colorRampLoc, 0);
+      gl.uniform1i(this.invertColorRampLoc, AppSettings.invertColorRamp ? 1 : 0);
+      gl.uniform1i(this.heightLinesNumLoc,  AppSettings.numHeightLines);
 
       gl.uniform1i(this.useLightsLoc, useLights ? 1 : 0);
 

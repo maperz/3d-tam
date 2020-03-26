@@ -43,6 +43,7 @@ export const AppSettings = {
     // Drawing
     useLights: true,
     wireframe: false,
-    colorRamp: "turbo.png"
-    
+    colorRamp: "turbo.png",
+    invertColorRamp: false,
+    numHeightLines: 0
 };

@@ -11,6 +11,9 @@ layout (std430, binding = 2) buffer RepulsionBuffer { vec2 forces[]; } repulsion
 uniform vec2 u_gravity;
 uniform vec2 u_center;
 
+uniform int u_selectedId;
+uniform vec2 u_f_drag;
+
 void main() {
     uint id = gl_GlobalInvocationID.x;
 
@@ -23,5 +26,10 @@ void main() {
         f_grav = normalize(u_center - pos) * u_gravity;
     }
 
-    positions.data[id] = pos + f_attr + f_rep + f_grav;
+    if(int(id) == u_selectedId) {
+        positions.data[id] = u_f_drag;
+    }
+    else {
+        positions.data[id] = pos + f_attr + f_rep + f_grav;
+    }
 }

@@ -24,6 +24,8 @@ out float v_pixelvalue;
 out vec2 v_gridPosition;
 out vec3 v_position;
 out vec2 v_gridSize;
+out float v_value;
+
 
 void main()
 {
@@ -40,5 +42,6 @@ void main()
     v_position = position;
     v_gridSize = u_gridSize;
     v_gridPosition = a_pixel * u_gridSize;
+
 
 }
