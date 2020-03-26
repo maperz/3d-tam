@@ -23,9 +23,14 @@ uniform vec2 u_dimension;
 uniform int u_totalCount;
 
 uniform float u_repulsionForce;
+uniform uint u_numSamples;
 
 void main() {
     uint id = gl_GlobalInvocationID.x;
+    if(id >= u_numSamples) {
+        return;
+    }
+
     PointInfo info = infos.infos[id];
 
     vec2 force = vec2(0, 0);

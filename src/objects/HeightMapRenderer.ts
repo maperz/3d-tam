@@ -10,6 +10,7 @@ import { DataBuffers } from "./DataBuffers";
 import { NormalsCalculator } from "./NormalsCalculator";
 import { PixelGrid } from "./PixelGrid";
 import { Person } from "../gedcom/Person";
+import { ConnectionsRenderShader } from "../shaders/debug/ConnectionsRenderShader";
 
 class ChunkDrawInfo {
   constructor(public vao: WebGLVertexArrayObject, public elements: number) {}
@@ -18,6 +19,7 @@ class ChunkDrawInfo {
 export class HeightMapRenderer {
   private shader: Shader;
   private personDebug: Shader;
+  private connectionsShader: Shader;
 
   private chunkInfos: ChunkDrawInfo[];
   private pixelsX: number;
@@ -128,6 +130,7 @@ export class HeightMapRenderer {
 
     this.shader = createShaderFromSources(HeightMapShader);
     this.personDebug = createShaderFromSources(PersonDebugShader);
+    this.connectionsShader = createShaderFromSources(ConnectionsRenderShader);
 
     const grid = new PixelGrid(width, height, tilesX, tilesY);
 
@@ -183,6 +186,7 @@ export class HeightMapRenderer {
 
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
 
     this.setColorRamp(`images/${AppSettings.colorRamp}`);
     this.colorRampLoc = this.shader.getUniformLocation("u_colorRamp");
@@ -314,6 +318,7 @@ export class HeightMapRenderer {
       gl.clearColor(oldClearColor[0], oldClearColor[1], oldClearColor[2], oldClearColor[3]);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
       this.renderPersonDebug(buffer, height, model, view, proj);
+      this.renderConnections(buffer, height, model, view, proj);
     }
   }
 
@@ -350,6 +355,7 @@ export class HeightMapRenderer {
     return new ChunkDrawInfo(vao, elements);
   }
 
+
   public renderPersonDebug(
     buffers: DataBuffers,
     height: number,
@@ -360,8 +366,7 @@ export class HeightMapRenderer {
   ) {
     this.personDebug.use();
 
-    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
-    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.valuesBuffer);
+    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.position3dBuffer);
 
     const modelMatrixLocation = this.personDebug.getUniformLocation("u_model");
     gl.uniformMatrix4fv(modelMatrixLocation, false, model);
@@ -388,11 +393,6 @@ export class HeightMapRenderer {
       this.width,
       this.height
     );
-    gl.uniform2f(
-      this.personDebug.getUniformLocation("u_scale"),
-      this.width / this.pixelsX,
-      this.height / this.pixelsY
-    );
     gl.uniform1f(
       this.personDebug.getUniformLocation("u_cubeSize"),
       AppSettings.personSize
@@ -417,14 +417,61 @@ export class HeightMapRenderer {
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
 
-    if(!renderIds) {
-      // Render Lines
-    }
-
-
     this.personDebug.unuse();
   }
+
+  private renderConnections(buffers: DataBuffers,
+    height: number,
+    model: mat4,
+    view: mat4,
+    proj: mat4) {
+
+    this.connectionsShader.use();
+
+    var vertexArrayA = gl.createVertexArray();
+    gl.bindVertexArray(vertexArrayA);
+
+    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.connectionsBuffer);
+    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.position3dBuffer);
+
+  
+    gl.uniformMatrix4fv(this.connectionsShader.getUniformLocation("u_model"), false, model);
+
+    gl.uniformMatrix4fv(this.connectionsShader.getUniformLocation("u_view"), false, view);
+
+    gl.uniformMatrix4fv(this.connectionsShader.getUniformLocation(
+      "u_proj"
+    ), false, proj);
+
+    gl.uniform1i(
+      this.connectionsShader.getUniformLocation("u_selectedId"),
+      this.selectedId
+    );
+
+    gl.uniform2f(
+      this.connectionsShader.getUniformLocation("u_size"),
+      this.width,
+      this.height
+    );
+
+    const heightLocation = this.connectionsShader.getUniformLocation("u_height");
+    gl.uniform1f(heightLocation, height);
+
+    gl.lineWidth(5);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.edgeIndexBuffer);
+    gl.drawElements(gl.LINES, buffers.edgeIndiciesCount, gl.UNSIGNED_SHORT, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+    gl.lineWidth(1);
+
+    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
+    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+
+    this.connectionsShader.unuse();
+  }
 }
+
 
 const CUBEDATA = new Float32Array([
   // Front face

@@ -124,15 +124,17 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.attractionBuffers);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.repulsionBuffers);
-
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.position3dBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, buffers.valuesBuffer);
 
         gl.uniform2f(this.updateShader.getUniformLocation('u_gravity'), AppSettings.gravity_x, AppSettings.gravity_y);
         gl.uniform2f(this.updateShader.getUniformLocation('u_center'), this.width / 2, this.height / 2);
         gl.uniform1ui(this.updateShaderNumSamplesLoc, buffers.numSamples);
+        gl.uniform2f(this.updateShader.getUniformLocation('u_dimension'), this.width, this.height);
 
         let selectedId = -1;
         let force = vec2.fromValues(0, 0);
-        if(selected && dragForce) {
+        if(selected != null && dragForce != null) {
             selectedId = selected;
             force = dragForce;
         }
@@ -144,6 +146,8 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, null);
 
         this.updateShader.unuse();
     }

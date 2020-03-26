@@ -319,7 +319,6 @@ export class ComputeApplication extends ComputeGLApplication {
     if (AppSettings.logDensity) {
       const pixels = new Float32Array(w * h);
       gl.readPixels(0, 0, w, h, gl.RED, gl.FLOAT, pixels);
-      console.log(pixels);
     }
   }
 
@@ -477,10 +476,9 @@ export class ComputeApplication extends ComputeGLApplication {
         this.mouseDragging = true;
         this.lastMouseMove = vec2.fromValues(e.x, e.y);
 
-        if (this.selectedPerson) {
+        if (this.selectedPerson != null) {
           this.grabbedPerson = this.selectedPerson;
           this.grabPoint = this.lastMouseMove;
-          console.log(this.selectedPerson);
         }
         canvas.style.cursor = this.selectedPerson ? "grabbing" : "move";
       }
@@ -503,18 +501,18 @@ export class ComputeApplication extends ComputeGLApplication {
         this.modelRotationY += delta[0];
       }
 
-      if (this.mouseDragging && this.grabbedPerson) {
+      if (this.mouseDragging && this.grabbedPerson != null) {
         this.grabPoint = pos;
         this.tooltip.style.visibility = "hidden";
       }
 
-      if (!this.mouseDragging) {
+      if (!this.mouseDragging && this.heightMapRenderer) {
         this.selectedPerson = this.heightMapRenderer.getPersonAt(
           e.x,
           canvas.height - e.y
         );
         this.heightMapRenderer.setSelectedPerson(this.selectedPerson);
-        if (this.selectedPerson) {
+        if (this.selectedPerson != null && this.selectedPerson >= 0) {
           canvas.style.cursor = "grab";
           const name = this.graphData.getName(this.selectedPerson);
           const date = this.graphData
@@ -523,7 +521,7 @@ export class ComputeApplication extends ComputeGLApplication {
           this.tooltip.style.visibility = "";
           this.tooltip.style.top = (e.y + 10).toString() + "px";
           this.tooltip.style.left = (e.x + 10).toString() + "px";
-          this.tooltip.innerText = name + ` [${date}]`;
+          this.tooltip.innerText = `#${this.selectedPerson} ${name} [${date}]`;
           200;
         } else {
           canvas.style.cursor = "";

@@ -86,6 +86,8 @@ export class FamilyGraphData extends GraphData {
         conns.add(this.getIndex(c.getId()));
       }
 
+      //console.log(conns);
+
       this.connections.push(conns);
     }
   }

@@ -11,7 +11,7 @@ uniform uint u_num;
 void main() {
     uint index = gl_GlobalInvocationID.x;
 
-    if(index > u_num) {
+    if(index >= u_num) {
         return;
     }
 

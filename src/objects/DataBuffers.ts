@@ -47,6 +47,11 @@ export class DataBuffers {
         return this._connectionsBuffer;
     }
 
+    get position3dBuffer(): WebGLBuffer {
+        TPAssert(this._position3dBuffer != null, 'Position Buffer not created yet!');
+        return this._position3dBuffer;
+    }
+
     get numSamples(): number {
         return this._numSamples;
     }
@@ -75,6 +80,8 @@ export class DataBuffers {
     private _valuesBuffer: WebGLBuffer;
     private _connectionsBuffer: WebGLBuffer;
     private _edgeIndexBuffer: WebGLBuffer;
+    private _position3dBuffer: WebGLBuffer;
+
 
     init(width: number, height: number, graph: GraphData) {
 
@@ -88,10 +95,13 @@ export class DataBuffers {
         this._infosBuffer = this.createInfoBuffer(graph);
         this._neighboursBuffer = this.createNeighboursBuffer(graph);
         this._valuesBuffer = this.createValuesBuffer(graph);
+        this._position3dBuffer = this.createPositionsBuffer3d(graph);
+
         [this._connectionsBuffer, this._numConnections] = this.createConnectionsBuffer(graph);
 
         [this._edgeIndexBuffer, this._numIndicies] = this.createEdgeIndexBuffer(graph);
     }
+
 
     private createPositionsBuffer(graph: GraphData): WebGLBuffer {
         /* Position buffer has following entries:
@@ -287,7 +297,7 @@ export class DataBuffers {
 
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
         gl.bufferData(gl.SHADER_STORAGE_BUFFER, values, gl.STATIC_COPY);
-        gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+        gl.bindBuffer( gl.SHADER_STORAGE_BUFFER, null);
 
         return [buffer, count];
     }
@@ -307,7 +317,7 @@ export class DataBuffers {
                 }
             }
         }
-        
+
         const values = new Int16Array(data);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
@@ -315,5 +325,26 @@ export class DataBuffers {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
         return [buffer, values.length];
+    }
+
+    private createPositionsBuffer3d(graph: GraphData): WebGLBuffer {
+        /* Position buffer has following entries:
+        //
+        // | X (Float) | Y (Float) | Z (Float) |
+        //
+        // X: x-value of position in model space
+        // Y: y-value of position in model space
+        // Z: z-value of position in model space
+        */
+       const buffer = gl.createBuffer();
+       const count = graph.getCount() * 3;
+       const data = new Array(count).fill(0);
+       const positions = new Float32Array(data);
+
+       gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
+       gl.bufferData(gl.SHADER_STORAGE_BUFFER, positions, gl.STATIC_COPY);
+       gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+
+       return buffer;
     }
 }

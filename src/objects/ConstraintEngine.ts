@@ -82,6 +82,8 @@ export class ConstraintEngine {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
         gl.drawElements(gl.LINES, indiciesCount, gl.UNSIGNED_SHORT, 0);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        gl.disableVertexAttribArray(positionLoc);
+        gl.disableVertexAttribArray(valuesLoc);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 

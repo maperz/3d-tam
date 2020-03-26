@@ -1,5 +1,5 @@
 export enum RenderMode {
-    Dilate = 'Show Dilate',
+    Dilate = 'Show Constraint',
     Push = 'Show Push',
     Pull = 'Show Pull',
     Density = 'Show Density',
