@@ -88,8 +88,6 @@ export class FamilyGraphData extends GraphData {
 
       this.connections.push(conns);
     }
-    console.log(this.connections);
-
   }
 
   getCount(): number {

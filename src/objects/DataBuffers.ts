@@ -3,7 +3,7 @@ import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {GraphData} from './GraphData';
 
-export class FDGBuffers {
+export class DataBuffers {
     private width: number;
     private height: number;
 
@@ -307,8 +307,7 @@ export class FDGBuffers {
                 }
             }
         }
-        console.log(data);
-
+        
         const values = new Int16Array(data);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);

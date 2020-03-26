@@ -13,6 +13,8 @@ layout (std430, binding = 1) buffer RepulsionBuffer { vec2 forces[]; } repulsion
 
 uniform uint u_pyramid_size;
 uniform vec2 u_dimension;
+uniform uint u_numSamples;
+
 layout(binding = 0, r32f) readonly highp uniform image2D u_pyramid[MAX_PYRAMID_SIZE];
 
 vec2 getForcesForLevel(vec2 pos, vec2 dim, uint level, vec2 origPos) {
@@ -45,6 +47,10 @@ vec2 getForcesForLevel(vec2 pos, vec2 dim, uint level, vec2 origPos) {
 void main() {
 
     uint id = gl_GlobalInvocationID.x;
+    if(id >= u_numSamples) {
+        return;
+    }
+
     vec2 position = positions.data[id];
 
     vec2 force = vec2(0, 0);

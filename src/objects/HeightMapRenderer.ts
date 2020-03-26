@@ -6,7 +6,7 @@ import { Shader } from "../engine/Shader";
 import { createShaderFromSources } from "../engine/utils/Utils";
 import { PersonDebugShader } from "../shaders/debug/PersonDebugShader";
 import { HeightMapShader } from "../shaders/heightmap/HeightMapShader";
-import { FDGBuffers } from "./FDGBuffers";
+import { DataBuffers } from "./DataBuffers";
 import { NormalsCalculator } from "./NormalsCalculator";
 import { PixelGrid } from "./PixelGrid";
 import { Person } from "../gedcom/Person";
@@ -37,7 +37,9 @@ export class HeightMapRenderer {
   private useLightsLoc: WebGLUniformLocation;
   private colorRampLoc: WebGLUniformLocation;
   private invertColorRampLoc: WebGLUniformLocation;
-  private heightLinesNumLoc: WebGLUniformLocation;
+  private numSegmentsLoc: WebGLUniformLocation;
+  private showSegmentLinesLoc: WebGLUniformLocation;
+  private smoothRampLoc: WebGLUniformLocation;
 
   private createInstanceInfo() {
     const vao = gl.createVertexArray();
@@ -186,7 +188,9 @@ export class HeightMapRenderer {
     this.colorRampLoc = this.shader.getUniformLocation("u_colorRamp");
     this.useLightsLoc = this.shader.getUniformLocation("u_useLights");
     this.invertColorRampLoc = this.shader.getUniformLocation("u_invertColorRamp");
-    this.heightLinesNumLoc = this.shader.getUniformLocation("u_numHeightLines");
+    this.numSegmentsLoc = this.shader.getUniformLocation("u_numSegments");
+    this.showSegmentLinesLoc = this.shader.getUniformLocation("u_showSegmentLines");
+    this.smoothRampLoc = this.shader.getUniformLocation("u_useSmoothRamp");
   }
 
   setSelectedPerson(id: number) {
@@ -210,7 +214,7 @@ export class HeightMapRenderer {
   }
 
   draw(
-    buffer: FDGBuffers,
+    buffer: DataBuffers,
     heightMapTexture: WebGLTexture,
     height: number,
     model: mat4,
@@ -234,7 +238,10 @@ export class HeightMapRenderer {
       gl.bindTexture(gl.TEXTURE_2D, this.colorRampTexture);
       gl.uniform1i(this.colorRampLoc, 0);
       gl.uniform1i(this.invertColorRampLoc, AppSettings.invertColorRamp ? 1 : 0);
-      gl.uniform1i(this.heightLinesNumLoc,  AppSettings.numHeightLines);
+      gl.uniform1i(this.smoothRampLoc, AppSettings.smoothRamp ? 1 : 0);
+      gl.uniform1i(this.showSegmentLinesLoc, AppSettings.showSegmentLines ? 1 : 0);
+
+      gl.uniform1i(this.numSegmentsLoc,  AppSettings.numSegments);
 
       gl.uniform1i(this.useLightsLoc, useLights ? 1 : 0);
 
@@ -344,7 +351,7 @@ export class HeightMapRenderer {
   }
 
   public renderPersonDebug(
-    buffers: FDGBuffers,
+    buffers: DataBuffers,
     height: number,
     model: mat4,
     view: mat4,
@@ -409,6 +416,11 @@ export class HeightMapRenderer {
 
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+
+    if(!renderIds) {
+      // Render Lines
+    }
+
 
     this.personDebug.unuse();
   }

@@ -31,7 +31,7 @@ void main()
 {
     v_pixelvalue = imageLoad(u_heightmap, ivec2(a_pixel * u_size)).r;
 
-    float height =  v_pixelvalue * log((1.0+u_height));
+    float height =  v_pixelvalue * u_height;
     vec3 position = vec3(a_position.x,  height, a_position.y);
     gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
 
@@ -42,6 +42,5 @@ void main()
     v_position = position;
     v_gridSize = u_gridSize;
     v_gridPosition = a_pixel * u_gridSize;
-
 
 }

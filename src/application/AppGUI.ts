@@ -189,7 +189,8 @@ export class AppGUI {
     }).name("Color Ramp");
 
     renderFolder.add(AppSettings, "invertColorRamp").name("Invert Ramp");
-    renderFolder.add(AppSettings, "numHeightLines").name("Number HeightLin");
+    renderFolder.add(AppSettings, "numSegments").name("Num Segments");
+    renderFolder.add(AppSettings, "showSegmentLines").name("Show Lines");
 
     function loadColorRamp(e) {
       if (e.target.files && e.target.files[0]) {
@@ -197,6 +198,7 @@ export class AppGUI {
         colorRampChanged(URL.createObjectURL(this.files[0]));
       }
     }
+    renderFolder.add(AppSettings, "smoothRamp").name("Smooth Ramp");
 
     renderFolder.add(colorRampLoader, "loadColorRamp").name("Load ColorRamp");
 

@@ -14,8 +14,14 @@ uniform vec2 u_center;
 uniform int u_selectedId;
 uniform vec2 u_f_drag;
 
+uniform uint u_numSamples;
+
 void main() {
     uint id = gl_GlobalInvocationID.x;
+
+    if(id >= u_numSamples) {
+        return;
+    }
 
     vec2 f_attr = attraction.forces[id];
     vec2 f_rep = repulsion.forces[id];

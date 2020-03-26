@@ -5,7 +5,7 @@ import { TPAssert } from "../engine/error/TPException";
 import { Profiler } from "../engine/Profiler";
 import { FamilyGraph } from "../gedcom/FamilyGraph";
 import { FamilyGraphData } from "../gedcom/FamilyGraphData";
-import { FDGBuffers } from "../objects/FDGBuffers";
+import { DataBuffers } from "../objects/DataBuffers";
 import { SimulationEngine } from "../objects/SimulationEngine";
 import { FDGDebugRenderer } from "../objects/FDGDebugRenderer";
 import { GradientInterpolator } from "../objects/GradientInterpolator";
@@ -26,7 +26,7 @@ export class ComputeApplication extends ComputeGLApplication {
   familyGraph: FamilyGraph;
   graphData: FamilyGraphData;
 
-  fdgBuffers: FDGBuffers;
+  fdgBuffers: DataBuffers;
   simuEngine: SimulationEngine;
   constraintEngine: ConstraintEngine;
   gradientInterpolator: GradientInterpolator;
@@ -41,7 +41,7 @@ export class ComputeApplication extends ComputeGLApplication {
   distanceCamera: number = 15;
 
   mouseDragging = false;
-  lastMouseMove: vec2;
+  lastMouseMove = vec2.create();
 
   heightMapRenderer: HeightMapRenderer;
   fdgDebugRenderer: FDGDebugRenderer;
@@ -143,7 +143,7 @@ export class ComputeApplication extends ComputeGLApplication {
     this.WIDTH = AppSettings.resolution;
     this.HEIGHT = AppSettings.resolution;
 
-    this.fdgBuffers = new FDGBuffers();
+    this.fdgBuffers = new DataBuffers();
     this.fdgBuffers.init(this.WIDTH, this.HEIGHT, this.graphData);
 
     this.constraintEngine = new ConstraintEngine();
@@ -480,6 +480,7 @@ export class ComputeApplication extends ComputeGLApplication {
         if (this.selectedPerson) {
           this.grabbedPerson = this.selectedPerson;
           this.grabPoint = this.lastMouseMove;
+          console.log(this.selectedPerson);
         }
         canvas.style.cursor = this.selectedPerson ? "grabbing" : "move";
       }

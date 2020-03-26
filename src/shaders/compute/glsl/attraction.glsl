@@ -16,9 +16,14 @@ layout (std430, binding = 3) buffer AttractionBuffer { vec2 forces[]; } attracti
 
 uniform float u_stiffness;
 uniform float u_length;
+uniform uint u_numSamples;
 
 void main() {
     uint id = gl_GlobalInvocationID.x;
+    if(id >= u_numSamples) {
+        return;
+    }
+
     PointInfo info = infos.infos[id];
 
     vec2 force = vec2(0, 0);

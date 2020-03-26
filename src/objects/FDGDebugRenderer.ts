@@ -5,12 +5,12 @@ import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
 import {FDGDebugLineShader} from '../shaders/debug/FDGDebugLineShader';
 import {FDGDebugShader} from '../shaders/debug/FDGDebugShader';
-import {FDGBuffers} from './FDGBuffers';
+import {DataBuffers} from './DataBuffers';
 
 export class FDGDebugRenderer {
 
     private initialized: boolean = false;
-    private buffers: FDGBuffers;
+    private buffers: DataBuffers;
 
     private nodesShader: Shader;
     private linesShader: Shader;
@@ -23,7 +23,7 @@ export class FDGDebugRenderer {
     private readonly EDGE_SIZE = 2.0;
     private readonly EDGE_COLOR = [1.0, 1.0, 1.0];
 
-    init(buffers: FDGBuffers) {
+    init(buffers: DataBuffers) {
 
         this.buffers = buffers;
         this.initialized = true;

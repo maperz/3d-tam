@@ -45,7 +45,7 @@ void main()
 
     currentGridPos -= u_sizeMap / 2.0;
 
-    float currentHeight =  values.data[id] * log((1.0+u_height));
+    float currentHeight =  values.data[id] * u_height;
 
     position += vec3(currentGridPos.x, currentHeight, currentGridPos.y);
     gl_Position = u_proj *  u_view * u_model * vec4(position, 1.0);

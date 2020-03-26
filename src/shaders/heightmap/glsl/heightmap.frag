@@ -14,7 +14,9 @@ out vec4 color;
 uniform int u_invertColorRamp;
 uniform sampler2D u_colorRamp;
 uniform int u_useLights;
-uniform int u_numHeightLines;
+uniform int u_useSmoothRamp;
+uniform int u_showSegmentLines;
+uniform int u_numSegments;
 
 vec3 getNormal(vec2 pos) {
     vec2 floored = floor(pos);  
@@ -34,14 +36,26 @@ void main() {
     float lightFactor = clamp(dot(normal, lightDir), 0.2, 1.0);
     lightFactor = u_useLights != 0 ? lightFactor : 1.0;
 
-    float rampValue = u_invertColorRamp == 0 ? v_pixelvalue : 1.0f - v_pixelvalue; 
-    color = texture(u_colorRamp, vec2(rampValue, 0)) * lightFactor;
+    float rampUV = 0.0f;
 
-    if(u_numHeightLines > 0) {
-        int valuePercent = int(v_pixelvalue * 100.0f);
-        if(valuePercent % (100 / u_numHeightLines) == 0) {
-            color *= 0.9f;
+    if(u_useSmoothRamp > 0 || u_numSegments <= 1) {
+        rampUV = u_invertColorRamp == 0 ? v_pixelvalue : 1.0f - v_pixelvalue; 
+    }
+    
+    if(u_numSegments > 1) {
+
+        if(u_useSmoothRamp == 0) {
+            rampUV =  float(int(v_pixelvalue * float(u_numSegments))) / float(u_numSegments); 
+        }
+ 
+        if(u_showSegmentLines > 0)
+        {
+            int valuePercent = int(v_pixelvalue * 100.0f);
+            if(valuePercent % (100 / u_numSegments) == 0) {
+                lightFactor *= 0.9f;
+            }
         }
     }
 
+    color = texture(u_colorRamp, vec2(rampUV, 0)) * lightFactor;
 }

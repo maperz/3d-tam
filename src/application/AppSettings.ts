@@ -40,10 +40,12 @@ export const AppSettings = {
     gravity_y : 0,
     repulsionForce: 1000,
 
-    // Drawing
+    // Rendering
     useLights: true,
     wireframe: false,
     colorRamp: "turbo.png",
     invertColorRamp: false,
-    numHeightLines: 0
+    smoothRamp: true,
+    numSegments: 0,
+    showSegmentLines: true,
 };

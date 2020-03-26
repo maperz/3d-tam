@@ -6,7 +6,7 @@ import {createShaderFromSources} from '../engine/utils/Utils';
 import {ClearCompute} from '../shaders/compute/ClearCompute';
 import {DensityCompute} from '../shaders/compute/DensityCompute';
 import {RasterizeCompute} from '../shaders/compute/RasterizeCompute';
-import {FDGBuffers} from './FDGBuffers';
+import {DataBuffers} from './DataBuffers';
 import {Texture} from './Texture';
 
 export class DensityMapCalculator {
@@ -55,7 +55,7 @@ export class DensityMapCalculator {
         this.isInitialized = true;
     }
 
-    calculateDensityMap(input: FDGBuffers): Texture[] {
+    calculateDensityMap(input: DataBuffers): Texture[] {
         TPAssert(this.isInitialized, 'DensityMapCalculator needs to be initialized before usage. Use GradientInterpolator::init.');
         this.clearTextureValues();
         this.rasterizePositions(input);
@@ -102,7 +102,7 @@ export class DensityMapCalculator {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 8);
     }
 
-    private rasterizePositions(buffers: FDGBuffers) {
+    private rasterizePositions(buffers: DataBuffers) {
         this.rasterizeShader.use();
 
         const output = this.textures[0];

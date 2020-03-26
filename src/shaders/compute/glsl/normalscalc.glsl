@@ -15,7 +15,7 @@ vec3 get3d(vec2 position, vec2 factor) {
     vec2 uv = position * factor;
     vec2 pos = position * u_tileSize;
     float height = imageLoad(u_heightmap, ivec2(uv)).r;
-    height *= log(1.0+u_height);
+    height *= u_height;
     return vec3(pos.x, height, pos.y);
 }
 
