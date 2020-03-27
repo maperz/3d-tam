@@ -23,7 +23,7 @@ export class AppGUI {
       ])
       .name("Render Mode");
     gui
-      .add(AppSettings, "resolution", 1024)
+      .add(AppSettings, "resolution", 1024, 4096)
       .name("Resolution")
       .onChange(value => {
         const log = Math.log2(value);
@@ -45,7 +45,7 @@ export class AppGUI {
       .add(AppSettings, "heightMapFactor", 1, 5, 0.2)
       .name("Height");
     heightMapSettings
-      .add(AppSettings, "heightMapResolution").name("Resolution (3D Map)")
+      .add(AppSettings, "heightMapResolution", 128, 2048).name("Resolution (3D Map)")
       .onChange(value => {
         const log = Math.log2(value);
         if (!Number.isInteger(log)) {
@@ -183,6 +183,7 @@ export class AppGUI {
     renderFolder.add(AppSettings, "wireframe").name("Show Wireframe");
     renderFolder.add(AppSettings, "showPerson").name("Show Person");
     renderFolder.add(AppSettings, "personSize", 0, 3, 0.1).name("Person Size");
+    renderFolder.add(AppSettings, "connectionSize", 0, 5).name("Connection Size");
 
     renderFolder.add(AppSettings, "colorRamp", ColorRamps).onChange(url => {
       colorRampChanged(`images/${url}`);
@@ -190,7 +191,7 @@ export class AppGUI {
 
     renderFolder.add(AppSettings, "invertColorRamp").name("Invert Ramp");
     renderFolder.add(AppSettings, "numSegments").name("Num Segments");
-    renderFolder.add(AppSettings, "showSegmentLines").name("Show Lines");
+    renderFolder.add(AppSettings, "showSegmentLines").name("Show Segments");
 
     function loadColorRamp(e) {
       if (e.target.files && e.target.files[0]) {

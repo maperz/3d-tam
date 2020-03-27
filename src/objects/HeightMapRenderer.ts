@@ -9,7 +9,6 @@ import { HeightMapShader } from "../shaders/heightmap/HeightMapShader";
 import { DataBuffers } from "./DataBuffers";
 import { NormalsCalculator } from "./NormalsCalculator";
 import { PixelGrid } from "./PixelGrid";
-import { Person } from "../gedcom/Person";
 import { ConnectionsRenderShader } from "../shaders/debug/ConnectionsRenderShader";
 
 class ChunkDrawInfo {
@@ -318,7 +317,9 @@ export class HeightMapRenderer {
       gl.clearColor(oldClearColor[0], oldClearColor[1], oldClearColor[2], oldClearColor[3]);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
       this.renderPersonDebug(buffer, height, model, view, proj);
-      this.renderConnections(buffer, height, model, view, proj);
+      if(AppSettings.connectionSize > 0) {
+        this.renderConnections(buffer, height, model, view, proj);
+      }
     }
   }
 
@@ -415,7 +416,6 @@ export class HeightMapRenderer {
     gl.bindVertexArray(null);
 
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
-    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
 
     this.personDebug.unuse();
   }
@@ -433,7 +433,6 @@ export class HeightMapRenderer {
 
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.connectionsBuffer);
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.position3dBuffer);
-
   
     gl.uniformMatrix4fv(this.connectionsShader.getUniformLocation("u_model"), false, model);
 
@@ -457,7 +456,7 @@ export class HeightMapRenderer {
     const heightLocation = this.connectionsShader.getUniformLocation("u_height");
     gl.uniform1f(heightLocation, height);
 
-    gl.lineWidth(5);
+    gl.lineWidth(AppSettings.connectionSize);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.edgeIndexBuffer);
     gl.drawElements(gl.LINES, buffers.edgeIndiciesCount, gl.UNSIGNED_SHORT, 0);

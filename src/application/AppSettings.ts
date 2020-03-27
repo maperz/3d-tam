@@ -31,7 +31,6 @@ export const AppSettings = {
     // Heightmap
     heightMapFactor: 2,
     heightMapResolution: 512,
-    personSize: 0.5,
 
     // FDG
     attraction_stiffness : 0.02,
@@ -44,6 +43,8 @@ export const AppSettings = {
     useLights: true,
     wireframe: false,
     colorRamp: "turbo.png",
+    personSize: 0.5,
+    connectionSize: 1,
     invertColorRamp: false,
     smoothRamp: true,
     numSegments: 0,

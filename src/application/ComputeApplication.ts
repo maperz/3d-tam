@@ -49,11 +49,16 @@ export class ComputeApplication extends ComputeGLApplication {
   transformer: Transformer;
 
   perspective: mat4;
+  view: mat4;
+  model: mat4;
 
   fpsDisplayer: HTMLSpanElement;
 
   initialized: boolean = false;
   lastColorRampUrl: string = null;
+
+  private heightmapModelWidth = 10;
+  private heightmapModelHeight = 10;
 
   private tooltip: HTMLDivElement;
   private selectedPerson: number = null;
@@ -159,8 +164,8 @@ export class ComputeApplication extends ComputeGLApplication {
 
     this.heightMapRenderer = new HeightMapRenderer();
     this.heightMapRenderer.init(
-      10,
-      10,
+      this.heightmapModelWidth,
+      this.heightmapModelHeight,
       AppSettings.heightMapResolution,
       AppSettings.heightMapResolution,
       this.WIDTH,
@@ -175,6 +180,9 @@ export class ComputeApplication extends ComputeGLApplication {
 
     const aspect = canvas.width / canvas.height;
     this.perspective = mat4.perspective(mat4.create(), 70, aspect, 0.1, 30);
+
+    this.recalculateViewMat();
+    this.recalculateModelMat();
 
     // create frameBuffer to read from texture
     this.frameBuffer = gl.createFramebuffer();
@@ -333,31 +341,13 @@ export class ComputeApplication extends ComputeGLApplication {
 
     gl.viewport(x, y, width, height);
 
-    //this.modelRotationY += 5 * deltaTime;
-
-    const rotationY = mat4.rotateY(
-      mat4.create(),
-      mat4.identity(mat4.create()),
-      (this.modelRotationY / 180) * Math.PI
-    );
-    const rotationX = mat4.rotateX(
-      mat4.create(),
-      mat4.identity(mat4.create()),
-      (this.modelRotationX / 180) * Math.PI
-    );
-    const model = mat4.mul(mat4.create(), rotationX, rotationY);
-    const view = mat4.translate(
-      mat4.create(),
-      mat4.create(),
-      vec3.fromValues(0, 0, -this.distanceCamera)
-    );
-
+ 
     this.heightMapRenderer.draw(
       this.fdgBuffers,
       this.heightMap,
       AppSettings.heightMapFactor,
-      model,
-      view,
+      this.model,
+      this.view,
       this.perspective,
       AppSettings.useLights,
       AppSettings.showPerson,
@@ -458,6 +448,28 @@ export class ComputeApplication extends ComputeGLApplication {
     }
   }
 
+  private recalculateViewMat(){
+    this.view = mat4.translate(
+      mat4.create(),
+      mat4.create(),
+      vec3.fromValues(0, 0, -this.distanceCamera)
+    );
+  }
+
+  private recalculateModelMat() {
+    const rotationY = mat4.rotateY(
+      mat4.create(),
+      mat4.identity(mat4.create()),
+      (this.modelRotationY / 180) * Math.PI
+    );
+    const rotationX = mat4.rotateX(
+      mat4.create(),
+      mat4.identity(mat4.create()),
+      (this.modelRotationX / 180) * Math.PI
+    );
+    this.model = mat4.mul(mat4.create(), rotationX, rotationY);
+  }
+
   private displayFPS() {
     this.fpsDisplayer.innerText = String(this.fps);
   }
@@ -475,14 +487,11 @@ export class ComputeApplication extends ComputeGLApplication {
       ) {
         this.mouseDragging = true;
         this.lastMouseMove = vec2.fromValues(e.x, e.y);
-
         if (this.selectedPerson != null) {
           this.grabbedPerson = this.selectedPerson;
-          this.grabPoint = this.lastMouseMove;
+          this.grabPoint = null;
         }
         canvas.style.cursor = this.selectedPerson ? "grabbing" : "move";
-
-        this.sendRay(e.x, e.y);
       }
     });
 
@@ -510,10 +519,11 @@ export class ComputeApplication extends ComputeGLApplication {
             90
           );
           this.modelRotationY += delta[0];
+          this.recalculateModelMat();
         }
 
         if (this.mouseDragging && this.grabbedPerson != null) {
-          this.grabPoint = pos;
+          this.grabPoint = this.getGrabPoint(this.getRay(e.x, e.y), this.graphData.getValue(this.grabbedPerson));
           this.tooltip.style.visibility = "hidden";
         }
 
@@ -554,11 +564,46 @@ export class ComputeApplication extends ComputeGLApplication {
           5,
           30
         );
+        this.recalculateViewMat();
       }
     });
   }
 
-  sendRay(screenX: number, screenY: number) : vec3 {   
+  getGrabPoint(ray: vec3, value: number) : vec2 {
+
+    const cam = vec4.fromValues(0, 0, this.distanceCamera, 1.0);
+
+    const inverseModel = mat4.invert(mat4.create(), this.model);
+
+    const cam4d = vec4.transformMat4(vec4.create(), cam, inverseModel);
+    
+    const cameraPosition = vec3.fromValues(cam4d[0], cam4d[1], cam4d[2]);
+    const planePoint = vec3.fromValues(0, value, 0);
+
+    // Ray intersection
+    const diff = vec3.sub(vec3.create(), cameraPosition, planePoint);
+    const prod1 = diff[1];
+    const prod2 = ray[1];
+
+    if(prod2 == 0) {
+      // Prevent division by zero
+      return null;
+    }
+
+    const prod3 = prod1 / prod2;
+
+    const worldPoint =  vec3.sub(vec3.create(), cameraPosition, vec3.scale(vec3.create(), ray, prod3));
+
+    let x = (worldPoint[0] + this.heightmapModelWidth / 2) / this.heightmapModelWidth;
+    let y = (worldPoint[2] + this.heightmapModelHeight / 2) / this.heightmapModelHeight;
+
+    x = Math.min(1, Math.max(0, x));
+    y = Math.min(1, Math.max(0, y));
+
+    return vec2.fromValues(x * this.WIDTH, y * this.HEIGHT);
+  }
+
+  getRay(screenX: number, screenY: number) : vec3 {   
     // To NDC space
     const normX = (screenX * 2) / canvas.width - 1;
     const normY = ((canvas.height - screenY) * 2) / canvas.height - 1;
@@ -574,25 +619,7 @@ export class ComputeApplication extends ComputeGLApplication {
     const viewCoords = vec4.fromValues(viewCoordsXY[0], viewCoordsXY[1], -1, 0);
 
     // To world space
-    const rotationY = mat4.rotateY(
-      mat4.create(),
-      mat4.identity(mat4.create()),
-      (this.modelRotationY / 180) * Math.PI
-    );
-    const rotationX = mat4.rotateX(
-      mat4.create(),
-      mat4.identity(mat4.create()),
-      (this.modelRotationX / 180) * Math.PI
-    );
-    const model = mat4.mul(mat4.create(), rotationX, rotationY);
-    const view = mat4.translate(
-      mat4.create(),
-      mat4.create(),
-      vec3.fromValues(0, 0, -this.distanceCamera)
-    );
-
-    const joinedView = mat4.multiply(mat4.create(), model, view);
-
+    const joinedView = mat4.multiply(mat4.create(), this.model, this.view);
     const inverseView = mat4.invert(mat4.create(), joinedView);
     const rayWorld = vec4.transformMat4(vec4.create(), viewCoords, inverseView);
     const ray = vec3.normalize(
