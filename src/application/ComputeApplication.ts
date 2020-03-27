@@ -1,4 +1,4 @@
-import { mat4, vec2, vec3 } from "gl-matrix";
+import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { ComputeGLApplication } from "../engine/application/ComputeGLApplication";
 import { canvas, gl } from "../engine/Context";
 import { TPAssert } from "../engine/error/TPException";
@@ -58,7 +58,7 @@ export class ComputeApplication extends ComputeGLApplication {
   private tooltip: HTMLDivElement;
   private selectedPerson: number = null;
   private grabbedPerson: number = null;
-  private grabPoint : vec2 = null;
+  private grabPoint: vec2 = null;
 
   gui: AppGUI = null;
 
@@ -481,6 +481,8 @@ export class ComputeApplication extends ComputeGLApplication {
           this.grabPoint = this.lastMouseMove;
         }
         canvas.style.cursor = this.selectedPerson ? "grabbing" : "move";
+
+        this.sendRay(e.x, e.y);
       }
     });
 
@@ -492,40 +494,50 @@ export class ComputeApplication extends ComputeGLApplication {
     });
 
     canvas.addEventListener("mousemove", e => {
-      const pos = vec2.fromValues(e.x, e.y);
-      const delta = vec2.sub(vec2.create(), pos, this.lastMouseMove);
-      this.lastMouseMove = pos;
-      
-      if (this.mouseDragging && this.selectedPerson == null) {
-        this.modelRotationX = this.clamp(this.modelRotationX + delta[1], 0, 90);
-        this.modelRotationY += delta[0];
-      }
+      if (
+        [RenderMode.Scene3D, RenderMode.Scene3DFlat, RenderMode.All].includes(
+          AppSettings.mode
+        )
+      ) {
+        const pos = vec2.fromValues(e.x, e.y);
+        const delta = vec2.sub(vec2.create(), pos, this.lastMouseMove);
+        this.lastMouseMove = pos;
 
-      if (this.mouseDragging && this.grabbedPerson != null) {
-        this.grabPoint = pos;
-        this.tooltip.style.visibility = "hidden";
-      }
+        if (this.mouseDragging && this.selectedPerson == null) {
+          this.modelRotationX = this.clamp(
+            this.modelRotationX + delta[1],
+            0,
+            90
+          );
+          this.modelRotationY += delta[0];
+        }
 
-      if (!this.mouseDragging && this.heightMapRenderer) {
-        this.selectedPerson = this.heightMapRenderer.getPersonAt(
-          e.x,
-          canvas.height - e.y
-        );
-        this.heightMapRenderer.setSelectedPerson(this.selectedPerson);
-        if (this.selectedPerson != null && this.selectedPerson >= 0) {
-          canvas.style.cursor = "grab";
-          const name = this.graphData.getName(this.selectedPerson);
-          const date = this.graphData
-            .getDate(this.selectedPerson)
-            .getFullYear();
-          this.tooltip.style.visibility = "";
-          this.tooltip.style.top = (e.y + 10).toString() + "px";
-          this.tooltip.style.left = (e.x + 10).toString() + "px";
-          this.tooltip.innerText = `#${this.selectedPerson} ${name} [${date}]`;
-          200;
-        } else {
-          canvas.style.cursor = "";
+        if (this.mouseDragging && this.grabbedPerson != null) {
+          this.grabPoint = pos;
           this.tooltip.style.visibility = "hidden";
+        }
+
+        if (!this.mouseDragging && this.heightMapRenderer) {
+          this.selectedPerson = this.heightMapRenderer.getPersonAt(
+            e.x,
+            canvas.height - e.y
+          );
+          this.heightMapRenderer.setSelectedPerson(this.selectedPerson);
+          if (this.selectedPerson != null && this.selectedPerson >= 0) {
+            canvas.style.cursor = "grab";
+            const name = this.graphData.getName(this.selectedPerson);
+            const date = this.graphData
+              .getDate(this.selectedPerson)
+              .getFullYear();
+            this.tooltip.style.visibility = "";
+            this.tooltip.style.top = (e.y + 10).toString() + "px";
+            this.tooltip.style.left = (e.x + 10).toString() + "px";
+            this.tooltip.innerText = `#${this.selectedPerson} ${name} [${date}]`;
+            200;
+          } else {
+            canvas.style.cursor = "";
+            this.tooltip.style.visibility = "hidden";
+          }
         }
       }
     });
@@ -544,5 +556,49 @@ export class ComputeApplication extends ComputeGLApplication {
         );
       }
     });
+  }
+
+  sendRay(screenX: number, screenY: number) : vec3 {   
+    // To NDC space
+    const normX = (screenX * 2) / canvas.width - 1;
+    const normY = ((canvas.height - screenY) * 2) / canvas.height - 1;
+    const clipCoords = vec4.fromValues(normX, normY, -1, 1);
+
+    // To view space
+    const inversePerspective = mat4.invert(mat4.create(), this.perspective);
+    const viewCoordsXY = vec4.transformMat4(
+      vec4.create(),
+      clipCoords,
+      inversePerspective
+    );
+    const viewCoords = vec4.fromValues(viewCoordsXY[0], viewCoordsXY[1], -1, 0);
+
+    // To world space
+    const rotationY = mat4.rotateY(
+      mat4.create(),
+      mat4.identity(mat4.create()),
+      (this.modelRotationY / 180) * Math.PI
+    );
+    const rotationX = mat4.rotateX(
+      mat4.create(),
+      mat4.identity(mat4.create()),
+      (this.modelRotationX / 180) * Math.PI
+    );
+    const model = mat4.mul(mat4.create(), rotationX, rotationY);
+    const view = mat4.translate(
+      mat4.create(),
+      mat4.create(),
+      vec3.fromValues(0, 0, -this.distanceCamera)
+    );
+
+    const joinedView = mat4.multiply(mat4.create(), model, view);
+
+    const inverseView = mat4.invert(mat4.create(), joinedView);
+    const rayWorld = vec4.transformMat4(vec4.create(), viewCoords, inverseView);
+    const ray = vec3.normalize(
+      vec3.create(),
+      vec3.fromValues(rayWorld[0], rayWorld[1], rayWorld[2])
+    );
+    return ray;
   }
 }
