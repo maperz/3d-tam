@@ -1,21 +1,35 @@
 <html>
-    <head>
-        <title>3D Topographs</title>
-    </head>
-    <body>
-        <link rel="stylesheet" type="text/css" href="css/style.css"/>
-        <div id="error" hidden></div>
-        <span id="info-tooltip" style="visibility: hidden"></span>
+  <head>
+    <title>3D Topographs</title>
+  </head>
+  <body>
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+    <span id="info-tooltip" style="visibility: hidden"></span>
+    <div id="info-hud">
+      FPS: <span id="fps">60</span>
+      <span id="recorder-controls">
+        <img id="screenshotButton" src="icons/camera.svg" />
+        <span id="recorded-time">0:00</span
+        ><img id="recordButton" src="icons/record_start.svg" />
+      </span>
+    </div>
+    <div id="error" hidden></div>
 
-        <canvas id="canvas" style="background-color: #787878" width="700" height="700">
-        </canvas>
-        <input type="file" id="upload" accept=".ged" style="display:none">
-        <input type="file" id="color-ramp-upload" accept=".png, .jpeg" style="display:none">
+    <canvas
+      id="canvas"
+      style="background-color: #787878"
+      width="700"
+      height="700"
+    >
+    </canvas>
+    <input type="file" id="upload" accept=".ged" style="display:none" />
+    <input
+      type="file"
+      id="color-ramp-upload"
+      accept=".png, .jpeg"
+      style="display:none"
+    />
+  </body>
 
-        <div id="fps-holder">FPS: <span id="fps">60</span></div>
-
-    </body>
-
-    <script src="js/topograph.js"></script>
+  <script src="js/topograph.js"></script>
 </html>
-

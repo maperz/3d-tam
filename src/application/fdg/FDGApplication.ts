@@ -6,6 +6,7 @@ import {FDGEdge} from './FDGEdge';
 import {FDGGraph} from './FDGGraph';
 import {FDGNode} from './FDGNode';
 import {FDGSolver} from './FDGSolver';
+import { Recorder } from '../../engine/Recorder';
 
 export class FDGApplication extends CanvasApplication {
 
@@ -24,6 +25,8 @@ export class FDGApplication extends CanvasApplication {
     graph: FDGGraph;
     solver: FDGSolver;
 
+    recorder = new Recorder();
+
     settings = {
         animated : false,
         iterations: 1000,
@@ -38,6 +41,7 @@ export class FDGApplication extends CanvasApplication {
         canvas.style.backgroundColor = this.BACKGROUND_COLOR;
         this.resetGraph();
         this.initGUI();
+        this.recorder.init();
     }
 
     resetGraph() {

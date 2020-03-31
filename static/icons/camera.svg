@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="78px" height="59px" viewBox="0 0 78 59" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 64 (93537) - https://sketch.com -->
+    <title>Group 3</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Artboard" transform="translate(-47.000000, -19.000000)">
+            <g id="Group-3" transform="translate(48.000000, 20.000000)">
+                <path d="M55,0 C56.1045695,-2.02906125e-16 57,0.8954305 57,2 L57,8 L67,8 C71.9705627,8 76,12.0294373 76,17 L76,48 C76,52.9705627 71.9705627,57 67,57 L9,57 C4.02943725,57 6.08718376e-16,52.9705627 0,48 L0,17 C-6.08718376e-16,12.0294373 4.02943725,8 9,8 L19,8 L19,2 C19,0.8954305 19.8954305,2.02906125e-16 21,0 L55,0 Z" id="Combined-Shape" stroke="#FFFFFF" stroke-width="2"></path>
+                <ellipse id="Oval" fill="#FFFFFF" cx="38" cy="33.5" rx="14" ry="13.5"></ellipse>
+                <ellipse id="Oval" fill="#FFFFFF" cx="63" cy="19.5" rx="4" ry="3.5"></ellipse>
+            </g>
+        </g>
+    </g>
+</svg>

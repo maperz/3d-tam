@@ -3,21 +3,48 @@ body {
   overflow: hidden;
 }
 
-#fps-holder {
+#info-hud {
   display: inline-block;
   position: fixed;
-  top: 8px;
-  left: 8px;
+  top: 0;
+  left: 0;
   color: white;
   font-family: Helvetica, Arial, sans-serif;
   font-size: 14px;
-  z-index: 10;
+  z-index: 0;
+  background-color: black;
+  padding: 8px;
+  border-radius: 0px 0px 10px 0px;
 }
+
+#recorder-controls {
+  color: white;
+  vertical-align: middle;
+  display: inline;
+}
+
+#recorder-controls #recorded-time {
+  margin: 0px;
+  padding: 0px;
+  padding-left: 8px;
+  font-size: 14px;
+}
+
+#recorder-controls img {
+  height: 20px;
+  padding-left: 8px;
+}
+#recorded-time {
+  display: none;
+}
+
 
 #error {
   font-family: "Arial";
   background: red;
   color: white;
+  position: fixed;
+  width: 100%;
   white-space: pre-line;
   padding: 20px;
   z-index: 100;
@@ -28,7 +55,7 @@ body {
   position: fixed;
   overflow: hidden;
   font-family: Arial, Helvetica, sans-serif;
-  z-index: 100;
+  z-index: 50;
   background: rgba(0, 0, 0, 0.8);
   border-radius: 2px;
   padding: 8px;
