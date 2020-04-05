@@ -48,7 +48,7 @@ export class DataBuffers {
     }
 
     get position3dBuffer(): WebGLBuffer {
-        TPAssert(this._position3dBuffer != null, 'Position Buffer not created yet!');
+        TPAssert(this._position3dBuffer != null, 'Position3d Buffer not created yet!');
         return this._position3dBuffer;
     }
 
@@ -330,21 +330,21 @@ export class DataBuffers {
     private createPositionsBuffer3d(graph: GraphData): WebGLBuffer {
         /* Position buffer has following entries:
         //
-        // | X (Float) | Y (Float) | Z (Float) |
+        // | X (Float) | Y (Float) | Z (Float) | W (Float)
         //
         // X: x-value of position in model space
         // Y: y-value of position in model space
         // Z: z-value of position in model space
         */
-       const buffer = gl.createBuffer();
-       const count = graph.getCount() * 3;
-       const data = new Array(count).fill(0);
-       const positions = new Float32Array(data);
+        const buffer = gl.createBuffer();
+        const count = graph.getCount() * 4;
+        const data = new Array(count).fill(0);
+        const positions = new Float32Array(data);
 
-       gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
-       gl.bufferData(gl.SHADER_STORAGE_BUFFER, positions, gl.STATIC_COPY);
-       gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+        gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
+        gl.bufferData(gl.SHADER_STORAGE_BUFFER, positions, gl.STATIC_COPY);
+        gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
 
-       return buffer;
+        return buffer;
     }
 }

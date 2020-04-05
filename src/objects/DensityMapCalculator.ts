@@ -146,7 +146,6 @@ export class DensityMapCalculator {
 
             //gl.bindTexture(gl.TEXTURE_2D, this.pyramid);
             //gl.texImage2D(gl.TEXTURE_2D, iteration + 1, gl.R32F, output.width, output.height, 0, gl.R32F, gl.UNSIGNED_BYTE, )
-
         }
 
         this.densityShader.unuse();

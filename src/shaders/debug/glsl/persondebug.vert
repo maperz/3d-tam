@@ -2,7 +2,7 @@
 precision highp float;
 
 layout (location=0) in vec3 a_position;
-layout (std430, binding = 0) buffer Position3DBuffer { vec3 data[]; } positions;
+layout (std430, binding = 0) readonly buffer Position3DBuffer { vec4 data[]; } positions;
 
 uniform mat4 u_proj;
 uniform mat4 u_view;
@@ -37,7 +37,7 @@ void main()
 
     position *= 0.03 * u_cubeSize;
 
-    vec3 gridOffset = (positions.data[id] - vec3(0.5, 0, 0.5)) * vec3(u_sizeMap.x, u_height, u_sizeMap.y);
+    vec3 gridOffset = (positions.data[id].xyz - vec3(0.5, 0, 0.5)) * vec3(u_sizeMap.x, u_height, u_sizeMap.y);
 
     position += gridOffset;
     gl_Position = u_proj *  u_view * u_model * vec4(position, 1.0);
@@ -51,5 +51,6 @@ void main()
     else {
         v_color = u_color;
     }
+
 
 }

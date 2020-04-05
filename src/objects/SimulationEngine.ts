@@ -159,7 +159,6 @@ export class SimulationEngine {
         //const density = this.densityMapCalculator.getDensityTexture();
         const levels = this.densityMapCalculator.getLevels();
 
-
         this.calculateAttractionForces(buffers);
         this.calculateRepulsionForces(buffers, pyramid, levels);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);

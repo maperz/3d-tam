@@ -45,8 +45,18 @@ export class Person
 
     getFullName()
     {
-        if (this.givenname || this.surname)
+        if (this.givenname && this.surname) {
             return this.givenname + " " + this.surname;
+        }
+
+        if (this.givenname) {
+            return this.givenname;
+        }
+        
+        if (this.surname) {
+            return this.surname;
+        }
+
         return null;
     }
 

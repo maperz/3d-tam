@@ -367,6 +367,7 @@ export class HeightMapRenderer {
   ) {
     this.personDebug.use();
 
+
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.position3dBuffer);
 
     const modelMatrixLocation = this.personDebug.getUniformLocation("u_model");
@@ -470,7 +471,6 @@ export class HeightMapRenderer {
     this.connectionsShader.unuse();
   }
 }
-
 
 const CUBEDATA = new Float32Array([
   // Front face
