@@ -68,7 +68,6 @@ export class Recorder {
     }
 
     private startRecording() {
-        console.log("Start Recording");
         this.recording = true;
         this.recordTimer.style.display = "inline";
         this.recordTime = 0;
@@ -87,18 +86,15 @@ export class Recorder {
     }
 
     private stopRecording() {
-        console.log("Stop Recording");
+        this.recordButton.src = this.recordStartImage;
         this.recordTimer.style.display = "none";
         this.recording = false;
 
         this.recorder.stop();
         this.recorder.requestData();
-        this.recordButton.src = this.recordStartImage;
     }
 
     private screenshot() {
-        console.log("Screenshot");
-
         let image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
         this.saveAsFile("Screenshot.png", image);
     }

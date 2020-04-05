@@ -14,6 +14,7 @@ import { Transformer } from "../objects/Transformer";
 import { AppSettings, RenderMode } from "./AppSettings";
 import { ConstraintEngine } from "../objects/ConstraintEngine";
 import { AppGUI } from "./AppGUI";
+import { Recorder } from "../engine/Recorder";
 
 export class ComputeApplication extends ComputeGLApplication {
   forceFullscreen = true;
@@ -47,6 +48,7 @@ export class ComputeApplication extends ComputeGLApplication {
   fdgDebugRenderer: FDGDebugRenderer;
 
   transformer: Transformer;
+  recorder: Recorder;
 
   perspective: mat4;
   view: mat4;
@@ -68,7 +70,7 @@ export class ComputeApplication extends ComputeGLApplication {
   gui: AppGUI = null;
 
   start(): void {
-    super.start({ antialias: false });
+    super.start({ antialias: false, preserveDrawingBuffer: true });
     this.setStartLoopManually(true);
     this.loadInitialGraphData();
   }
@@ -121,6 +123,9 @@ export class ComputeApplication extends ComputeGLApplication {
     );
 
     this.initControlls();
+
+    this.recorder = new Recorder();
+    this.recorder.init();
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
