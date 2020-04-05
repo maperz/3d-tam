@@ -40,8 +40,8 @@ export class NormalsCalculator {
     private createBuffer() {
         const buffer = gl.createBuffer();
 
-        let entries = this.tilesX * this.tilesY * 2 * 3;
-        const data = new Float64Array(new Array(entries).fill(0));
+        const count = this.tilesX * this.tilesY * 3;
+        const data = new Float64Array(new Array(count).fill(0));
 
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
         gl.bufferData(gl.SHADER_STORAGE_BUFFER, data, gl.STATIC_COPY);
