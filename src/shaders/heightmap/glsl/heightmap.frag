@@ -21,22 +21,19 @@ uniform int u_numSegments;
 
 void main() {
 
-    vec3 lightPos = vec3(0, 10, 0);
+    vec3 lightPos = vec3(2, 2, 0);
 
     vec3 lightDir = normalize(lightPos - v_position);
     float lightFactor = clamp(dot(v_normal, lightDir), 0.3, 1.0);
     lightFactor = u_useLights != 0 ? lightFactor : 1.0;
 
-    float rampUV = 0.0f;
+    float uvValue = u_invertColorRamp > 0 ? 1.0 - v_pixelvalue : v_pixelvalue;
+    float rampUV = uvValue;
 
-    if(u_useSmoothRamp > 0 || u_numSegments <= 1) {
-        rampUV = u_invertColorRamp == 0 ? v_pixelvalue : 1.0f - v_pixelvalue; 
-    }
-    
     if(u_numSegments > 1) {
 
         if(u_useSmoothRamp == 0) {
-            rampUV =  float(int(v_pixelvalue * float(u_numSegments))) / float(u_numSegments); 
+            rampUV =  float(int(uvValue * float(u_numSegments))) / float(u_numSegments); 
         }
  
         if(u_showSegmentLines > 0)
@@ -51,5 +48,6 @@ void main() {
     color = texture(u_colorRamp, vec2(rampUV, 0)) * lightFactor;
     
     //color = vec4(v_pixelvalue, 0, 0, 1);
+    
     //color = vec4(normalize(v_normal + vec3(1.0)), 1.0);
 }

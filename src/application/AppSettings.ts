@@ -10,7 +10,7 @@ export enum RenderMode {
 }
 
 export const ColorRamps = [
-    "block.png", "Blues.png", "GnBu.png", "inferno.png", "turbo.png"
+    "GnBu.png",  "BrBG.png", "Blues.png", "inferno.png", "turbo.png"
 ]
 
 export const AppSettings = {
