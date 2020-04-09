@@ -355,14 +355,11 @@ export class ComputeApplication extends ComputeGLApplication {
       this.view,
       this.perspective,
       AppSettings.useLights,
-      AppSettings.showPerson,
       AppSettings.wireframe
     );
   }
 
   onUpdate(deltaTime: number): void {
-    console.log("Error: ", gl.getError());
-
     if (!this.initialized) {
       return;
     }
@@ -568,8 +565,8 @@ export class ComputeApplication extends ComputeGLApplication {
         const direction = Math.sign(e.deltaY);
         this.distanceCamera = this.clamp(
           this.distanceCamera + direction,
-          5,
-          30
+          2,
+          25
         );
         this.recalculateViewMat();
       }

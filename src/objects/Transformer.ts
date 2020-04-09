@@ -4,6 +4,7 @@ import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
 import {FlattenerCompute} from '../shaders/compute/FlattenerCompute';
+import { AppSettings } from '../application/AppSettings';
 
 
 export class Transformer {
@@ -33,6 +34,7 @@ export class Transformer {
         gl.bindImageTexture(0, input, 0, false, 0, gl.READ_ONLY, gl.R32F);
         gl.bindImageTexture(1, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
         gl.uniform2ui(this.shader.getUniformLocation('u_outputSize'), this.width, this.height);
+        gl.uniform1i(this.shader.getUniformLocation("u_numSegments"), AppSettings.numSegments);
 
         const num_groups_x = Math.ceil(this.width / this.WORKGROUP_SIZE);
         const num_groups_y = Math.ceil(this.height / this.WORKGROUP_SIZE);

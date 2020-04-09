@@ -24,9 +24,11 @@ export const AppSettings = {
     logDensity: false,
     mode : RenderMode.Scene3D,
     updateGraph: true,
-    showPerson: false,
+    renderGraph: true,
     numUpdates: 1,
     dilateRadius: 2,
+
+    smoothPullStep: true,
 
     // Heightmap
     heightMapFactor: 2,

@@ -21,10 +21,11 @@ uniform int u_numSegments;
 
 void main() {
 
-    vec3 lightPos = vec3(2, 2, 0);
+    vec3 lightPos = vec3(0, 5, 5);
 
     vec3 lightDir = normalize(lightPos - v_position);
-    float lightFactor = clamp(dot(v_normal, lightDir), 0.3, 1.0);
+    float lightFactor = clamp(dot(v_normal, lightDir), 0.0, 1.0);
+    lightFactor = mix(0.65, 1.0, lightFactor);
     lightFactor = u_useLights != 0 ? lightFactor : 1.0;
 
     float uvValue = u_invertColorRamp > 0 ? 1.0 - v_pixelvalue : v_pixelvalue;

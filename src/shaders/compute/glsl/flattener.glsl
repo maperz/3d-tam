@@ -6,10 +6,17 @@ layout(binding = 0, r32f) readonly highp uniform image2D u_input;
 layout(binding = 1, r32f) writeonly highp uniform image2D u_output;
 
 uniform uvec2 u_outputSize;
+uniform int u_numSegments;
 
 float transform(float x) {
 
-    for(float i = 0.0; i < 1.0; i += 0.1) {
+    float step = 1.0;
+
+    if(u_numSegments > 1) {
+        step /= float(u_numSegments);
+    }
+
+    for(float i = 0.0; i < 1.0; i += step) {
         if(x < i) {
             return i;
         }

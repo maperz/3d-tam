@@ -19,6 +19,21 @@ vec3 get3d(vec2 tile) {
     return vec3(pos.x, height, pos.y);
 }
 
+
+vec3 getNormal(vec2 center, vec2 offsetA, vec2 offsetB) {
+
+    vec2 first = center + offsetA;
+    vec2 second = center + offsetB;
+    vec2 size = vec2(u_size);
+
+    if (first.x < 0.0 || first.y < 0.0 || first.x >= size.x || first.y >= size.y 
+    || second.x < 0.0 || second.y < 0.0 || second.x >= size.x || second.y >= size.y ) {
+        return vec3(0.0);
+    }
+
+    return cross(get3d(first), get3d(second));
+}
+
 void main() {
 
     uvec2 pos = gl_GlobalInvocationID.xy;
@@ -33,43 +48,17 @@ void main() {
 
     // Foreach Vertex
     vec3 normal = vec3(0);
-    float count = 0.0;
+    normal += getNormal(tile, vec2(-1, 0), vec2(-1, 1));
+    normal += getNormal(tile, vec2(-1, 1), vec2(0, 1));
 
-    if(pos.x > 0u && pos.y > 0u) {
-        vec3 left = get3d(tile - vec2(1, 0));
-        vec3 bot = get3d(tile - vec2(0, 1));
-        
-        vec3 a = bot - center;
-        vec3 b = left - center;
-        normal += cross(a, b);
-    }
+    normal += getNormal(tile, vec2(0, 1), vec2(1, 1));
+    normal += getNormal(tile, vec2(1, 1), vec2(1, 0));
 
-    if(pos.x > 0u && pos.y < u_size.y - 1u) {
-        vec3 left = get3d(tile - vec2(1, 0));
-        vec3 top = get3d(tile + vec2(0, 1));
-        
-        vec3 a = left - center;
-        vec3 b = top - center;
-        normal += cross(a, b);
-    }
+    normal += getNormal(tile, vec2(1, 0), vec2(1, -1));
+    normal += getNormal(tile, vec2(1, -1), vec2(0, -1));
 
-    if( pos.x < u_size.x - 1u && pos.y < u_size.y - 1u) {
-        vec3 right = get3d(tile + vec2(1, 0));
-        vec3 top = get3d(tile + vec2(0, 1));
-
-        vec3 a = top - center;
-        vec3 b = right - center;
-        normal += cross(a, b);
-    }
-
-    if( pos.x < u_size.x - 1u && pos.y > 0u) {
-        vec3 right = get3d(tile + vec2(1, 0));
-        vec3 bot = get3d(tile - vec2(0, 1));
-
-        vec3 a = right - center;
-        vec3 b = bot - center;
-        normal += cross(a, b);
-    }
+    normal += getNormal(tile, vec2(0, -1), vec2(-1, -1));
+    normal += getNormal(tile, vec2(-1, -1), vec2(-1, 0));
 
     uint index = pos.x + pos.y * u_size.x;
     normals.data[index].xyz  = normalize(normal);

@@ -40,6 +40,8 @@ export class AppGUI {
 
     gui.add(AppSettings, "dilateRadius", 0, 10, 1).name("Dilate Radius");
 
+    gui.add(AppSettings, "smoothPullStep").name("Smooth Pull");
+
     const heightMapSettings = gui.addFolder("HeightMap Settings");
     heightMapSettings
       .add(AppSettings, "heightMapFactor", 1, 5, 0.2)
@@ -181,9 +183,9 @@ export class AppGUI {
     const renderFolder = gui.addFolder("Render Settings");
     renderFolder.add(AppSettings, "useLights").name("Use Lights");
     renderFolder.add(AppSettings, "wireframe").name("Show Wireframe");
-    renderFolder.add(AppSettings, "showPerson").name("Show Person");
+    renderFolder.add(AppSettings, "renderGraph").name("Render Graph");
     renderFolder.add(AppSettings, "personSize", 0, 3, 0.1).name("Person Size");
-    renderFolder.add(AppSettings, "connectionSize", 0, 5).name("Connection Size");
+    renderFolder.add(AppSettings, "connectionSize", 0, 5, 1).name("Connection Size");
 
     renderFolder.add(AppSettings, "colorRamp", ColorRamps).onChange(url => {
       colorRampChanged(`images/${url}`);

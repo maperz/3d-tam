@@ -201,7 +201,7 @@ export class HeightMapRenderer {
   }
 
   getPersonAt(x: number, y : number): number {
-    if (AppSettings.showPerson) 
+    if (AppSettings.renderGraph && AppSettings.personSize > 0) 
     {
       const rgba = new Uint8Array(4);
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.cubeFramebuffer);
@@ -224,7 +224,6 @@ export class HeightMapRenderer {
     view: mat4,
     proj: mat4,
     useLights: boolean = false,
-    renderPerson: boolean = false,
     wireframe: boolean = false
   ) {
     TPAssert(
@@ -308,7 +307,9 @@ export class HeightMapRenderer {
       this.shader.unuse();
     }
 
-    if (renderPerson) {
+    gl.disable(gl.DEPTH_TEST); 
+
+    if (AppSettings.renderGraph && AppSettings.personSize > 0) {
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.cubeFramebuffer);
       const oldClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -317,10 +318,14 @@ export class HeightMapRenderer {
       gl.clearColor(oldClearColor[0], oldClearColor[1], oldClearColor[2], oldClearColor[3]);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
       this.renderPersonDebug(buffer, height, model, view, proj);
-      if(AppSettings.connectionSize > 0) {
-        this.renderConnections(buffer, height, model, view, proj);
-      }
+
     }
+
+    if(AppSettings.renderGraph && AppSettings.connectionSize > 0) {
+      this.renderConnections(buffer, height, model, view, proj);
+    }
+
+    gl.enable(gl.DEPTH_TEST); 
   }
 
   private createChunkInfo(

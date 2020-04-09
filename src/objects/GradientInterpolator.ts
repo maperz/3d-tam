@@ -7,6 +7,8 @@ import {ClearCompute} from '../shaders/compute/ClearCompute';
 import {PullCompute} from '../shaders/compute/PullCompute';
 import {PushCompute} from '../shaders/compute/PushCompute';
 import {Texture} from './Texture';
+import { GaussCompute } from '../shaders/compute/GaussCompute';
+import { AppSettings } from '../application/AppSettings';
 
 export class GradientInterpolator {
 
@@ -20,10 +22,12 @@ export class GradientInterpolator {
 
     private pushTextures: Texture[];
     private pullTextures: Texture[];
+    private smoothedPullTextures: Texture[];
 
     private pushShader: Shader;
     private pullShader: Shader;
     private clearShader: Shader;
+    private gaussShader: Shader;
 
     private numberIterationsPush: number;
     private numberIterationsPull: number;
@@ -32,6 +36,8 @@ export class GradientInterpolator {
     private pullInputSizeLoc: WebGLUniformLocation;
     private pullOutputSizeLoc: WebGLUniformLocation;
     private outputSizeClearShaderLoc: WebGLUniformLocation;
+    
+    private sizeGaussLoc: WebGLUniformLocation;
 
     init(width: number, height: number) {
         TPAssert(width == height, 'Width and height must be the same, different sizes are not supported yet');
@@ -55,6 +61,10 @@ export class GradientInterpolator {
         this.clearShader  = createShaderFromSources(ClearCompute);
         this.outputSizeClearShaderLoc = this.clearShader.getUniformLocation('u_outputSize');
 
+        this.gaussShader = createShaderFromSources(GaussCompute);
+        this.sizeGaussLoc = this.gaussShader.getUniformLocation('u_size');
+        
+
         this.isInitialized = true;
     }
 
@@ -66,6 +76,11 @@ export class GradientInterpolator {
     getPullTexture(iteration: number): WebGLTexture {
         TPAssert(iteration >= 0 && iteration < this.pullTextures.length, 'Iteration of pull texture not in bounds!');
         return this.pullTextures[iteration].texture;
+    }
+
+    getSmoothedPullTexture(iteration: number): WebGLTexture {
+        TPAssert(iteration >= 0 && iteration < this.smoothedPullTextures.length, 'Iteration of smoothed pull texture not in bounds!');
+        return this.smoothedPullTextures[iteration].texture;
     }
 
     getNumberIterationsPush(): number {
@@ -132,6 +147,7 @@ export class GradientInterpolator {
         }
 
         this.pullTextures = new Array<Texture>();
+        this.smoothedPullTextures = new Array<Texture>();
 
         for (let iteration = 1; iteration < this.levels; iteration++) {
             const w = 2 ** iteration;
@@ -140,6 +156,11 @@ export class GradientInterpolator {
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, w, h);
             this.pullTextures.push(new Texture(w, h, texture));
+
+            const textureSmooth = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, textureSmooth);
+            gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, w, h);
+            this.smoothedPullTextures.push(new Texture(w, h, textureSmooth));
         }
 
         // console.log(this.pushTextures);
@@ -176,11 +197,11 @@ export class GradientInterpolator {
     }
 
     private doPull(startInput: Texture): WebGLTexture {
-        this.pullShader.use();
 
         let lastPull = this.pushTextures[this.pushTextures.length - 1];
 
         for (let iteration = 0; iteration < this.numberIterationsPull; iteration++) {
+            this.pullShader.use();
 
             let currentState: Texture;
 
@@ -209,9 +230,30 @@ export class GradientInterpolator {
             gl.dispatchCompute(num_groups_x, num_groups_y, 1);
             gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-            lastPull = output;
+            if(!AppSettings.smoothPullStep) {
+                lastPull = output;
+                continue;
+            }
+            
+            this.pullShader.unuse();
+
+            const output_smooth = this.smoothedPullTextures[iteration];
+
+            this.gaussShader.use();
+
+            gl.uniform2i(this.sizeGaussLoc, currentState.width, currentState.height);
+
+            gl.bindImageTexture(0, output.texture, 0, false, 0, gl.READ_ONLY, gl.R32F);
+            gl.bindImageTexture(1, output_smooth.texture, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+
+            gl.dispatchCompute(num_groups_x, num_groups_y, 1);
+            gl.memoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+            this.gaussShader.unuse();
+
+            lastPull = output_smooth;
+
         }
-        this.pullShader.unuse();
         return this.pullTextures[this.pullTextures.length - 1].texture;
     }
 }
