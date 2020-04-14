@@ -39,6 +39,8 @@ void main()
 
     vec3 gridOffset = (positions.data[id].xyz - vec3(0.5, 0, 0.5)) * vec3(u_sizeMap.x, u_height, u_sizeMap.y);
 
+    float type = positions.data[id].w;
+
     position += gridOffset;
     gl_Position = u_proj *  u_view * u_model * vec4(position, 1.0);
 
@@ -49,7 +51,7 @@ void main()
         v_color = vec4(1, 0, 1, 1);
     }
     else {
-        v_color = u_color;
+        v_color = type != 0.0 ? u_color : vec4(0.8, 0 , 0, 1);
     }
 
 

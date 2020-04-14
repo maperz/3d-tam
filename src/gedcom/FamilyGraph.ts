@@ -47,7 +47,7 @@ export class FamilyGraph
                 else if (nodeType == "FAM")
                 {
                     let id = tokens[1];
-                    current_fam = new Family();
+                    current_fam = new Family(id);
                     gedcom.families.set(id, current_fam);
                 }
                 else

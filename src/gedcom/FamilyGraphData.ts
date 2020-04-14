@@ -2,31 +2,71 @@ import { vec2 } from "gl-matrix";
 import { TPAssert } from "../engine/error/TPException";
 import { GraphData } from "../objects/GraphData";
 import { FamilyGraph } from "./FamilyGraph";
+import { Family } from "./Family";
+import { Person } from "./Person";
+
+class NodeObject {
+  public isFamily: boolean;
+  public birthdate: Date;
+  public value: number;
+  public connections = new Array<NodeObject>();
+  public link: NodeObject;
+  public gedId: string;
+  public name: string;
+
+  constructor(public id: number, person: Person, family: Family) {
+    TPAssert(person == null || family == null, "Cannot be both.");
+
+    if (person != null) {
+      this.isFamily = false;
+      this.birthdate = person.getBirthDate();
+      this.gedId = person.getId();
+      this.name = person.getFullName();
+    } else {
+      let name = "N/A";
+      if(family.husband != null && family.wife != null) {
+        name = `${family.husband.getSurname()}/${family.wife.getSurname()}`;
+      }
+      else if(family.wife != null) {
+        name = family.wife.getSurname();
+      }
+      else if(family.husband != null) {
+        name = family.husband.getSurname();
+      }
+
+      this.name = `Family - ${name}`;
+      this.isFamily = true;
+      this.gedId = family.getId();
+      const persons = [family.wife, family.husband, ...family.children].filter(p => p != null);
+      const bdays = persons.map(p => p.getBirthDate());
+      const bdaysNumber = bdays.filter(b => b != null).map(b => b.getTime());
+      const avg = bdaysNumber.reduce((a, b) => a + b, 0) / bdaysNumber.length;
+      this.birthdate = new Date(avg);
+    }
+  }
+}
 
 export class FamilyGraphData extends GraphData {
-  private readonly stringIds: Array<string>;
-  private reverseStringIds: Map<string, number>;
-
-  private readonly values: Array<number>;
-  private readonly connections: Array<Set<number>>;
-
   private minDate: number = null;
   private maxDate: number = null;
+  private nodes = new Array<NodeObject>();
 
   constructor(private graph: FamilyGraph) {
     super();
 
-    this.stringIds = [];
-    this.values = [];
-    this.reverseStringIds = new Map();
-    this.connections = [];
+    this.nodes = [];
 
-    for (let id of graph.persons.keys()) {
-      this.reverseStringIds.set(id, this.stringIds.length);
-      this.stringIds.push(id);
+    for (let [_, person] of graph.persons) {
+      const id = this.nodes.length;
+      this.nodes.push(new NodeObject(id, person, null));
     }
 
-    if (this.getCount() > 0) {
+    for (let [_, family] of graph.families) {
+      const id = this.nodes.length;
+      this.nodes.push(new NodeObject(id, null, family));
+    }
+
+    if (this.nodes.length > 0) {
       this.calculateValues();
       this.calculateConnections();
     }
@@ -36,13 +76,13 @@ export class FamilyGraphData extends GraphData {
     this.maxDate = null;
     this.maxDate = null;
 
-    for (let p of this.graph.persons.values()) {
-      if (p.bdate == null) {
+    for (let node of this.nodes) {
+      if (node.birthdate == null) {
         continue;
-      } else if (this.minDate == null || p.bdate.getTime() < this.minDate) {
-        this.minDate = p.bdate.getTime();
-      } else if (this.maxDate == null || p.bdate.getTime() > this.maxDate) {
-        this.maxDate = p.bdate.getTime();
+      } else if (this.minDate == null || node.birthdate.getTime() < this.minDate) {
+        this.minDate = node.birthdate.getTime();
+      } else if (this.maxDate == null || node.birthdate.getTime() > this.maxDate) {
+        this.maxDate = node.birthdate.getTime();
       }
     }
 
@@ -53,51 +93,61 @@ export class FamilyGraphData extends GraphData {
       `Age range loaded between ${this.minDate} and ${this.maxDate}.`
     );
 
-    for (let p of this.graph.persons.values()) {
-      let date = p.bdate ? p.bdate.getTime() : this.minDate;
+    for (let node of this.nodes) {
+      let date = node.birthdate ? node.birthdate.getTime() : this.minDate;
       let value = (date - this.minDate) / range;
 
       // Clamp value so that we do not reach zero values.
       // This is achieved by adding 1ms to minDate.
       const minValue = 1 / range;
       value = Math.max(value, minValue);
-      this.values.push(value);
+      node.value = value;
     }
   }
 
-  private getIndex(gedcomId: string): number {
-    const id = this.reverseStringIds.get(gedcomId);
-    TPAssert(id != null, `Could not find entry for gedcomId: '${gedcomId}'`);
-    return id;
+  private getFamNode(gedId: string) {
+    return this.nodes.filter(nd => nd.isFamily && nd.gedId == gedId)[0];
   }
 
+  private getPersNode(gedId: string) {
+    return this.nodes.filter(nd => !nd.isFamily && nd.gedId == gedId)[0];
+  }
+
+  private connect(a: NodeObject, b: NodeObject) {
+    TPAssert(a != null && b != null);
+    a.connections.push(b);
+    b.connections.push(a);
+  }
+
+
   private calculateConnections() {
-    for (let p of this.graph.persons.values()) {
-      const conns = new Set<number>();
-
-      if (p.getFather()) {
-        conns.add(this.getIndex(p.getFather().getId()));
+    for (let [gedId, person] of this.graph.persons) {
+      const personNode = this.getPersNode(gedId);
+      for(let family of person.families) {
+        if(family.wife === person || family.husband == person) {
+          const familyNode = this.getFamNode(family.getId());
+          personNode.link = familyNode;
+          this.connect(personNode, familyNode);
+          break;
+        } 
       }
-      if (p.getMother()) {
-        conns.add(this.getIndex(p.getMother().getId()));
+    }
+
+    for (let [gedId, family] of this.graph.families) {
+      const famNode = this.getFamNode(gedId);
+      for(let child of family.children) {
+        const childNode = this.getPersNode(child.getId());
+        this.connect(famNode, childNode);
       }
-
-      for (let c of p.getChildren()) {
-        conns.add(this.getIndex(c.getId()));
-      }
-
-      //console.log(conns);
-
-      this.connections.push(conns);
     }
   }
 
   getCount(): number {
-    return this.stringIds.length;
+    return this.nodes.length;
   }
 
-  getNeighbours(id: number): Array<number> {
-    return Array.from(this.connections[id]);
+  getEdges(id: number): Array<number> {
+    return this.nodes[id].connections.map(no => no.id);
   }
 
   getPosition(id: number): vec2 {
@@ -105,18 +155,25 @@ export class FamilyGraphData extends GraphData {
   }
 
   getValue(id: number): number {
-    return this.values[id];
+    return this.nodes[id].value;
   }
 
   getName(id: number): string {
-    const stringId = this.stringIds[id];
-    return this.graph.persons.get(stringId).getFullName();
+    return this.nodes[id].name;
+  }
+
+  getFamily(id: number): number {
+    if(this.nodes[id].link == null) {
+      return -1;
+    }
+    return this.nodes[id].link.id;
+  }
+
+  getType(id: number): number {
+    return this.nodes[id].isFamily ? 1 : 0;
   }
 
   getDate(id: number): Date {
-    const value = this.values[id];
-    const range = this.maxDate - this.minDate;
-    const date = value * range + this.minDate;
-    return new Date(date);
+    return this.nodes[id].birthdate;
   }
 }

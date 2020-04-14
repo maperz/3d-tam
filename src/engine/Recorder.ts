@@ -91,7 +91,7 @@ export class Recorder {
         this.recording = false;
 
         this.recorder.stop();
-        this.recorder.requestData();
+        //this.recorder.requestData();
     }
 
     private screenshot() {

@@ -6,8 +6,11 @@ export class TPException extends Error {
     }
 }
 
-export function TPAssert(cond, msg) {
+export function TPAssert(cond, msg = null) {
     if (!cond) {
+        if(msg == null) {
+            msg = "";
+        }
         throw new TPException(msg);
     }
 }

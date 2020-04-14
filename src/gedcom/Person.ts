@@ -7,7 +7,6 @@ export enum Gender {
     FEMALE = 2,
 }
 
-
 export class Person
 {
     private readonly id: string;
@@ -21,7 +20,6 @@ export class Person
     givenname: string;
     sex: Gender;
     bdate: Date;
-
 
     constructor(id : string, givenname: string, surname: string, bdate: Date, motherId: number, fatherId: number)
     {
@@ -41,6 +39,13 @@ export class Person
 
     getId(): string {
         return this.id;
+    }
+
+    getSurname(): string {
+        if(this.surname) {
+            return this.surname
+        }
+        return this.givenname != null ? this.givenname : "";
     }
 
     getFullName()

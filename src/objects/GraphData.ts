@@ -6,10 +6,14 @@ export abstract class GraphData {
 
     abstract getValue(id: number): number;
 
-    abstract getNeighbours(id: number): Array<number>;
-
     abstract getPosition(id: number): vec2;
 
+    abstract getEdges(id: number): Array<number>;
+
+    abstract getFamily(id: number): number;
+
     abstract getName(id: number): string;
+
+    abstract getType(id: number): number 
 
 }
