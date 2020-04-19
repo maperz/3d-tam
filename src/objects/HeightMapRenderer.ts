@@ -183,6 +183,11 @@ export class HeightMapRenderer {
       0
     );
 
+    TPAssert(
+      gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE,
+      "Framebuffer incomplete!"
+    );
+
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 

@@ -28,7 +28,7 @@ export class ConstraintEngine {
         this.output = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.output);
         gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, this.width, this.height);
-        gl.bindImageTexture(0, this.output, 0, false, 0, gl.WRITE_ONLY, gl.R32F);
+        gl.bindTexture(gl.TEXTURE_2D, null);
 
         this.shader = createShaderFromSources(ConstraintShader);
 
@@ -36,8 +36,8 @@ export class ConstraintEngine {
         this.frameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.output, 0);
+        TPAssert(gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE, "Framebuffer incomplete!");
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
 
         this.radiusLocation = this.shader.getUniformLocation("u_radius");
         this.projMatrixLocation = this.shader.getUniformLocation('u_proj');
@@ -48,11 +48,11 @@ export class ConstraintEngine {
 
 
     renderConstraints(radius: number, samples: number, position: WebGLBuffer, values: WebGLBuffer, indexBuffer: WebGLBuffer, indiciesCount: number): WebGLTexture {
-        
+      
         TPAssert(this.initialized, 'ConstraintEngine needs to be initialized before usage.');
         const oldClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
+  
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.viewport(0, 0, this.width, this.height);
@@ -88,7 +88,9 @@ export class ConstraintEngine {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
         this.shader.unuse();
+        gl.memoryBarrier(gl.FRAMEBUFFER_BARRIER_BIT | gl.TEXTURE_UPDATE_BARRIER_BIT);
         gl.clearColor(oldClearColor[0], oldClearColor[1], oldClearColor[2], oldClearColor[3]);
+        
         return this.output;
     }
 }

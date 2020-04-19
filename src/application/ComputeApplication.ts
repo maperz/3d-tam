@@ -190,6 +190,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     // create frameBuffer to read from texture
     this.frameBuffer = gl.createFramebuffer();
+
     this.initialized = true;
     Profiler.stopSession();
     Profiler.printTree();
@@ -203,7 +204,8 @@ export class ComputeApplication extends ComputeGLApplication {
     height: number = this.CANVAS_HEIGHT
   ) {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
-
+ 
+    
     const iteration = AppSettings.pushIteration;
     const index = iteration - 1;
     const output = this.gradientInterpolator.getPushTexture(index);
