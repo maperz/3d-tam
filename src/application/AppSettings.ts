@@ -50,5 +50,6 @@ export const AppSettings = {
     invertColorRamp: false,
     smoothRamp: true,
     numSegments: 0,
+    showNames: false,
     showSegmentLines: true,
 };

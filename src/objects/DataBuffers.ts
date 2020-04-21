@@ -70,6 +70,14 @@ export class DataBuffers {
     return this._position3dBuffer;
   }
 
+  get screenPositionBuffer(): WebGLBuffer {
+    TPAssert(
+      this._screenPositionBuffer != null,
+      "Screen Position Buffer not created yet!"
+    );
+    return this._screenPositionBuffer;
+  }
+
   get numSamples(): number {
     return this._numSamples;
   }
@@ -99,6 +107,7 @@ export class DataBuffers {
   private _connectionsBuffer: WebGLBuffer;
   private _edgeIndexBuffer: WebGLBuffer;
   private _position3dBuffer: WebGLBuffer;
+  private _screenPositionBuffer: WebGLBuffer;
 
   init(width: number, height: number, graph: GraphData) {
     this.width = width;
@@ -112,6 +121,7 @@ export class DataBuffers {
     this._neighboursBuffer = this.createNeighboursBuffer(graph);
     this._valuesBuffer = this.createValuesBuffer(graph);
     this._position3dBuffer = this.createPositionsBuffer3d(graph);
+    this._screenPositionBuffer = this.createScreenPositionBuffer(graph);
 
     [
       this._connectionsBuffer,
@@ -374,4 +384,17 @@ export class DataBuffers {
 
     return buffer;
   }
+
+  private createScreenPositionBuffer(graph: GraphData): WebGLBuffer {
+    const buffer = gl.createBuffer();
+    const count = graph.getCount() * 2;
+    const data = new Array(count).fill(-1);
+
+    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
+    gl.bufferData(gl.SHADER_STORAGE_BUFFER, new Float32Array(data), gl.STATIC_COPY);
+    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+
+    return buffer;
+  }
+
 }

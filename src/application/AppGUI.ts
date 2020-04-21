@@ -8,6 +8,7 @@ export class AppGUI {
     colorRampChanged: Function
   ) {
     const gui: GUI = new GUI({ width: 300 });
+    gui.domElement.style.zIndex = "100";
     gui.useLocalStorage = true;
     gui.remember(AppSettings);
     gui
@@ -194,6 +195,7 @@ export class AppGUI {
     renderFolder.add(AppSettings, "invertColorRamp").name("Invert Ramp");
     renderFolder.add(AppSettings, "numSegments").name("Num Segments");
     renderFolder.add(AppSettings, "showSegmentLines").name("Show Segments");
+    renderFolder.add(AppSettings, "showNames").name("Display Names");
 
     function loadColorRamp(e) {
       if (e.target.files && e.target.files[0]) {

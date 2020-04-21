@@ -4,6 +4,11 @@
   </head>
   <body>
     <link rel="stylesheet" type="text/css" href="css/style.css" />
+
+    <div class="container" style="background-color: #787878; position: relative;">
+      <canvas id="canvas"></canvas>
+      <canvas id="canvas-2d"></canvas>
+    </div>
     <span id="info-tooltip" style="visibility: hidden"></span>
     <div id="info-hud">
       FPS: <span id="fps">60</span>
@@ -15,13 +20,6 @@
     </div>
     <div id="error" hidden></div>
 
-    <canvas
-      id="canvas"
-      style="background-color: #787878"
-      width="700"
-      height="700"
-    >
-    </canvas>
     <input type="file" id="upload" accept=".ged" style="display:none" />
     <input
       type="file"
@@ -30,6 +28,15 @@
       style="display:none"
     />
   </body>
+  <style>
+    #canvas-2d {
+        position: absolute;
+        left: 0px;
+        top: 0px;
+        z-index: 1;
+        pointer-events: none
+    }
+  </style>
 
   <script src="js/topograph.js"></script>
 </html>

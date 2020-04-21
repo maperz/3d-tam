@@ -17,8 +17,14 @@ uniform int u_useSmoothRamp;
 uniform int u_showSegmentLines;
 uniform int u_numSegments;
 
+uniform int u_renderHeightValues;
 
 void main() {
+
+    if (u_renderHeightValues != 0) {
+        color = vec4(v_position.y, 0, 0, 1);
+        return;
+    }
 
     const vec3 ambientColor = vec3(0);
     const vec3 specularColor = vec3(0);
@@ -36,11 +42,12 @@ void main() {
 
     vec3 diffuseColor = texture(u_colorRamp, vec2(rampUV, 0)).xyz;
 
+
     if(u_showSegmentLines > 0 && u_numSegments > 1)
     {
-        int valuePercent = int(v_pixelvalue * 100.0f);
-        if(valuePercent % (100 / u_numSegments) == 0) {
-            diffuseColor *= 0.9f;
+        float valuePercent = v_pixelvalue * 100.0f;
+        if(abs(mod(valuePercent, 100.0 / float(u_numSegments))) < 0.08) {
+            diffuseColor *= 0.8f;
         }
     }
 
@@ -66,4 +73,6 @@ void main() {
     color = vec4(Ka * ambientColor +
                       Kd * lightFactor * diffuseColor +
                       Ks * specular * specularColor, 1.0);
+
+
 }

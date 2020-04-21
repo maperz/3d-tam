@@ -15,6 +15,7 @@ import { AppSettings, RenderMode } from "./AppSettings";
 import { ConstraintEngine } from "../objects/ConstraintEngine";
 import { AppGUI } from "./AppGUI";
 import { Recorder } from "../engine/Recorder";
+import { runInThisContext } from "vm";
 
 export class ComputeApplication extends ComputeGLApplication {
   forceFullscreen = true;
@@ -67,6 +68,9 @@ export class ComputeApplication extends ComputeGLApplication {
   private grabbedPerson: number = null;
   private grabPoint: vec2 = null;
 
+  private canvas2d: HTMLCanvasElement;
+  private ctx : CanvasRenderingContext2D;
+
   gui: AppGUI = null;
 
   start(): void {
@@ -102,6 +106,12 @@ export class ComputeApplication extends ComputeGLApplication {
 
     canvas.width = this.CANVAS_WIDTH;
     canvas.height = this.CANVAS_HEIGHT;
+
+    this.canvas2d = document.getElementById("canvas-2d") as HTMLCanvasElement;
+    this.ctx = this.canvas2d.getContext("2d");
+    this.canvas2d.width = canvas.width;
+    this.canvas2d.height = canvas.height;
+
     gl.viewport(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     canvas.style.backgroundColor = "black";
@@ -194,7 +204,6 @@ export class ComputeApplication extends ComputeGLApplication {
     this.initialized = true;
     Profiler.stopSession();
     Profiler.printTree();
-
   }
 
   renderPush(
@@ -348,7 +357,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
     gl.viewport(x, y, width, height);
 
- 
     this.heightMapRenderer.draw(
       this.fdgBuffers,
       this.heightMap,
@@ -359,6 +367,18 @@ export class ComputeApplication extends ComputeGLApplication {
       AppSettings.useLights,
       AppSettings.wireframe
     );
+
+    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.ctx.fillStyle = "black";
+    let data = this.heightMapRenderer.getData();
+    if (data && this.graphData) {
+      for (let i = 0; i < this.graphData.getCount(); i++) {
+        const x = data[i * 2];
+        const y = data[i * 2 + 1];
+        const name = this.graphData.getName(i);
+        this.ctx.fillText(name, x, canvas.height - y);
+      }
+    }
   }
 
   onUpdate(deltaTime: number): void {
