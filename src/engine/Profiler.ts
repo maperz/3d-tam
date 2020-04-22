@@ -53,7 +53,11 @@ export class Profiler {
 
     private static popSession() {
         if(this.currentSession.parent != null) {
-            this.currentSession = this.currentSession.parent;
+            this.currentSession = this.currentSession.parent;   
+        }
+        else {
+            this.printTree();
+            this.currentSession = null;
         }
     }
 
@@ -68,6 +72,13 @@ export class Profiler {
         this.popSession();
     }
 
+    static evaluate(title: string, fn: Function) {
+        this.startSession(title);
+        const res = fn();
+        this.stopSession();
+        return res;
+    }
+
     private static printNode(session: ProfilingSession, level = 0){
         const ws = ' '.repeat(level);
         console.log(`${ws}[${session.title}]: ${session.duration()}ms`)
@@ -76,7 +87,7 @@ export class Profiler {
         }
     }
 
-    public static printTree() {
+    private static printTree() {
         if(!this.currentSession) {
             console.log("Profiler did not run. Cannot print Tree");
             return;

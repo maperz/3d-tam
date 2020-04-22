@@ -37,18 +37,20 @@ export class SimulationEngine {
 
     selectedIdLoc: WebGLUniformLocation;
     dragForceLoc: WebGLUniformLocation;
+    tick : number;
 
 
     init(width: number, height: number) {
 
         this.width = width;
         this.height = height;
+        this.tick = 0;
 
         this.attractionShader = createShaderFromSources(AttractionCompute);
         this.repulsionShader = createShaderFromSources(RepulsionCompute);
         this.updateShader = createShaderFromSources(PositionUpdateCompute);
-        this.densityMapCalculator = new DensityMapCalculator();
-        this.densityMapCalculator.init(width, height);
+        //this.densityMapCalculator = new DensityMapCalculator();
+        //this.densityMapCalculator.init(width, height);
 
         this.attractionStiffnessLoc = this.attractionShader.getUniformLocation('u_stiffness');
         this.attractionLengthLoc = this.attractionShader.getUniformLocation('u_length');
@@ -87,25 +89,20 @@ export class SimulationEngine {
         this.attractionShader.unuse();
     }
 
-    private calculateRepulsionForces(buffers: DataBuffers, pyramid: Texture[], levels: number) {
+    private calculateRepulsionForces(buffers: DataBuffers) {
         this.repulsionShader.use();
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.repulsionBuffers);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.infosBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.neighboursBuffer);
-
-        gl.uniform1ui(this.repulsionPyramidSizeLoc, levels);
-        gl.uniform1i(this.repulsionShader.getUniformLocation('u_totalCount'), buffers.numSamples);
+1
+        gl.uniform1ui (this.repulsionShader.getUniformLocation('u_maxCalculation'), 600);
+        gl.uniform1ui(this.repulsionShader.getUniformLocation('u_tick'), this.tick);
         gl.uniform1f(this.repulsionShader.getUniformLocation('u_repulsionForce'), AppSettings.repulsionForce);
         gl.uniform1ui(this.repulsionShaderNumSamplesLoc, buffers.numSamples);
 
         gl.uniform2f(this.repulsionDimensionLoc, this.width, this.height);
-
-        for(let l = 0; l < levels; l++)
-        {
-            gl.bindImageTexture(0, pyramid[l].texture, 0, false, l, gl.READ_ONLY, gl.R32F);
-        }
 
         gl.dispatchCompute(Math.ceil(buffers.numSamples / AppConfig.WORK_GROUP_SIZE), 1, 1);
 
@@ -113,7 +110,6 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, null);
-
 
         this.repulsionShader.unuse();
     }
@@ -155,15 +151,16 @@ export class SimulationEngine {
     updatePositions(buffers: DataBuffers, selected?: number, dragForce?: vec2) {
         TPAssert(this.initialized, 'FDGCalculator needs to be initialized first before usage.');
 
-        const pyramid = this.densityMapCalculator.calculateDensityMap(buffers);
+        //const pyramid = this.densityMapCalculator.calculateDensityMap(buffers);
         //const density = this.densityMapCalculator.getDensityTexture();
-        const levels = this.densityMapCalculator.getLevels();
+        //const levels = this.densityMapCalculator.getLevels();
 
         this.calculateAttractionForces(buffers);
-        this.calculateRepulsionForces(buffers, pyramid, levels);
+        this.calculateRepulsionForces(buffers);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
         this.calculatePositionUpdates(buffers, selected, dragForce);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
+        this.tick++;
     }
 
     getDMC(): DensityMapCalculator {

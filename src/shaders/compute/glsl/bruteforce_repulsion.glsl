@@ -20,12 +20,14 @@ layout (std430, binding = 3) buffer NeighboursBuffer { int data[]; } neighbours;
 
 uniform vec2 u_dimension;
 
-uniform int u_totalCount;
-
 uniform float u_repulsionForce;
 uniform uint u_numSamples;
 
+uniform uint u_maxCalculation;
+uniform uint u_tick;
+
 void main() {
+
     uint id = gl_GlobalInvocationID.x;
     if(id >= u_numSamples) {
         return;
@@ -36,8 +38,15 @@ void main() {
     vec2 force = vec2(0, 0);
 
     vec2 position = positions.data[id];
-    for(int i = 0; i < u_totalCount; ++i){
-        vec2 other_pos = positions.data[i];
+
+    uint numCalculations = min(u_maxCalculation, u_numSamples);
+    uint startFrame = (u_tick * numCalculations) % u_numSamples;
+
+    for(uint i = 0u; i < numCalculations; ++i) 
+    {
+        uint index = startFrame + i;
+        index = index >= u_numSamples ? index - u_numSamples : index;
+        vec2 other_pos = positions.data[index];
         vec2 vec = position - other_pos;
         float dist = length(vec);
         vec2 f = normalize(vec) / max(1.0, dist * dist) * u_repulsionForce;

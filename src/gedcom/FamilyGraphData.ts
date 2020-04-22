@@ -4,6 +4,7 @@ import { GraphData } from "../objects/GraphData";
 import { FamilyGraph } from "./FamilyGraph";
 import { Family } from "./Family";
 import { Person } from "./Person";
+import { Profiler } from "../engine/Profiler";
 
 class NodeObject {
   public isFamily: boolean;
@@ -24,22 +25,24 @@ class NodeObject {
       this.name = person.getFullName();
     } else {
       let name = "N/A";
-      if(family.husband != null && family.wife != null) {
-        name = `${family.husband.getSurname()}/${family.wife.getSurname()}`;
-      }
-      else if(family.wife != null) {
-        name = family.wife.getSurname();
-      }
-      else if(family.husband != null) {
+      
+      if (family.husband != null) {
         name = family.husband.getSurname();
       }
+      else if (family.wife != null) {
+        name = family.wife.getSurname();
+      } 
 
       this.name = `Family - ${name}`;
       this.isFamily = true;
       this.gedId = family.getId();
-      const persons = [family.wife, family.husband, ...family.children].filter(p => p != null);
-      const bdays = persons.map(p => p.getBirthDate());
-      const bdaysNumber = bdays.filter(b => b != null).map(b => b.getTime());
+      const persons = [family.wife, family.husband, ...family.children].filter(
+        (p) => p != null
+      );
+      const bdays = persons.map((p) => p.getBirthDate());
+      const bdaysNumber = bdays
+        .filter((b) => b != null)
+        .map((b) => b.getTime());
       const avg = bdaysNumber.reduce((a, b) => a + b, 0) / bdaysNumber.length;
       this.birthdate = new Date(avg);
     }
@@ -50,25 +53,31 @@ export class FamilyGraphData extends GraphData {
   private minDate: number = null;
   private maxDate: number = null;
   private nodes = new Array<NodeObject>();
+  private familyNodes = new Map<String, NodeObject>();
+  private personNodes = new Map<String, NodeObject>();
 
   constructor(private graph: FamilyGraph) {
     super();
 
     this.nodes = [];
 
-    for (let [_, person] of graph.persons) {
+    for (let [gedId, person] of graph.persons) {
       const id = this.nodes.length;
-      this.nodes.push(new NodeObject(id, person, null));
+      const personNode = new NodeObject(id, person, null);
+      this.nodes.push(personNode);
+      this.personNodes[gedId] = personNode;
     }
 
-    for (let [_, family] of graph.families) {
+    for (let [gedId, family] of graph.families) {
       const id = this.nodes.length;
-      this.nodes.push(new NodeObject(id, null, family));
+      const familyNode = new NodeObject(id, null, family);
+      this.nodes.push(familyNode);
+      this.familyNodes[gedId] = familyNode;
     }
 
     if (this.nodes.length > 0) {
-      this.calculateValues();
-      this.calculateConnections();
+      Profiler.evaluate("Calculate Values", this.calculateValues.bind(this));
+      Profiler.evaluate("Calculate Connections", this.calculateConnections.bind(this));
     }
   }
 
@@ -79,9 +88,15 @@ export class FamilyGraphData extends GraphData {
     for (let node of this.nodes) {
       if (node.birthdate == null) {
         continue;
-      } else if (this.minDate == null || node.birthdate.getTime() < this.minDate) {
+      } else if (
+        this.minDate == null ||
+        node.birthdate.getTime() < this.minDate
+      ) {
         this.minDate = node.birthdate.getTime();
-      } else if (this.maxDate == null || node.birthdate.getTime() > this.maxDate) {
+      } else if (
+        this.maxDate == null ||
+        node.birthdate.getTime() > this.maxDate
+      ) {
         this.maxDate = node.birthdate.getTime();
       }
     }
@@ -105,12 +120,12 @@ export class FamilyGraphData extends GraphData {
     }
   }
 
-  private getFamNode(gedId: string) {
-    return this.nodes.filter(nd => nd.isFamily && nd.gedId == gedId)[0];
+  private getFamNode(id: string) {
+    return this.familyNodes[id];
   }
 
-  private getPersNode(gedId: string) {
-    return this.nodes.filter(nd => !nd.isFamily && nd.gedId == gedId)[0];
+  private getPersNode(id: string) {
+    return this.personNodes[id];
   }
 
   private connect(a: NodeObject, b: NodeObject) {
@@ -119,25 +134,23 @@ export class FamilyGraphData extends GraphData {
     b.connections.push(a);
   }
 
-
   private calculateConnections() {
-    for (let [gedId, person] of this.graph.persons) {
-      const personNode = this.getPersNode(gedId);
-      for(let family of person.families) {
-        if(family.wife === person || family.husband == person) {
-          const familyNode = this.getFamNode(family.getId());
-          personNode.link = familyNode;
-          this.connect(personNode, familyNode);
-          break;
-        } 
-      }
-    }
 
-    for (let [gedId, family] of this.graph.families) {
-      const famNode = this.getFamNode(gedId);
-      for(let child of family.children) {
+    for (let [famId, family] of this.graph.families) {
+      const familyNode = this.getFamNode(famId);
+      if (family.wife) {
+        const wifeNode = this.getPersNode(family.wife.getId());
+        this.connect(wifeNode, familyNode);
+      }
+
+      if (family.husband) {
+        const husbandNode = this.getPersNode(family.husband.getId());
+        this.connect(husbandNode, familyNode);
+      }
+
+      for (let child of family.children) {
         const childNode = this.getPersNode(child.getId());
-        this.connect(famNode, childNode);
+        this.connect(familyNode, childNode);
       }
     }
   }
@@ -147,7 +160,7 @@ export class FamilyGraphData extends GraphData {
   }
 
   getEdges(id: number): Array<number> {
-    return this.nodes[id].connections.map(no => no.id);
+    return this.nodes[id].connections.map((no) => no.id);
   }
 
   getPosition(id: number): vec2 {
@@ -163,7 +176,7 @@ export class FamilyGraphData extends GraphData {
   }
 
   getFamily(id: number): number {
-    if(this.nodes[id].link == null) {
+    if (this.nodes[id].link == null) {
       return -1;
     }
     return this.nodes[id].link.id;

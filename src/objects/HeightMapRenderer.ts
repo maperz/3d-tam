@@ -34,12 +34,9 @@ export class HeightMapRenderer {
 
   private selectedId = -1;
   private normalsCalculator: NormalsCalculator;
-
-  private heightValueFramebuffer: WebGLFramebuffer;
   private cubeFramebuffer: WebGLFramebuffer;
 
   private colorRampTexture: WebGLTexture;
-  private heightValueTexture: WebGLTexture;
 
   private useLightsLoc: WebGLUniformLocation;
   private colorRampLoc: WebGLUniformLocation;
@@ -216,45 +213,12 @@ export class HeightMapRenderer {
     this.postProcessor.init();
     //this.createHeightFrameBuffer();
   }
-
-  private createFrameBuffer() {
-    this.heightValueFramebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.heightValueFramebuffer);
-
-    this.heightValueTexture = gl.createTexture();
-
-    gl.bindTexture(gl.TEXTURE_2D, this.heightValueTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      canvas.width,
-      canvas.height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null
-    );
-
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      this.heightValueTexture,
-      0
-    );
-
-    TPAssert(
-      gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE,
-      "Framebuffer incomplete!"
-    );
-
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  }
-
   setSelectedPerson(id: number) {
     this.selectedId = id != null ? id : -1;
+  }
+
+  getSelectedPerson() {
+    return this.selectedId;
   }
 
   getPersonAt(x: number, y: number): number {
@@ -291,30 +255,17 @@ export class HeightMapRenderer {
       this.screenPositionCalculator = new ScreenPositionCalculator();
       this.screenPositionCalculator.init(buffer);
     }
-
     const oldClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
 
     if (heightMapTexture) {
       this.normalsCalculator.calculateNormals(heightMapTexture, height);
-      /*gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.cubeFramebuffer);
-      gl.clearColor(0.0, 0.0, 0.0, 0.0
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.drawMap(buffer, heightMapTexture, height, model, view, proj, useLights, wireframe, true);
-      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-      */
-      this.drawMap(
-        buffer,
-        heightMapTexture,
-        height,
-        model,
-        view,
-        proj,
-        useLights,
-        wireframe,
-        false
-      );
+      this.drawMap(buffer, heightMapTexture, height, model, view, proj, useLights, wireframe, false);
 
-      //this.postProcessor.drawLines();
+      //this.postProcessor.startHeightRendering();
+      //this.drawMap(buffer, heightMapTexture, height, model, view, proj, useLights, wireframe, true);
+      //this.postProcessor.startColorRendering();
+      //this.drawMap(buffer, heightMapTexture, height, model, view, proj, useLights, wireframe, false);
+      //this.postProcessor.doPostProcess();
     }
 
     gl.disable(gl.DEPTH_TEST);
@@ -331,13 +282,14 @@ export class HeightMapRenderer {
     }
 
     if (AppSettings.renderGraph && AppSettings.personSize > 0) {
- 
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.cubeFramebuffer);
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.renderPersonDebug(buffer, height, model, view, proj, true);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-      this.renderPersonDebug(buffer, height, model, view, proj);
+      if (!AppSettings.showNames) {
+        this.renderPersonDebug(buffer, height, model, view, proj);
+      }
     }
 
     if (AppSettings.renderGraph && AppSettings.connectionSize > 0) {

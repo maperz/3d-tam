@@ -150,7 +150,9 @@ export class ComputeApplication extends ComputeGLApplication {
     this.familyGraph = new FamilyGraph();
     this.familyGraph.loadGedcom(input);
     this.familyGraph.estimateMissingDates(20);
+    Profiler.startSession("Family Graph Data");
     this.graphData = new FamilyGraphData(this.familyGraph);
+    Profiler.stopSession();
 
     console.log(`Loaded GraphData with ${this.graphData.getCount()} entries.`);
     this.initApp();
@@ -203,7 +205,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
     this.initialized = true;
     Profiler.stopSession();
-    Profiler.printTree();
   }
 
   renderPush(
@@ -313,7 +314,6 @@ export class ComputeApplication extends ComputeGLApplication {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.frameBuffer);
 
     const iteration = AppSettings.densityIteration;
-    const output = this.simuEngine.getDMC().getTexture(iteration);
 
     const fraction = 2 ** iteration;
 
@@ -324,7 +324,7 @@ export class ComputeApplication extends ComputeGLApplication {
       gl.READ_FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
-      output.texture,
+      this.dilateOut,
       0
     );
     gl.blitFramebuffer(
@@ -369,14 +369,27 @@ export class ComputeApplication extends ComputeGLApplication {
     );
 
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
-    this.ctx.fillStyle = "black";
+    const fillStyle = "#0e0e0e";
+    this.ctx.fillStyle = fillStyle;
     let data = this.heightMapRenderer.getData();
     if (data && this.graphData) {
-      for (let i = 0; i < this.graphData.getCount(); i++) {
-        const x = data[i * 2];
-        const y = data[i * 2 + 1];
-        const name = this.graphData.getName(i);
-        this.ctx.fillText(name, x, canvas.height - y);
+      for (let id = 0; id < this.graphData.getCount(); id++) {
+        const x = data[id * 2];
+        const y = canvas.height - data[id * 2 + 1];
+        const name = this.graphData.getName(id);
+
+        if(id == this.heightMapRenderer.getSelectedPerson()) {
+          this.ctx.fillStyle = "#FF00FF";
+        }
+
+        this.ctx.fillText(name, x + 5, y + 3);
+        this.ctx.beginPath();
+        this.ctx.ellipse(x, y, 3, 3, 0,  0, 2 * Math.PI);
+        this.ctx.fill();
+
+        if(id == this.heightMapRenderer.getSelectedPerson()) {
+          this.ctx.fillStyle = fillStyle;
+        }
       }
     }
   }

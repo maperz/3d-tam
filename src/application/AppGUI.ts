@@ -145,7 +145,7 @@ export class AppGUI {
     fdgSettings.add(AppSettings, "gravity_x", 0, 10, 0.01).name("GravityX");
     fdgSettings.add(AppSettings, "gravity_y", 0, 10, 0.01).name("GravityY");
     fdgSettings
-      .add(AppSettings, "numUpdates", 0, 1000, 1)
+      .add(AppSettings, "numUpdates", 0, 300, 1)
       .name("Number of updates");
     fdgSettings
       .add(AppSettings, "repulsionForce", 0, 10000, 10)
