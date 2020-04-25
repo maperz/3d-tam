@@ -153,8 +153,8 @@ export class DataBuffers {
       let position = graph.getPosition(i);
 
       if (!position) {
-        const x = (Math.random() + 1) * tw;
-        const y = (Math.random() + 1) * th;
+        const x = (Math.random() * 2 - 1) * tw;
+        const y = (Math.random() * 2 - 1) * th;
         position = vec2.fromValues(x, y);
       }
       const index = i * 2;

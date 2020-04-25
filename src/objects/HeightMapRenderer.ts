@@ -10,7 +10,6 @@ import { DataBuffers } from "./DataBuffers";
 import { NormalsCalculator } from "./NormalsCalculator";
 import { PixelGrid } from "./PixelGrid";
 import { ConnectionsRenderShader } from "../shaders/debug/ConnectionsRenderShader";
-import { PostProcessingShader } from "../shaders/heightmap/PostProcessing";
 import { PostProcesser } from "./PostProcesser";
 import { ScreenPositionCalculator } from "./ScreenPositionCalculator";
 
@@ -243,6 +242,7 @@ export class HeightMapRenderer {
     model: mat4,
     view: mat4,
     proj: mat4,
+    area: mat4,
     useLights: boolean = false,
     wireframe: boolean = false
   ) {
@@ -276,8 +276,10 @@ export class HeightMapRenderer {
         model,
         view,
         proj,
+        area,
         height,
-        vec2.fromValues(this.width, this.height)
+        vec2.fromValues(this.width, this.height),
+        vec2.fromValues(this.pixelsX, this.pixelsY)
       );
     }
 
@@ -285,15 +287,15 @@ export class HeightMapRenderer {
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.cubeFramebuffer);
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.renderPersonDebug(buffer, height, model, view, proj, true);
+      this.renderPersonDebug(buffer, height, model, view, proj, area, true);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
       if (!AppSettings.showNames) {
-        this.renderPersonDebug(buffer, height, model, view, proj);
+        this.renderPersonDebug(buffer, height, model, view, proj, area);
       }
     }
 
     if (AppSettings.renderGraph && AppSettings.connectionSize > 0) {
-      this.renderConnections(buffer, height, model, view, proj);
+      this.renderConnections(buffer, height, model, view, proj, area);
     }
 
     gl.enable(gl.DEPTH_TEST);
@@ -443,6 +445,7 @@ export class HeightMapRenderer {
     model: mat4,
     view: mat4,
     proj: mat4,
+    area: mat4,
     renderIds: boolean = false
   ) {
     this.personDebug.use();
@@ -454,6 +457,9 @@ export class HeightMapRenderer {
 
     const viewMatrixLocation = this.personDebug.getUniformLocation("u_view");
     gl.uniformMatrix4fv(viewMatrixLocation, false, view);
+
+    const areaLocation = this.personDebug.getUniformLocation("u_area");
+    gl.uniformMatrix4fv(areaLocation, false, area);
 
     const projectionMatrixLocation = this.personDebug.getUniformLocation(
       "u_proj"
@@ -474,9 +480,16 @@ export class HeightMapRenderer {
       this.width,
       this.height
     );
+
     gl.uniform1f(
       this.personDebug.getUniformLocation("u_cubeSize"),
       AppSettings.personSize
+    );
+
+    gl.uniform2f(
+      this.personDebug.getUniformLocation("u_pixel"),
+      this.pixelsX,
+      this.pixelsY
     );
 
     const heightLocation = this.personDebug.getUniformLocation("u_height");
@@ -505,7 +518,8 @@ export class HeightMapRenderer {
     height: number,
     model: mat4,
     view: mat4,
-    proj: mat4
+    proj: mat4,
+    area: mat4
   ) {
     this.connectionsShader.use();
 
@@ -528,6 +542,12 @@ export class HeightMapRenderer {
     );
 
     gl.uniformMatrix4fv(
+      this.connectionsShader.getUniformLocation("u_area"),
+      false,
+      area
+    );
+
+    gl.uniformMatrix4fv(
       this.connectionsShader.getUniformLocation("u_proj"),
       false,
       proj
@@ -542,6 +562,12 @@ export class HeightMapRenderer {
       this.connectionsShader.getUniformLocation("u_size"),
       this.width,
       this.height
+    );
+
+    gl.uniform2f(
+      this.connectionsShader.getUniformLocation("u_pixel"),
+      this.pixelsX,
+      this.pixelsY
     );
 
     const heightLocation = this.connectionsShader.getUniformLocation(

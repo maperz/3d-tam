@@ -14,7 +14,7 @@ export class AppGUI {
     gui
       .add(AppSettings, "mode", [
         RenderMode.All,
-        RenderMode.Dilate,
+        RenderMode.Constraint,
         RenderMode.Push,
         RenderMode.Pull,
         RenderMode.Density,

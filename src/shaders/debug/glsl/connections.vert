@@ -8,8 +8,11 @@ layout (std430, binding = 1) buffer Position3DBuffer { vec3 data[]; } positions;
 uniform mat4 u_proj;
 uniform mat4 u_view;
 uniform mat4 u_model;
+uniform mat4 u_area;
+
 uniform float u_height;
 uniform vec2 u_size;
+uniform vec2 u_pixel;
 
 uniform int u_selectedId;
 
@@ -20,6 +23,7 @@ void main()
     int id = gl_VertexID;
     v_isSelected = id == u_selectedId ? 1.0f : 0.0f;
 
-    vec3 position = (positions.data[id] - vec3(0.5, 0, 0.5)) * vec3(u_size.x, u_height, u_size.y);
-    gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
+    vec2 factor = u_size / u_pixel;
+    vec3 position = positions.data[id] * vec3(factor.x, u_height, factor.y);
+    gl_Position = u_proj * u_view * u_model * u_area * vec4(position, 1.0);
 }

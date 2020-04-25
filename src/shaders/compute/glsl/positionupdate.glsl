@@ -45,5 +45,5 @@ void main() {
 
     float value = values.data[id];
 
-    positions3d.data[id].xyz = vec3(pos.x / u_dimension.x, value, pos.y / u_dimension.y);
+    positions3d.data[id].xyz = vec3(pos.x, value, pos.y);
 }

@@ -7,9 +7,11 @@ layout (std430, binding = 0) readonly buffer Position3DBuffer { vec4 data[]; } p
 uniform mat4 u_proj;
 uniform mat4 u_view;
 uniform mat4 u_model;
+uniform mat4 u_area;
 
 uniform float u_height;
 uniform vec2 u_sizeMap;
+uniform vec2 u_pixel;
 uniform float u_cubeSize;
 
 uniform vec4 u_color;
@@ -18,7 +20,6 @@ uniform uint u_renderIds;
 uniform int u_selectedId;
 
 out vec4 v_color;
-
 
 vec4 colorFromId(int id) {
     int i = id + 1;
@@ -37,12 +38,14 @@ void main()
 
     position *= 0.03 * u_cubeSize;
 
-    vec3 gridOffset = (positions.data[id].xyz - vec3(0.5, 0, 0.5)) * vec3(u_sizeMap.x, u_height, u_sizeMap.y);
+    vec2 factor = u_sizeMap / u_pixel;
+    vec3 gridOffset = (positions.data[id].xyz) * vec3(factor.x, u_height, factor.y);
+    vec4 modifedOffset = u_area * vec4(gridOffset, 1.0);
 
     float type = positions.data[id].w;
 
-    position += gridOffset;
-    gl_Position = u_proj *  u_view * u_model * vec4(position, 1.0);
+    position += modifedOffset.xyz;
+    gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
 
     if(u_renderIds > 0u) {
         v_color = colorFromId(id);
@@ -53,6 +56,4 @@ void main()
     else {
         v_color = type != 0.0 ? u_color : vec4(0.8, 0 , 0, 1);
     }
-
-
 }

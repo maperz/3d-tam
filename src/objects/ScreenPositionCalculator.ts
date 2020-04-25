@@ -14,7 +14,7 @@ export class ScreenPositionCalculator {
     this.data = new Float32Array(buffer.count * 2);
   }
 
-  calculate(buffer: DataBuffers, model: mat4, view: mat4, proj: mat4, height: number, size: vec2) {
+  calculate(buffer: DataBuffers, model: mat4, view: mat4, proj: mat4, area: mat4, height: number, size: vec2, pixels: vec2) {
     this.shader.use();
     
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffer.position3dBuffer);
@@ -29,9 +29,12 @@ export class ScreenPositionCalculator {
     const projectionMatrixLocation = this.shader.getUniformLocation("u_proj");
     gl.uniformMatrix4fv(projectionMatrixLocation, false, proj);
 
+    gl.uniformMatrix4fv(this.shader.getUniformLocation("u_area"), false, area);
+
     gl.uniform1i(this.shader.getUniformLocation('u_count'), buffer.count);
     gl.uniform1f(this.shader.getUniformLocation('u_height'), height);
     gl.uniform2f(this.shader.getUniformLocation('u_sizeMap'), size[0], size[1]);
+    gl.uniform2f(this.shader.getUniformLocation('u_pixel'), pixels[0], pixels[1]);
     gl.uniform2f(this.shader.getUniformLocation('u_screenSize'), canvas.width, canvas.height);
 
     gl.dispatchCompute(Math.ceil(buffer.count / 16), 1, 1);
