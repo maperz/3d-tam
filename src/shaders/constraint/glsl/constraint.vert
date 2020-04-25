@@ -14,9 +14,12 @@ out float v_value;
 void main()
 {
     v_value = a_value;
-    vec2 position = (u_textureSize / 2.0) + a_position;
 
-    vec4 normalizedSpace = (u_proj * vec4(position, 0, 1)).xzyw;
-    gl_Position =  (u_view * normalizedSpace).xzyw;
+    vec2 offset = u_textureSize / 2.0;
+    vec4 position = u_view * vec4(a_position.x, 0, a_position.y, 1.0);
+    
+    vec2 position2d = position.xz + offset;
+
+    gl_Position =  u_proj * vec4(position2d, 0 , 1);
     gl_PointSize = max(1.0f, u_radius);
 }

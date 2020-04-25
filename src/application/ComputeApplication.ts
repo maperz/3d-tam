@@ -381,7 +381,7 @@ export class ComputeApplication extends ComputeGLApplication {
       AppSettings.wireframe
     );
 
-    let graphScaling = mat4.mul(mat4.create(), this.area, this.worldScaling);
+    let graphScaling = mat4.mul(mat4.create(), this.worldScaling, this.area);
 
     this.graphRenderer.draw(
       this.fdgBuffers,
@@ -414,15 +414,13 @@ export class ComputeApplication extends ComputeGLApplication {
       const centerY = boundary[1] + (height) / 2;
       console.log(centerX, centerY)
 
-      const factor = Math.max(length, height);
+      const factor = Math.max(this.HEIGHT / length, this.WIDTH / height) / 2;
 
       // TODO: refactor this..
-      const a = this.WIDTH / factor;
-      const offset = mat4.fromTranslation(mat4.identity(mat4.create()), [1, 0, 0]);
-      this.area = mat4.fromScaling(mat4.create(), [a, 1, a]);
-
-      //this.area = offset;
+      const offset = mat4.fromTranslation(mat4.identity(mat4.create()), [0, 0, 0]);
+      this.area = mat4.scale(offset, offset, [factor, 1, factor]);
     }
+    
     this.dilateOut = this.constraintEngine.renderConstraints(
       AppSettings.dilateRadius,
       this.fdgBuffers.numSamples,
