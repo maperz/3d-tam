@@ -9,10 +9,7 @@ layout(binding = 0, std430) readonly buffer Normals { vec4 data[]; } normals;
 
 uniform float u_height;
 
-uniform mat4 u_model;
-uniform mat4 u_view;
-uniform mat4 u_proj;
-
+uniform mat4 u_mvp;
 uniform vec2 u_size;
 
 uniform vec2 u_gridSize;
@@ -34,7 +31,7 @@ void main()
 
     float height =  v_pixelvalue * u_height;
     vec3 position = vec3(a_position.x,  height, a_position.y);
-    gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
+    gl_Position = u_mvp * vec4(position, 1.0);
 
     v_position = position;
     v_gridSize = u_gridSize;

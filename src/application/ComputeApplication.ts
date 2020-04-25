@@ -15,6 +15,7 @@ import { AppSettings, RenderMode } from "./AppSettings";
 import { ConstraintEngine } from "../objects/ConstraintEngine";
 import { AppGUI } from "./AppGUI";
 import { Recorder } from "../engine/Recorder";
+import { GraphRenderer } from "../objects/GraphRenderer";
 
 export class ComputeApplication extends ComputeGLApplication {
   forceFullscreen = true;
@@ -45,6 +46,8 @@ export class ComputeApplication extends ComputeGLApplication {
   lastMouseMove = vec2.create();
 
   heightMapRenderer: HeightMapRenderer;
+  graphRenderer: GraphRenderer;
+
   fdgDebugRenderer: FDGDebugRenderer;
 
   transformer: Transformer;
@@ -53,6 +56,8 @@ export class ComputeApplication extends ComputeGLApplication {
   perspective: mat4;
   view: mat4;
   model: mat4;
+
+  worldScaling : mat4;
 
   area: mat4 = mat4.identity(mat4.create());
 
@@ -188,6 +193,15 @@ export class ComputeApplication extends ComputeGLApplication {
       this.WIDTH,
       this.HEIGHT
     );
+
+    this.graphRenderer = new GraphRenderer();
+    this.graphRenderer.init();
+
+    this.worldScaling = mat4.fromScaling(mat4.create(), [
+      this.heightmapModelWidth / this.WIDTH,
+      AppSettings.heightMapFactor,
+      this.heightmapModelHeight / this.HEIGHT,
+    ]);
 
     this.fdgDebugRenderer = new FDGDebugRenderer();
     this.fdgDebugRenderer.init(this.fdgBuffers);
@@ -347,7 +361,6 @@ export class ComputeApplication extends ComputeGLApplication {
   }
 
   render3d(
-    deltaTime: number,
     x: number = 0,
     y: number = 0,
     width: number = this.CANVAS_WIDTH,
@@ -357,16 +370,23 @@ export class ComputeApplication extends ComputeGLApplication {
 
     gl.viewport(x, y, width, height);
 
+    let mvp = mat4.mul(mat4.create(), this.view, this.model);
+    mat4.mul(mvp, this.perspective, mvp);
+
     this.heightMapRenderer.draw(
-      this.fdgBuffers,
       this.heightMap,
       AppSettings.heightMapFactor,
-      this.model,
-      this.view,
-      this.perspective,
-      this.area,
+      mvp,
       AppSettings.useLights,
       AppSettings.wireframe
+    );
+
+    let graphScaling = mat4.mul(mat4.create(), this.area, this.worldScaling);
+
+    this.graphRenderer.draw(
+      this.fdgBuffers,
+      mvp,
+      graphScaling,
     );
     this.drawOverlay();
   }
@@ -390,16 +410,18 @@ export class ComputeApplication extends ComputeGLApplication {
       const length = Math.abs(boundary[2] - boundary[0]);
       const height =  Math.abs(boundary[3] - boundary[1]);
 
-
-      //const centerX = boundary[0] + (boundary[2] - boundary[0]) / 2;
-      //const centerY = boundary[1] + (boundary[3] - boundary[1]) / 2;
-      //console.log(centerX, centerY)
+      const centerX = boundary[0] + (length) / 2;
+      const centerY = boundary[1] + (height) / 2;
+      console.log(centerX, centerY)
 
       const factor = Math.max(length, height);
 
-      this.area[0] =  512 / factor;
-      this.area[10] = 512 / factor;
-      
+      // TODO: refactor this..
+      const a = this.WIDTH / factor;
+      const offset = mat4.fromTranslation(mat4.identity(mat4.create()), [1, 0, 0]);
+      this.area = mat4.fromScaling(mat4.create(), [a, 1, a]);
+
+      //this.area = offset;
     }
     this.dilateOut = this.constraintEngine.renderConstraints(
       AppSettings.dilateRadius,
@@ -470,7 +492,6 @@ export class ComputeApplication extends ComputeGLApplication {
           this.CANVAS_HEIGHT
         );
         this.render3d(
-          deltaTime,
           this.CANVAS_WIDTH / 2,
           0,
           this.CANVAS_WIDTH / 2,
@@ -568,12 +589,12 @@ export class ComputeApplication extends ComputeGLApplication {
           this.tooltip.style.visibility = "hidden";
         }
 
-        if (!this.mouseDragging && this.heightMapRenderer) {
-          this.selectedPerson = this.heightMapRenderer.getPersonAt(
+        if (!this.mouseDragging && this.graphRenderer) {
+          this.selectedPerson = this.graphRenderer.getPersonAt(
             e.x,
             canvas.height - e.y
           );
-          this.heightMapRenderer.setSelectedPerson(this.selectedPerson);
+          this.graphRenderer.setSelectedPerson(this.selectedPerson);
           if (this.selectedPerson != null && this.selectedPerson >= 0) {
             canvas.style.cursor = "grab";
             const name = this.graphData.getName(this.selectedPerson);
@@ -736,14 +757,14 @@ export class ComputeApplication extends ComputeGLApplication {
     const fillStyle = "#0E0E0E";
     this.ctx.fillStyle = fillStyle;
 
-    let data = this.heightMapRenderer.getData();
+    let data = this.graphRenderer.getNodeScreenPositions();
     if (data && this.graphData) {
       for (let id = 0; id < this.graphData.getCount(); id++) {
         const x = data[id * 2];
         const y = canvas.height - data[id * 2 + 1];
         const name = this.graphData.getName(id);
 
-        if (id == this.heightMapRenderer.getSelectedPerson()) {
+        if (id == this.graphRenderer.getSelectedPerson()) {
           this.ctx.fillStyle = "#FF00FF";
         }
 
@@ -752,7 +773,7 @@ export class ComputeApplication extends ComputeGLApplication {
         this.ctx.ellipse(x, y, 3, 3, 0, 0, 2 * Math.PI);
         this.ctx.fill();
 
-        if (id == this.heightMapRenderer.getSelectedPerson()) {
+        if (id == this.graphRenderer.getSelectedPerson()) {
           this.ctx.fillStyle = fillStyle;
         }
       }

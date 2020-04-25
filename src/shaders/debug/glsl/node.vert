@@ -4,14 +4,9 @@ precision highp float;
 layout (location=0) in vec3 a_position;
 layout (std430, binding = 0) readonly buffer Position3DBuffer { vec4 data[]; } positions;
 
-uniform mat4 u_proj;
-uniform mat4 u_view;
-uniform mat4 u_model;
-uniform mat4 u_area;
+uniform mat4 u_mvp;
+uniform mat4 u_scaling;
 
-uniform float u_height;
-uniform vec2 u_sizeMap;
-uniform vec2 u_pixel;
 uniform float u_cubeSize;
 
 uniform vec4 u_color;
@@ -38,14 +33,13 @@ void main()
 
     position *= 0.03 * u_cubeSize;
 
-    vec2 factor = u_sizeMap / u_pixel;
-    vec3 gridOffset = (positions.data[id].xyz) * vec3(factor.x, u_height, factor.y);
-    vec4 modifedOffset = u_area * vec4(gridOffset, 1.0);
+    vec4 gridOffset =  u_scaling * vec4(positions.data[id].xyz, 1.0);
 
     float type = positions.data[id].w;
 
-    position += modifedOffset.xyz;
-    gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
+    position += gridOffset.xyz;
+
+    gl_Position = u_mvp * vec4(position, 1.0);
 
     if(u_renderIds > 0u) {
         v_color = colorFromId(id);
