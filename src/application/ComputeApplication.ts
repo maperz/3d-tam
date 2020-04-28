@@ -59,7 +59,12 @@ export class ComputeApplication extends ComputeGLApplication {
 
   worldScaling : mat4;
 
-  area: mat4 = mat4.identity(mat4.create());
+  area = mat4.identity(mat4.create());
+  fitToPlane = mat4.identity(mat4.create());
+
+  userView =  mat4.identity(mat4.create());
+  userScale = 1;
+  userTranslate = vec2.create();
 
   fpsDisplayer: HTMLSpanElement;
 
@@ -417,9 +422,13 @@ export class ComputeApplication extends ComputeGLApplication {
       const factor = Math.max(this.HEIGHT / length, this.WIDTH / height) / 2;
 
       // TODO: refactor this..
-      const offset = mat4.fromTranslation(mat4.identity(mat4.create()), [0, 0, 0]);
-      this.area = mat4.scale(offset, offset, [factor, 1, factor]);
+      //const offset = mat4.fromTranslation(mat4.identity(mat4.create()), [0, 0, 0]);
+      //this.fitToPlane = mat4.scale(offset, offset, [factor, 1, factor]);
+
+      this.fitToPlane = mat4.fromScaling(mat4.create(), [factor, 1, factor]);
     }
+
+    mat4.mul(this.area, this.userView, this.fitToPlane)
     
     this.dilateOut = this.constraintEngine.renderConstraints(
       AppSettings.dilateRadius,
@@ -505,6 +514,17 @@ export class ComputeApplication extends ComputeGLApplication {
     }
   }
 
+  private recalculateUserViewMat() {
+
+    this.userScale = this.clamp(this.userScale, 0, 100);
+
+    //mat4.fromScaling(this.userView, [this.userScale, 1, this.userScale]);
+    //mat4.translate(this.userView, this.userView, [this.userTranslate[0], 0, this.userTranslate[1]]);
+
+    mat4.fromTranslation(this.userView, [this.userTranslate[0], 0, this.userTranslate[1]]);
+    mat4.scale(this.userView, this.userView, [this.userScale, 1, this.userScale]);
+  }
+
   private recalculateViewMat() {
     this.view = mat4.translate(
       mat4.create(),
@@ -569,6 +589,13 @@ export class ComputeApplication extends ComputeGLApplication {
         const delta = vec2.sub(vec2.create(), pos, this.lastMouseMove);
         this.lastMouseMove = pos;
 
+        if (this.mouseDragging && e.ctrlKey) {
+          const speedFactor = 2.0;
+          vec2.add(this.userTranslate, this.userTranslate, [delta[0] * speedFactor, delta[1] * speedFactor]);
+          this.recalculateUserViewMat();
+          return;
+        }
+
         if (this.mouseDragging && this.selectedPerson == null) {
           this.modelRotationX = this.clamp(
             this.modelRotationX + delta[1],
@@ -617,10 +644,8 @@ export class ComputeApplication extends ComputeGLApplication {
 
       if (e.ctrlKey) {
         const direction = -Math.sign(e.deltaY);
-        const val = 1 + direction * 0.1;
-        this.area[0] *= val;
-        this.area[10] *= val;
-        this.area[15] = 1;
+        this.userScale += direction * 0.1;
+        this.recalculateUserViewMat();
         return;
       }
 
@@ -711,25 +736,29 @@ export class ComputeApplication extends ComputeGLApplication {
 
     let mmW = 160;
     let mmH = mmW * this.HEIGHT / this.WIDTH;
-    let scopeX = 0 + mmW / 2;
-    let scopeY = 0 + mmH / 2;
 
-    let ssX = this.area[0];
-    let ssY = this.area[10];
-    
-    const swapped = ssX < 1.0 || ssY < 1.0;
+    const swapped = this.userScale < 1.0;
 
-    if(Math.abs(1 - ssX) < 0.05 || Math.abs(1 - ssY) < 0.05) {
+    const boundary = this.simuEngine.getBoundaries(null);
+    const width = Math.max(Math.abs(boundary[2] - boundary[0]), 1);
+    const height = Math.max(Math.abs(boundary[3] - boundary[1]), 1);
+
+    let transX = this.userTranslate[0] * this.userScale / width;
+    let transY = this.userTranslate[1] * this.userScale / height;
+
+    let scopeX = 0 + mmW / 2 + transX * mmW;
+    let scopeY = 0 + mmH / 2 + transY * mmH;
+
+    const isScaled = Math.abs(1 - this.userScale) > 0.05 ;
+    const isTranslated = this.userTranslate[0] > 0 || this.userTranslate[1] > 0 ;
+    if (!isScaled && !isTranslated) {
       return;
     }
 
-    if (swapped) {
-      ssX = 1 / ssX;
-      ssY = 1 / ssY;
-    }
+    const scale = swapped ?  1 / this.userScale : this.userScale;
 
-    const scopeW = mmW / ssX;
-    const scopeH = mmH / ssY;
+    const scopeW = mmW / scale;
+    const scopeH = mmH / scale;
     
     scopeX -= scopeW / 2;
     scopeY -= scopeH / 2;

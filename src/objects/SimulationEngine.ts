@@ -213,8 +213,7 @@ export class SimulationEngine {
     }
 
     getBoundaries(buffers: DataBuffers) {
-
-        if (this.boundaryTimeStamp != this.tick) {
+        if (this.boundaryTimeStamp != this.tick && buffers != null) {
             this.calculateBoundaries(buffers);
         }
         return this.boundaries;
