@@ -750,7 +750,7 @@ export class ComputeApplication extends ComputeGLApplication {
     let scopeY = 0 + mmH / 2 + transY * mmH;
 
     const isScaled = Math.abs(1 - this.userScale) > 0.05 ;
-    const isTranslated = this.userTranslate[0] > 0 || this.userTranslate[1] > 0 ;
+    const isTranslated = Math.abs(transX) > 0.05 || Math.abs(transY) > 0.05 ;
     if (!isScaled && !isTranslated) {
       return;
     }
@@ -789,6 +789,11 @@ export class ComputeApplication extends ComputeGLApplication {
       for (let id = 0; id < this.graphData.getCount(); id++) {
         const x = data[id * 2];
         const y = canvas.height - data[id * 2 + 1];
+
+        if (this.graphData.getType(id) != 0){
+          continue;
+        }
+
         const name = this.graphData.getName(id);
 
         if (id == this.graphRenderer.getSelectedPerson()) {
