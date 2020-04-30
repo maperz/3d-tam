@@ -26,6 +26,16 @@ uniform uint u_numSamples;
 uniform uint u_maxCalculation;
 uniform uint u_tick;
 
+
+bool isNeighbour(PointInfo info, uint other) {
+    for (int u = 0; u < info.count; u++) {
+        if (uint(neighbours.data[info.offset + u]) == other) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void main() {
 
     uint id = gl_GlobalInvocationID.x;
@@ -42,16 +52,31 @@ void main() {
     uint numCalculations = min(u_maxCalculation, u_numSamples);
     uint startFrame = (u_tick * numCalculations) % u_numSamples;
 
-    for(uint i = 0u; i < numCalculations; ++i) 
+
+    for (uint i = 0u; i < numCalculations; ++i) 
     {
         uint index = startFrame + i;
         index = index >= u_numSamples ? index - u_numSamples : index;
+        /*if (isNeighbour(info, index)) {
+            continue;
+        }*/
         vec2 other_pos = positions.data[index];
         vec2 vec = position - other_pos;
         float dist = length(vec);
         vec2 f = normalize(vec) / max(1.0, dist * dist) * u_repulsionForce;
         force += f;
     }
+    
+
+    /*
+    for (uint i = 0u; i < u_numSamples; ++i) 
+    {
+        vec2 other_pos = positions.data[i];
+        vec2 vec = position - other_pos;
+        float dist = length(vec);
+        vec2 f = normalize(vec) / max(1.0, dist * dist) * u_repulsionForce;
+        force += f;
+    }*/
 
     repulsion.forces[id] = force;
 }

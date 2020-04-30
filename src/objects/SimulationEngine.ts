@@ -11,6 +11,7 @@ import {DensityMapCalculator} from './DensityMapCalculator';
 import {DataBuffers} from './DataBuffers';
 import { vec2 } from 'gl-matrix';
 import { BoundaryCompute } from '../shaders/compute/BoundaryCompute';
+import { FamilyForceCompute } from '../shaders/compute/FamilyForceCompute';
 
 export class SimulationEngine {
 
@@ -23,6 +24,7 @@ export class SimulationEngine {
     repulsionShader: Shader;
     updateShader: Shader;
     boundaryShader: Shader;
+    familyForceShader: Shader;
 
     densityMapCalculator: DensityMapCalculator;
 
@@ -73,6 +75,8 @@ export class SimulationEngine {
 
         this.boundaryShader = createShaderFromSources(BoundaryCompute);
         this.boundaryBuffers = null;
+
+        this.familyForceShader = createShaderFromSources(FamilyForceCompute);
 
         this.initialized = true;
     }
@@ -158,6 +162,21 @@ export class SimulationEngine {
         this.updateShader.unuse();
     }
 
+    private calculateFamilyForces(buffers: DataBuffers) {
+        this.familyForceShader.use();
+
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.familyInfoBuffer);
+
+        gl.uniform1ui(this.familyForceShader.getUniformLocation("u_numSamples"), buffers.numSamples);
+
+        gl.dispatchCompute(Math.ceil(buffers.numSamples / AppConfig.WORK_GROUP_SIZE), 1, 1);
+
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+        this.familyForceShader.unuse();
+    }
+
     private initBoundaryBuffers(buffers: DataBuffers) {
 
         this.boundaryBuffers = [];
@@ -231,6 +250,9 @@ export class SimulationEngine {
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
         this.calculatePositionUpdates(buffers, selected, dragForce);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
+        this.calculateFamilyForces(buffers);
+        gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
+
         this.tick++;
     }
 

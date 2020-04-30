@@ -42,14 +42,14 @@ export const AppSettings = {
     repulsionForce: 1000,
 
     // Rendering
-    useLights: true,
+    useLights: false,
     wireframe: false,
-    colorRamp: "turbo.png",
-    personSize: 0.5,
+    colorRamp: "GnBu.png",
+    personSize: 1,
     connectionSize: 1,
-    invertColorRamp: false,
-    smoothRamp: true,
-    numSegments: 0,
+    invertColorRamp: true,
+    smoothRamp: false,
+    numSegments: 40,
     showNames: false,
-    showSegmentLines: true,
+    showSegmentLines: false,
 };

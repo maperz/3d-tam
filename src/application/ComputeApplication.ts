@@ -57,12 +57,12 @@ export class ComputeApplication extends ComputeGLApplication {
   view: mat4;
   model: mat4;
 
-  worldScaling : mat4;
+  worldScaling: mat4;
 
   area = mat4.identity(mat4.create());
   fitToPlane = mat4.identity(mat4.create());
 
-  userView =  mat4.identity(mat4.create());
+  userView = mat4.identity(mat4.create());
   userScale = 1;
   userTranslate = vec2.create();
 
@@ -388,11 +388,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     let graphScaling = mat4.mul(mat4.create(), this.worldScaling, this.area);
 
-    this.graphRenderer.draw(
-      this.fdgBuffers,
-      mvp,
-      graphScaling,
-    );
+    this.graphRenderer.draw(this.fdgBuffers, mvp, graphScaling);
     this.drawOverlay();
   }
 
@@ -401,7 +397,7 @@ export class ComputeApplication extends ComputeGLApplication {
       return;
     }
 
-    if (AppSettings.updateGraph) {
+    if (AppSettings.updateGraph || this.grabbedPerson != null) {
       for (let i = 0; i < AppSettings.numUpdates; i++) {
         this.simuEngine.updatePositions(
           this.fdgBuffers,
@@ -413,23 +409,26 @@ export class ComputeApplication extends ComputeGLApplication {
       const boundary = this.simuEngine.getBoundaries(this.fdgBuffers);
 
       const length = Math.abs(boundary[2] - boundary[0]);
-      const height =  Math.abs(boundary[3] - boundary[1]);
+      const height = Math.abs(boundary[3] - boundary[1]);
 
-      const centerX = boundary[0] + (length) / 2;
-      const centerY = boundary[1] + (height) / 2;
-      console.log(centerX, centerY)
+      const centerX = boundary[0] + length / 2;
+      const centerY = boundary[1] + height / 2;
 
       const factor = Math.max(this.HEIGHT / length, this.WIDTH / height) / 2;
 
       // TODO: refactor this..
-      //const offset = mat4.fromTranslation(mat4.identity(mat4.create()), [0, 0, 0]);
-      //this.fitToPlane = mat4.scale(offset, offset, [factor, 1, factor]);
+      const offset = mat4.fromTranslation(mat4.identity(mat4.create()), [
+        -centerX,
+        0,
+        -centerY,
+      ]);
+      this.fitToPlane = mat4.scale(offset, offset, [factor, 1, factor]);
 
       this.fitToPlane = mat4.fromScaling(mat4.create(), [factor, 1, factor]);
     }
 
-    mat4.mul(this.area, this.userView, this.fitToPlane)
-    
+    mat4.mul(this.area, this.userView, this.fitToPlane);
+
     this.dilateOut = this.constraintEngine.renderConstraints(
       AppSettings.dilateRadius,
       this.fdgBuffers.numSamples,
@@ -515,14 +514,21 @@ export class ComputeApplication extends ComputeGLApplication {
   }
 
   private recalculateUserViewMat() {
-
     this.userScale = this.clamp(this.userScale, 0, 100);
 
     //mat4.fromScaling(this.userView, [this.userScale, 1, this.userScale]);
     //mat4.translate(this.userView, this.userView, [this.userTranslate[0], 0, this.userTranslate[1]]);
 
-    mat4.fromTranslation(this.userView, [this.userTranslate[0], 0, this.userTranslate[1]]);
-    mat4.scale(this.userView, this.userView, [this.userScale, 1, this.userScale]);
+    mat4.fromTranslation(this.userView, [
+      this.userTranslate[0],
+      0,
+      this.userTranslate[1],
+    ]);
+    mat4.scale(this.userView, this.userView, [
+      this.userScale,
+      1,
+      this.userScale,
+    ]);
   }
 
   private recalculateViewMat() {
@@ -591,7 +597,10 @@ export class ComputeApplication extends ComputeGLApplication {
 
         if (this.mouseDragging && e.ctrlKey) {
           const speedFactor = 2.0;
-          vec2.add(this.userTranslate, this.userTranslate, [delta[0] * speedFactor, delta[1] * speedFactor]);
+          vec2.add(this.userTranslate, this.userTranslate, [
+            delta[0] * speedFactor,
+            delta[1] * speedFactor,
+          ]);
           this.recalculateUserViewMat();
           return;
         }
@@ -735,31 +744,30 @@ export class ComputeApplication extends ComputeGLApplication {
     this.ctx.lineWidth = 2;
 
     let mmW = 160;
-    let mmH = mmW * this.HEIGHT / this.WIDTH;
+    let mmH = (mmW * this.HEIGHT) / this.WIDTH;
 
     const swapped = this.userScale < 1.0;
+    const scale = swapped ? 1 / this.userScale : this.userScale;
 
     const boundary = this.simuEngine.getBoundaries(null);
     const width = Math.max(Math.abs(boundary[2] - boundary[0]), 1);
     const height = Math.max(Math.abs(boundary[3] - boundary[1]), 1);
 
-    let transX = this.userTranslate[0] * this.userScale / width;
-    let transY = this.userTranslate[1] * this.userScale / height;
+    let transX = this.userTranslate[0] / scale / width;
+    let transY = this.userTranslate[1] / scale / height;
 
     let scopeX = 0 + mmW / 2 + transX * mmW;
     let scopeY = 0 + mmH / 2 + transY * mmH;
 
-    const isScaled = Math.abs(1 - this.userScale) > 0.05 ;
-    const isTranslated = Math.abs(transX) > 0.05 || Math.abs(transY) > 0.05 ;
+    const isScaled = Math.abs(1 - this.userScale) > 0.05;
+    const isTranslated = Math.abs(transX) > 0.05 || Math.abs(transY) > 0.05;
     if (!isScaled && !isTranslated) {
       return;
     }
 
-    const scale = swapped ?  1 / this.userScale : this.userScale;
-
     const scopeW = mmW / scale;
     const scopeH = mmH / scale;
-    
+
     scopeX -= scopeW / 2;
     scopeY -= scopeH / 2;
 
@@ -779,7 +787,6 @@ export class ComputeApplication extends ComputeGLApplication {
 
   drawOverlay() {
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
-    this.drawMinimap();
 
     const fillStyle = "#0E0E0E";
     this.ctx.fillStyle = fillStyle;
@@ -790,25 +797,27 @@ export class ComputeApplication extends ComputeGLApplication {
         const x = data[id * 2];
         const y = canvas.height - data[id * 2 + 1];
 
-        if (this.graphData.getType(id) != 0){
-          continue;
-        }
-
-        const name = this.graphData.getName(id);
-
-        if (id == this.graphRenderer.getSelectedPerson()) {
+        if (id == this.graphRenderer.getSelectedNode()) {
           this.ctx.fillStyle = "#FF00FF";
         }
 
-        this.ctx.fillText(name, x + 5, y + 3);
         this.ctx.beginPath();
         this.ctx.ellipse(x, y, 3, 3, 0, 0, 2 * Math.PI);
         this.ctx.fill();
 
-        if (id == this.graphRenderer.getSelectedPerson()) {
-          this.ctx.fillStyle = fillStyle;
+        if (this.graphData.getType(id) == 0) {
+          const name = this.graphData.getName(id);
+          this.ctx.fillText(name, x + 5, y + 3);
+        } else {
+          //this.ctx.beginPath();
+          //const familyRadi = 50 * this.userScale;
+          //this.ctx.ellipse(x, y, familyRadi, familyRadi, 0, 0, 2 * Math.PI);
+          //this.ctx.stroke();
         }
+
+        this.ctx.fillStyle = fillStyle;
       }
     }
+    this.drawMinimap();
   }
 }

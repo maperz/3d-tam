@@ -1,7 +1,7 @@
 import { vec2 } from "gl-matrix";
 import { gl } from "../engine/Context";
 import { TPAssert } from "../engine/error/TPException";
-import { GraphData } from "./GraphData";
+import { FamilyGraphData } from "../gedcom/FamilyGraphData";
 
 export class DataBuffers {
   private width: number;
@@ -78,6 +78,14 @@ export class DataBuffers {
     return this._screenPositionBuffer;
   }
 
+  get familyInfoBuffer(): WebGLBuffer {
+    TPAssert(
+      this._familyInfoBuffer != null,
+      "FamilyInfoBuffer not created yet!"
+    );
+    return this._familyInfoBuffer;
+  }
+
   get numSamples(): number {
     return this._numSamples;
   }
@@ -108,8 +116,9 @@ export class DataBuffers {
   private _edgeIndexBuffer: WebGLBuffer;
   private _position3dBuffer: WebGLBuffer;
   private _screenPositionBuffer: WebGLBuffer;
+  private _familyInfoBuffer: WebGLBuffer;
 
-  init(width: number, height: number, graph: GraphData) {
+  init(width: number, height: number, graph: FamilyGraphData) {
     this.width = width;
     this.height = height;
 
@@ -122,10 +131,11 @@ export class DataBuffers {
     this._valuesBuffer = this.createValuesBuffer(graph);
     this._position3dBuffer = this.createPositionsBuffer3d(graph);
     this._screenPositionBuffer = this.createScreenPositionBuffer(graph);
+    this._familyInfoBuffer = this.createFamilyInfoBuffer(graph);
 
     [
       this._connectionsBuffer,
-      this._numConnections
+      this._numConnections,
     ] = this.createConnectionsBuffer(graph);
 
     [this._edgeIndexBuffer, this._numIndicies] = this.createEdgeIndexBuffer(
@@ -133,14 +143,48 @@ export class DataBuffers {
     );
   }
 
-  private createPositionsBuffer(graph: GraphData): WebGLBuffer {
+  private createFamilyInfoBuffer(graph: FamilyGraphData): WebGLBuffer {
+    /* Family buffer has following entries:
+    //
+    // | id (float) | distance (float)  |
+    //
+    // id: if of family where this node id is a child if node is family itself id is -1
+    // distance: distance to center of family based on age
+    */
+
+    const buffer = gl.createBuffer();
+
+    const count = graph.getCount();
+    const data = new Array(count * 2).fill(-1);
+    
+    for (let i = 0; i < count; i++) {
+      let famId = graph.getFamily(i);
+      data[i * 2] = famId != null ? famId : -1;
+      data[i * 2 + 1] = 10;
+    }
+
+    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
+    gl.bufferData(
+      gl.SHADER_STORAGE_BUFFER,
+      new Float32Array(data),
+      gl.STATIC_COPY
+    );
+    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+
+    console.log(graph);
+    console.log(data);
+
+    return buffer;
+  }
+
+  private createPositionsBuffer(graph: FamilyGraphData): WebGLBuffer {
     /* Position buffer has following entries:
-        //
-        // | X (Float) | Y (Float) |
-        //
-        // X: x-value of position
-        // Y: y-value of position
-        */
+    //
+    // | X (Float) | Y (Float) |
+    //
+    // X: x-value of position
+    // Y: y-value of position
+    */
     const buffer = gl.createBuffer();
 
     const count = graph.getCount();
@@ -171,14 +215,14 @@ export class DataBuffers {
     return buffer;
   }
 
-  private createInfoBuffer(graph: GraphData): WebGLBuffer {
+  private createInfoBuffer(graph: FamilyGraphData): WebGLBuffer {
     /* Info buffer has following entries:
-        //
-        // | count (Int) | offset (Int) |
-        //
-        // count: number of neighbours this entry has
-        // offset: the offset into the neighbours buffer
-        */
+    //
+    // | count (Int) | offset (Int) |
+    //
+    // count: number of neighbours this entry has
+    // offset: the offset into the neighbours buffer
+    */
 
     const buffer = gl.createBuffer();
     const count = graph.getCount();
@@ -202,16 +246,16 @@ export class DataBuffers {
     return buffer;
   }
 
-  private createNeighboursBuffer(graph: GraphData): WebGLBuffer {
+  private createNeighboursBuffer(graph: FamilyGraphData): WebGLBuffer {
     /* Neighbours buffer has following entries:
-        //
-        // | id_0 (Int) | id_1 (Int) | ... | id_(count-1) (Int) |
-        //
-        // id_j: id of the j'th neighbour
-        //
-        // Note: This does not need to contain neighbours for every
-        // id, since count can be zero.
-        */
+    //
+    // | id_0 (Int) | id_1 (Int) | ... | id_(count-1) (Int) |
+    //
+    // id_j: id of the j'th neighbour
+    //
+    // Note: This does not need to contain neighbours for every
+    // id, since count can be zero.
+    */
 
     const buffer = gl.createBuffer();
 
@@ -233,14 +277,14 @@ export class DataBuffers {
     return buffer;
   }
 
-  private createAttractionBuffer(graph: GraphData): WebGLBuffer {
+  private createAttractionBuffer(graph: FamilyGraphData): WebGLBuffer {
     /* Attraction buffer has following entries:
-        //
-        // | X (Float) | Y (Float) |
-        //
-        // X: x-value of attraction force
-        // Y: y-value of attraction force
-        */
+    //
+    // | X (Float) | Y (Float) |
+    //
+    // X: x-value of attraction force
+    // Y: y-value of attraction force
+    */
 
     const buffer = gl.createBuffer();
     const data = new Array(graph.getCount() * 2).fill(0);
@@ -253,14 +297,14 @@ export class DataBuffers {
     return buffer;
   }
 
-  private createRepulsionBuffer(graph: GraphData): WebGLBuffer {
+  private createRepulsionBuffer(graph: FamilyGraphData): WebGLBuffer {
     /* Repulsion buffer has following entries:
-        //
-        // | X (Float) | Y (Float) |
-        //
-        // X: x-value of repulsion force
-        // Y: y-value of repulsion force
-        */
+    //
+    // | X (Float) | Y (Float) |
+    //
+    // X: x-value of repulsion force
+    // Y: y-value of repulsion force
+    */
 
     const buffer = gl.createBuffer();
     const data = new Array(graph.getCount() * 2).fill(0);
@@ -273,13 +317,13 @@ export class DataBuffers {
     return buffer;
   }
 
-  private createValuesBuffer(graph: GraphData): WebGLBuffer {
+  private createValuesBuffer(graph: FamilyGraphData): WebGLBuffer {
     /* Value buffer has following entries:
-        //
-        // | Value (Float) |
-        //
-        // Value: value of entry
-        */
+    //
+    // | Value (Float) |
+    //
+    // Value: value of entry
+    */
 
     const buffer = gl.createBuffer();
 
@@ -299,14 +343,14 @@ export class DataBuffers {
     return buffer;
   }
 
-  private createConnectionsBuffer(graph: GraphData): [WebGLBuffer, number] {
+  private createConnectionsBuffer(graph: FamilyGraphData): [WebGLBuffer, number] {
     /* Connections buffer has following entries:
-        //
-        // | Id_0a |  Id_0b | Id_1a ...
-        //
-        // Id_0a: First id of node in connection 0
-        // Id_0a: Second id of node in connection 0
-        */
+    //
+    // | Id_0a |  Id_0b | Id_1a ...
+    //
+    // Id_0a: First id of node in connection 0
+    // Id_0a: Second id of node in connection 0
+    */
 
     const buffer = gl.createBuffer();
 
@@ -332,7 +376,7 @@ export class DataBuffers {
     return [buffer, count];
   }
 
-  private createEdgeIndexBuffer(graph: GraphData): [WebGLBuffer, number] {
+  private createEdgeIndexBuffer(graph: FamilyGraphData): [WebGLBuffer, number] {
     // Indices for all lines between graph nodes
 
     const buffer = gl.createBuffer();
@@ -357,23 +401,23 @@ export class DataBuffers {
     return [buffer, values.length];
   }
 
-  private createPositionsBuffer3d(graph: GraphData): WebGLBuffer {
+  private createPositionsBuffer3d(graph: FamilyGraphData): WebGLBuffer {
     /* Position buffer has following entries:
-        //
-        // | X (Float) | Y (Float) | Z (Float) | W (Float)
-        //
-        // X: x-value of position in model space
-        // Y: y-value of position in model space
-        // Z: z-value of position in model space
-        // W: used to store type information..
-        */
+    //
+    // | X (Float) | Y (Float) | Z (Float) | W (Float)
+    //
+    // X: x-value of position in model space
+    // Y: y-value of position in model space
+    // Z: z-value of position in model space
+    // W: used to store type information..
+    */
     const buffer = gl.createBuffer();
     const count = graph.getCount() * 4;
     const data = new Array(count).fill(0);
 
     for (let i = 0; i < graph.getCount(); ++i) {
-        const index = (i * 4) + 3;
-        data[index] = graph.getType(i); 
+      const index = i * 4 + 3;
+      data[index] = graph.getType(i);
     }
 
     const positions = new Float32Array(data);
@@ -385,16 +429,19 @@ export class DataBuffers {
     return buffer;
   }
 
-  private createScreenPositionBuffer(graph: GraphData): WebGLBuffer {
+  private createScreenPositionBuffer(graph: FamilyGraphData): WebGLBuffer {
     const buffer = gl.createBuffer();
     const count = graph.getCount() * 2;
     const data = new Array(count).fill(-1);
 
     gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
-    gl.bufferData(gl.SHADER_STORAGE_BUFFER, new Float32Array(data), gl.STATIC_COPY);
+    gl.bufferData(
+      gl.SHADER_STORAGE_BUFFER,
+      new Float32Array(data),
+      gl.STATIC_COPY
+    );
     gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
 
     return buffer;
   }
-
 }

@@ -33,7 +33,7 @@ void main()
 
     position *= 0.03 * u_cubeSize;
 
-    vec4 gridOffset =  u_scaling * vec4(positions.data[id].xyz, 1.0);
+    vec4 gridOffset = u_scaling * vec4(positions.data[id].xyz, 1.0);
 
     float type = positions.data[id].w;
 

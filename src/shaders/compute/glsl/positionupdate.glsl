@@ -41,6 +41,7 @@ void main() {
     else {
         pos += f_attr + f_rep + f_grav;
     }
+
     positions.data[id] = pos;
 
     float value = values.data[id];

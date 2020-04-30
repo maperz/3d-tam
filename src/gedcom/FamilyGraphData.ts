@@ -1,6 +1,5 @@
 import { vec2 } from "gl-matrix";
 import { TPAssert } from "../engine/error/TPException";
-import { GraphData } from "../objects/GraphData";
 import { FamilyGraph } from "./FamilyGraph";
 import { Family } from "./Family";
 import { Person } from "./Person";
@@ -49,7 +48,7 @@ class NodeObject {
   }
 }
 
-export class FamilyGraphData extends GraphData {
+export class FamilyGraphData {
   private minDate: number = null;
   private maxDate: number = null;
   private nodes = new Array<NodeObject>();
@@ -57,8 +56,6 @@ export class FamilyGraphData extends GraphData {
   private personNodes = new Map<String, NodeObject>();
 
   constructor(private graph: FamilyGraph) {
-    super();
-
     this.nodes = [];
 
     for (let [gedId, person] of graph.persons) {
@@ -151,6 +148,7 @@ export class FamilyGraphData extends GraphData {
       for (let child of family.children) {
         const childNode = this.getPersNode(child.getId());
         this.connect(familyNode, childNode);
+        childNode.link = familyNode;
       }
     }
   }

@@ -136,7 +136,7 @@ export class AppGUI {
     const fdgSettings = gui.addFolder("FDG Settings");
 
     fdgSettings
-      .add(AppSettings, "attraction_stiffness")
+      .add(AppSettings, "attraction_stiffness", 0, 1)
       .name("Attraction Stiffness");
     fdgSettings
       .add(AppSettings, "attraction_length", 0.1)

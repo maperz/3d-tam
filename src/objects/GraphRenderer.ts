@@ -223,7 +223,7 @@ export class GraphRenderer {
     this.selectedId = id != null ? id : -1;
   }
 
-  getSelectedPerson() {
+  getSelectedNode() {
     return this.selectedId;
   }
 
