@@ -8,7 +8,7 @@ export class AppGUI {
     colorRampChanged: Function
   ) {
     const gui: GUI = new GUI({ width: 300 });
-    gui.domElement.style.zIndex = "100";
+    gui.domElement.style.zIndex = "1000";
     gui.useLocalStorage = true;
     gui.remember(AppSettings);
     gui

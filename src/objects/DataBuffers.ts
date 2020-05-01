@@ -160,7 +160,8 @@ export class DataBuffers {
     for (let i = 0; i < count; i++) {
       let famId = graph.getFamily(i);
       data[i * 2] = famId != null ? famId : -1;
-      data[i * 2 + 1] = 10;
+      data[i * 2 + 1] = 50;
+      //data[i * 2 + 1] = graph.getDistanceToFamily(i) * 10;
     }
 
     gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
@@ -170,10 +171,6 @@ export class DataBuffers {
       gl.STATIC_COPY
     );
     gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
-
-    console.log(graph);
-    console.log(data);
-
     return buffer;
   }
 

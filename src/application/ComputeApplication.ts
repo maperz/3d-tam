@@ -202,12 +202,6 @@ export class ComputeApplication extends ComputeGLApplication {
     this.graphRenderer = new GraphRenderer();
     this.graphRenderer.init();
 
-    this.worldScaling = mat4.fromScaling(mat4.create(), [
-      this.heightmapModelWidth / this.WIDTH,
-      AppSettings.heightMapFactor,
-      this.heightmapModelHeight / this.HEIGHT,
-    ]);
-
     this.fdgDebugRenderer = new FDGDebugRenderer();
     this.fdgDebugRenderer.init(this.fdgBuffers);
 
@@ -425,6 +419,12 @@ export class ComputeApplication extends ComputeGLApplication {
       this.fitToPlane = mat4.scale(offset, offset, [factor, 1, factor]);
 
       this.fitToPlane = mat4.fromScaling(mat4.create(), [factor, 1, factor]);
+
+      this.worldScaling = mat4.fromScaling(mat4.create(), [
+        this.heightmapModelWidth / this.WIDTH,
+        AppSettings.heightMapFactor,
+        this.heightmapModelHeight / this.HEIGHT,
+      ]);
     }
 
     mat4.mul(this.area, this.userView, this.fitToPlane);
@@ -596,11 +596,13 @@ export class ComputeApplication extends ComputeGLApplication {
         this.lastMouseMove = pos;
 
         if (this.mouseDragging && e.ctrlKey) {
-          const speedFactor = 2.0;
-          vec2.add(this.userTranslate, this.userTranslate, [
-            delta[0] * speedFactor,
-            delta[1] * speedFactor,
-          ]);
+          const viewCoords = vec4.fromValues(delta[0], 0, -delta[1], 0);
+          const joinedView = mat4.multiply(mat4.create(), this.model, this.view);
+          const point = vec4.transformMat4(vec4.create(), viewCoords, joinedView);
+          const worldVector = vec2.fromValues(point[0], point[1]);
+          const speedFactor = 1.5;
+          vec2.scale(worldVector, worldVector, speedFactor);
+          vec2.add(this.userTranslate, this.userTranslate, worldVector);
           this.recalculateUserViewMat();
           return;
         }
@@ -674,7 +676,7 @@ export class ComputeApplication extends ComputeGLApplication {
     });
   }
 
-  getGrabPoint(ray: vec3, value: number): vec2 {
+  private getGrabPoint(ray: vec3, value: number): vec2 {
     const cam = vec4.fromValues(0, 0, this.distanceCamera, 1.0);
 
     const inverseModel = mat4.invert(mat4.create(), this.model);
@@ -714,7 +716,7 @@ export class ComputeApplication extends ComputeGLApplication {
     );
   }
 
-  getRay(screenX: number, screenY: number): vec3 {
+  private getRay(screenX: number, screenY: number): vec3 {
     // To NDC space
     const normX = (screenX * 2) / canvas.width - 1;
     const normY = ((canvas.height - screenY) * 2) / canvas.height - 1;

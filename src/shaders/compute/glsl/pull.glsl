@@ -20,7 +20,7 @@ void main() {
 
     float cur_value = imageLoad(u_current, output_pos).r;
 
-    if (cur_value != 0.0)
+    if (cur_value != 0.0 && !isnan(cur_value))
     {
         imageStore(u_output, output_pos, vec4(cur_value));
     }
@@ -35,14 +35,14 @@ void main() {
             for (int dy = -1; dy <= 1; ++dy)
             {
                 float value = imageLoad(u_lastPush, input_pos + ivec2(dx, dy)).r;
-                if(value != 0.0) {
+                if(value != 0.0 && !isnan(value)) {
                     last_value += value;
                     num_last_values++;
                 }
             }
         }
 
-        if (num_last_values != 0.0)
+        if (num_last_values != 0.0 && !isnan(num_last_values))
         {
             last_value = last_value / num_last_values;
         }

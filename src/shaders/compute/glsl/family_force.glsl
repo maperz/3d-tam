@@ -16,8 +16,10 @@ void main() {
         return;
     }
 
-    int famId = int(familyInfo.data[id * 2u]);
-    float famDistance = 20.0;
+
+    uint familyInfoIndex = id * 2u;
+    int famId = int(familyInfo.data[familyInfoIndex]);
+    float famDistance = familyInfo.data[familyInfoIndex + 1u];
     vec2 pos = positions.data[id];
 
     if (famId >= 0 && famId < int(u_numSamples)) {

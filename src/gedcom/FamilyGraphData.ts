@@ -35,15 +35,21 @@ class NodeObject {
       this.name = `Family - ${name}`;
       this.isFamily = true;
       this.gedId = family.getId();
-      const persons = [family.wife, family.husband, ...family.children].filter(
+
+      let persons = family.children.filter(
         (p) => p != null
       );
+      if (family.children.length == 0) {
+        persons = [family.wife, family.husband].filter(
+          (p) => p != null
+        );
+      }
       const bdays = persons.map((p) => p.getBirthDate());
       const bdaysNumber = bdays
         .filter((b) => b != null)
         .map((b) => b.getTime());
-      const avg = bdaysNumber.reduce((a, b) => a + b, 0) / bdaysNumber.length;
-      this.birthdate = new Date(avg);
+      const min = Math.min.apply(null, bdaysNumber);
+      this.birthdate = new Date(min);
     }
   }
 }
@@ -106,7 +112,10 @@ export class FamilyGraphData {
     );
 
     for (let node of this.nodes) {
-      let date = node.birthdate ? node.birthdate.getTime() : this.minDate;
+      if (!node.birthdate) {
+        node.birthdate = new Date(this.minDate);
+      }
+      let date = node.birthdate.getTime();
       let value = (date - this.minDate) / range;
 
       // Clamp value so that we do not reach zero values.
@@ -174,12 +183,24 @@ export class FamilyGraphData {
   }
 
   getFamily(id: number): number {
-    if (this.nodes[id].link == null) {
+    const family = this.nodes[id].link;
+    if (family == null) {
       return -1;
     }
-    return this.nodes[id].link.id;
+    return family.id;
   }
 
+  getDistanceToFamily(id: number) : number {
+    const family = this.nodes[id].link;
+    if (family == null) {
+      return -1;
+    }
+
+    const ownDate = this.nodes[id].birthdate.getFullYear();
+    const familyDate = family.birthdate.getFullYear();
+    return (familyDate - ownDate) * 2 + 1;
+  }
+ 
   getType(id: number): number {
     return this.nodes[id].isFamily ? 1 : 0;
   }

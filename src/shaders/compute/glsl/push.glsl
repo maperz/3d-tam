@@ -33,7 +33,7 @@ void main() {
         return;
     }
 
-    float result =  sum / values;
+    float result = sum / values;
 
     imageStore(u_output, output_pos, vec4(result));
 }
