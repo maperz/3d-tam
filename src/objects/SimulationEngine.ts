@@ -88,6 +88,7 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.infosBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.neighboursBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.attractionBuffers);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, buffers.familyInfoBuffer);
 
         gl.uniform1f(this.attractionStiffnessLoc, AppSettings.attraction_stiffness);
         gl.uniform1f(this.attractionLengthLoc, AppSettings.attraction_length);
@@ -99,6 +100,7 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, null);
 
         this.attractionShader.unuse();
     }
@@ -134,8 +136,9 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.attractionBuffers);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.repulsionBuffers);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.position3dBuffer);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, buffers.valuesBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.familyForceBuffers);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, buffers.position3dBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 5, buffers.valuesBuffer);
 
         gl.uniform2f(this.updateShader.getUniformLocation('u_gravity'), AppSettings.gravity_x, AppSettings.gravity_y);
         gl.uniform2f(this.updateShader.getUniformLocation('u_center'), 0, 0);
@@ -158,6 +161,7 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 5, null);
 
         this.updateShader.unuse();
     }
@@ -167,6 +171,7 @@ export class SimulationEngine {
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.familyInfoBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.familyForceBuffers);
 
         gl.uniform1ui(this.familyForceShader.getUniformLocation("u_numSamples"), buffers.numSamples);
 
@@ -174,6 +179,7 @@ export class SimulationEngine {
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
         this.familyForceShader.unuse();
     }
 
@@ -247,10 +253,9 @@ export class SimulationEngine {
 
         this.calculateAttractionForces(buffers);
         this.calculateRepulsionForces(buffers);
+        this.calculateFamilyForces(buffers);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
         this.calculatePositionUpdates(buffers, selected, dragForce);
-        gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
-        this.calculateFamilyForces(buffers);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
 
         this.tick++;

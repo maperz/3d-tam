@@ -707,12 +707,15 @@ export class ComputeApplication extends ComputeGLApplication {
     let x = worldPoint[0] / this.heightmapModelWidth;
     let y = worldPoint[2] / this.heightmapModelHeight;
 
+
+    
+
     //x = Math.max(-1, Math.min(1, x));
     //y = Math.max(-1, Math.min(1, y));
 
     return vec2.fromValues(
-      (x * this.WIDTH) / this.area[0],
-      (y * this.HEIGHT) / this.area[10]
+      ((x * this.WIDTH) - this.userTranslate[0]) / this.area[0],
+      ((y * this.HEIGHT) - this.userTranslate[1]) / this.area[10]
     );
   }
 

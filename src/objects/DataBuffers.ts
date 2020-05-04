@@ -49,6 +49,14 @@ export class DataBuffers {
     return this._repulsionBuffers;
   }
 
+  get familyForceBuffers(): WebGLBuffer {
+    TPAssert(
+      this._familyForceBuffers != null,
+      "Family Force Buffer not created yet!"
+    );
+    return this._familyForceBuffers;
+  }
+
   get valuesBuffer(): WebGLBuffer {
     TPAssert(this._valuesBuffer != null, "Values Buffer not created yet!");
     return this._valuesBuffer;
@@ -111,6 +119,8 @@ export class DataBuffers {
   private _neighboursBuffer: WebGLBuffer;
   private _attractionBuffers: WebGLBuffer;
   private _repulsionBuffers: WebGLBuffer;
+  private _familyForceBuffers: WebGLBuffer;
+
   private _valuesBuffer: WebGLBuffer;
   private _connectionsBuffer: WebGLBuffer;
   private _edgeIndexBuffer: WebGLBuffer;
@@ -123,8 +133,11 @@ export class DataBuffers {
     this.height = height;
 
     this._numSamples = graph.getCount();
-    this._attractionBuffers = this.createAttractionBuffer(graph);
-    this._repulsionBuffers = this.createRepulsionBuffer(graph);
+
+    this._attractionBuffers = this.create2dForceBuffer(graph);
+    this._repulsionBuffers = this.create2dForceBuffer(graph);
+    this._familyForceBuffers = this.create2dForceBuffer(graph);
+
     this._positionBuffer = this.createPositionsBuffer(graph);
     this._infosBuffer = this.createInfoBuffer(graph);
     this._neighboursBuffer = this.createNeighboursBuffer(graph);
@@ -160,8 +173,8 @@ export class DataBuffers {
     for (let i = 0; i < count; i++) {
       let famId = graph.getFamily(i);
       data[i * 2] = famId != null ? famId : -1;
-      data[i * 2 + 1] = 50;
-      //data[i * 2 + 1] = graph.getDistanceToFamily(i) * 10;
+      //data[i * 2 + 1] = 50;
+      data[i * 2 + 1] = graph.getDistanceToFamily(i) * 5;
     }
 
     gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
@@ -274,33 +287,13 @@ export class DataBuffers {
     return buffer;
   }
 
-  private createAttractionBuffer(graph: FamilyGraphData): WebGLBuffer {
-    /* Attraction buffer has following entries:
+  private create2dForceBuffer(graph: FamilyGraphData): WebGLBuffer {
+    /* Force buffer has following entries:
     //
     // | X (Float) | Y (Float) |
     //
-    // X: x-value of attraction force
-    // Y: y-value of attraction force
-    */
-
-    const buffer = gl.createBuffer();
-    const data = new Array(graph.getCount() * 2).fill(0);
-    const forces = new Float32Array(data);
-
-    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
-    gl.bufferData(gl.SHADER_STORAGE_BUFFER, forces, gl.STATIC_COPY);
-    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
-
-    return buffer;
-  }
-
-  private createRepulsionBuffer(graph: FamilyGraphData): WebGLBuffer {
-    /* Repulsion buffer has following entries:
-    //
-    // | X (Float) | Y (Float) |
-    //
-    // X: x-value of repulsion force
-    // Y: y-value of repulsion force
+    // X: x-value of force
+    // Y: y-value of force
     */
 
     const buffer = gl.createBuffer();

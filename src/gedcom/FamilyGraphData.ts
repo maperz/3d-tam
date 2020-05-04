@@ -198,7 +198,7 @@ export class FamilyGraphData {
 
     const ownDate = this.nodes[id].birthdate.getFullYear();
     const familyDate = family.birthdate.getFullYear();
-    return (familyDate - ownDate) * 2 + 1;
+    return (familyDate - ownDate) + 1;
   }
  
   getType(id: number): number {
