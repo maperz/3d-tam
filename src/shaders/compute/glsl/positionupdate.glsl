@@ -42,7 +42,7 @@ void main() {
         pos = u_f_drag;
     }
     else {
-        pos += (f_attr + f_rep + f_fam + f_grav) * 0.6;
+        pos += (f_attr + f_rep + f_grav + f_fam) * 0.2;
     }
 
     positions.data[id] = pos;

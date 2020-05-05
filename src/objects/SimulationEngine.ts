@@ -191,16 +191,17 @@ export class SimulationEngine {
         this.roundsBoundary = Math.ceil(Math.log(buffers.count) / Math.log(16));
         this.boundaryBuffers[0] = { buffer : buffers.positionBuffer, size : positionBufferSize };
 
-        const boxedTotalValues = positionBufferSize % 16 == 0 ? positionBufferSize : positionBufferSize + (16 - (positionBufferSize) % 16)
+        let numValuesLastRound = positionBufferSize;
+        while (numValuesLastRound > 2) {
 
-        for (let round = 1; round <= this.roundsBoundary; round++) {
+            let numValues = Math.ceil(numValuesLastRound / 16) * 2;
             let buffer = gl.createBuffer();
-            let numValues = Math.ceil(boxedTotalValues / Math.pow(16, round));
-            let data = new Float32Array(numValues * 4);
+            let data = new Float32Array(numValues * 2);
             gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
             gl.bufferData(gl.SHADER_STORAGE_BUFFER, data, gl.STATIC_COPY);
-            this.boundaryBuffers[round] =  { buffer : buffer, size : numValues};
+            this.boundaryBuffers.push({ buffer : buffer, size : numValues});
             gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+            numValuesLastRound = numValues;
         }
     }
 
@@ -221,8 +222,10 @@ export class SimulationEngine {
             gl.uniform1ui(this.boundaryShader.getUniformLocation("u_numHigher"), inputBuffer.size);
             gl.uniform1ui(this.boundaryShader.getUniformLocation("u_numLower"), outputBuffer.size);
             
+
             const iterations = outputBuffer.size;
             gl.dispatchCompute(iterations, 1, 1);
+            //console.log(inputBuffer.size, outputBuffer.size, iterations);
 
             gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
         }
@@ -234,7 +237,6 @@ export class SimulationEngine {
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, this.boundaryBuffers[this.boundaryBuffers.length-1].buffer);
         gl.getBufferSubData(gl.SHADER_STORAGE_BUFFER, 0, this.boundaries);
         gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
-
     }
 
     getBoundaries(buffers: DataBuffers) {

@@ -39,7 +39,7 @@ export class AppGUI {
       .name("Update Graph")
       .setValue(true);
 
-    gui.add(AppSettings, "dilateRadius", 0, 10, 1).name("Dilate Radius");
+    gui.add(AppSettings, "dilateRadius", 1, 10, 1).name("Dilate Radius");
 
     gui.add(AppSettings, "smoothPullStep").name("Smooth Pull");
 
@@ -131,7 +131,7 @@ export class AppGUI {
           value
         );
       });
-    iterationSettings.add(AppSettings, "logDensity").name("Log Density");
+    iterationSettings.add(AppSettings, "showBoundaryBox").name("Show Boundary");
 
     const fdgSettings = gui.addFolder("FDG Settings");
 

@@ -27,10 +27,12 @@ void main() {
 
     if (famId >= 0 && famId < int(u_numSamples)) {
         vec2 famPos = positions.data[famId];
-        vec2 famDir = normalize(famPos - pos);
         float dist = distance(pos, famPos);
-        float factor = abs(dist - famDistance) / dist;
-        force = (famDir) * factor;
+		if (dist > famDistance)
+		{
+			float fac = (dist - famDistance) / dist;
+		    force = (famPos - pos) * fac;
+		}
     }
 
     familyForce.data[id] = force;

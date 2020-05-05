@@ -173,8 +173,7 @@ export class DataBuffers {
     for (let i = 0; i < count; i++) {
       let famId = graph.getFamily(i);
       data[i * 2] = famId != null ? famId : -1;
-      //data[i * 2 + 1] = 50;
-      data[i * 2 + 1] = graph.getDistanceToFamily(i) * 5;
+      data[i * 2 + 1] = graph.getDistanceToFamily(i);
     }
 
     gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);

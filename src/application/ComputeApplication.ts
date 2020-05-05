@@ -57,7 +57,7 @@ export class ComputeApplication extends ComputeGLApplication {
   view: mat4;
   model: mat4;
 
-  worldScaling: mat4;
+  worldScaling = mat4.identity(mat4.create());
 
   area = mat4.identity(mat4.create());
   fitToPlane = mat4.identity(mat4.create());
@@ -353,7 +353,8 @@ export class ComputeApplication extends ComputeGLApplication {
       gl.NEAREST
     );
 
-    if (AppSettings.logDensity) {
+    // Log density
+    if (false) {
       const pixels = new Float32Array(w * h);
       gl.readPixels(0, 0, w, h, gl.RED, gl.FLOAT, pixels);
     }
@@ -383,6 +384,13 @@ export class ComputeApplication extends ComputeGLApplication {
     let graphScaling = mat4.mul(mat4.create(), this.worldScaling, this.area);
 
     this.graphRenderer.draw(this.fdgBuffers, mvp, graphScaling);
+    if (AppSettings.showBoundaryBox) {
+      this.graphRenderer.drawDebugBoundarys(
+        this.simuEngine.getBoundaries(this.fdgBuffers),
+        mvp,
+        graphScaling
+      );
+    }
     this.drawOverlay();
   }
 
@@ -391,8 +399,16 @@ export class ComputeApplication extends ComputeGLApplication {
       return;
     }
 
-    if (AppSettings.updateGraph || this.grabbedPerson != null) {
-      for (let i = 0; i < AppSettings.numUpdates; i++) {
+    let numSimulationTicks = AppSettings.updateGraph
+      ? AppSettings.numUpdates
+      : 0;
+
+    if (numSimulationTicks == 0 && this.grabbedPerson != null) {
+      numSimulationTicks = 1;
+    }
+
+    if (numSimulationTicks > 0) {
+      for (let i = 0; i < numSimulationTicks; i++) {
         this.simuEngine.updatePositions(
           this.fdgBuffers,
           this.grabbedPerson,
@@ -400,32 +416,37 @@ export class ComputeApplication extends ComputeGLApplication {
         );
       }
 
-      const boundary = this.simuEngine.getBoundaries(this.fdgBuffers);
+      if (this.grabbedPerson == null) {
+        const boundary = this.simuEngine.getBoundaries(this.fdgBuffers);
 
-      const length = Math.abs(boundary[2] - boundary[0]);
-      const height = Math.abs(boundary[3] - boundary[1]);
+        const length = Math.abs(boundary[2] - boundary[0]);
+        const height = Math.abs(boundary[3] - boundary[1]);
 
-      const centerX = boundary[0] + length / 2;
-      const centerY = boundary[1] + height / 2;
+        const centerX = boundary[0] + length / 2;
+        const centerY = boundary[1] + height / 2;
 
-      const factor = Math.max(this.HEIGHT / length, this.WIDTH / height) / 2;
+        // Calculate scaling factor
+        // Use the minimum scaling for both dimensions to preserve aspect ratio
+        // Scaled by a factor to better fit on plane
+        const factor =
+          Math.min(this.WIDTH / length, this.HEIGHT / height) * 0.8;
 
-      // TODO: refactor this..
-      const offset = mat4.fromTranslation(mat4.identity(mat4.create()), [
-        -centerX,
-        0,
-        -centerY,
-      ]);
-      this.fitToPlane = mat4.scale(offset, offset, [factor, 1, factor]);
+        // TODO: refactor this..
+        this.fitToPlane = mat4.fromScaling(mat4.create(), [factor, 1, factor]);
 
-      this.fitToPlane = mat4.fromScaling(mat4.create(), [factor, 1, factor]);
-
-      this.worldScaling = mat4.fromScaling(mat4.create(), [
-        this.heightmapModelWidth / this.WIDTH,
-        AppSettings.heightMapFactor,
-        this.heightmapModelHeight / this.HEIGHT,
-      ]);
+        mat4.translate(this.fitToPlane, this.fitToPlane, [
+          -centerX,
+          0,
+          -centerY,
+        ]);
+      }
     }
+
+    this.worldScaling = mat4.fromScaling(mat4.create(), [
+      this.heightmapModelWidth / this.WIDTH,
+      AppSettings.heightMapFactor,
+      this.heightmapModelHeight / this.HEIGHT,
+    ]);
 
     mat4.mul(this.area, this.userView, this.fitToPlane);
 
@@ -597,8 +618,16 @@ export class ComputeApplication extends ComputeGLApplication {
 
         if (this.mouseDragging && e.ctrlKey) {
           const viewCoords = vec4.fromValues(delta[0], 0, -delta[1], 0);
-          const joinedView = mat4.multiply(mat4.create(), this.model, this.view);
-          const point = vec4.transformMat4(vec4.create(), viewCoords, joinedView);
+          const joinedView = mat4.multiply(
+            mat4.create(),
+            this.model,
+            this.view
+          );
+          const point = vec4.transformMat4(
+            vec4.create(),
+            viewCoords,
+            joinedView
+          );
           const worldVector = vec2.fromValues(point[0], point[1]);
           const speedFactor = 1.5;
           vec2.scale(worldVector, worldVector, speedFactor);
@@ -637,10 +666,17 @@ export class ComputeApplication extends ComputeGLApplication {
             const date = this.graphData
               .getDate(this.selectedPerson)
               .getFullYear();
+
+            const famId = this.graphData.getFamily(this.selectedPerson);
+            const famDistance = this.graphData.getDistanceToFamily(
+              this.selectedPerson
+            );
+
             this.tooltip.style.visibility = "";
             this.tooltip.style.top = (e.y + 10).toString() + "px";
             this.tooltip.style.left = (e.x + 10).toString() + "px";
-            this.tooltip.innerText = `#${this.selectedPerson} ${name} [${date}]`;
+
+            this.tooltip.innerText = `#${this.selectedPerson} ${name} [${date}] (Fam: ${famId} Distance: ${famDistance})`;
             200;
           } else {
             canvas.style.cursor = "";
@@ -704,19 +740,11 @@ export class ComputeApplication extends ComputeGLApplication {
       vec3.scale(vec3.create(), ray, prod3)
     );
 
-    let x = worldPoint[0] / this.heightmapModelWidth;
-    let y = worldPoint[2] / this.heightmapModelHeight;
+    let graphScaling = mat4.mul(mat4.create(), this.worldScaling, this.area);
+    const inverse = mat4.invert(mat4.create(), graphScaling);
+    vec3.transformMat4(worldPoint, worldPoint, inverse);
 
-
-    
-
-    //x = Math.max(-1, Math.min(1, x));
-    //y = Math.max(-1, Math.min(1, y));
-
-    return vec2.fromValues(
-      ((x * this.WIDTH) - this.userTranslate[0]) / this.area[0],
-      ((y * this.HEIGHT) - this.userTranslate[1]) / this.area[10]
-    );
+    return vec2.fromValues(worldPoint[0], worldPoint[2]);
   }
 
   private getRay(screenX: number, screenY: number): vec3 {

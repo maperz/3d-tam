@@ -10,8 +10,8 @@ uniform uint u_numHigher;
 uniform uint u_numLower;
 
 void main() {
-    uint indexLower = gl_GlobalInvocationID.x;
-    uint indexHigher = indexLower * 16u;
+    uint indexLower = gl_GlobalInvocationID.x * 2u;
+    uint indexHigher = gl_GlobalInvocationID.x * 16u;
 
     if(indexLower >= u_numLower) {
         return;
@@ -20,17 +20,17 @@ void main() {
     vec2 min = higher.data[indexHigher];
     vec2 max = higher.data[indexHigher];
 
-    for (uint i = 1u; i <= 15u; ++i) {
+    for (uint i = 1u; i < 16u; ++i) {
 
         uint index = indexHigher + i;
         if (index >= u_numHigher) {
             break;
         }
         vec2 val = higher.data[index];
-        min.x = val.x < min.x ? val.x : min.x;
-        min.y = val.y < min.y ? val.y : min.y;
-        max.x = val.x > max.x ? val.x : max.x;
-        max.y = val.y > max.y ? val.y : max.y;
+        min.x = (val.x < min.x) ? val.x : min.x;
+        min.y = (val.y < min.y) ? val.y : min.y;
+        max.x = (val.x > max.x) ? val.x : max.x;
+        max.y = (val.y > max.y) ? val.y : max.y;
     }
 
     lower.data[indexLower] = min; 

@@ -1,5 +1,5 @@
 import { DataBuffers } from "./DataBuffers";
-import { mat4, vec2, vec3 } from "gl-matrix";
+import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { gl, canvas } from "../engine/Context";
 import { AppSettings } from "../application/AppSettings";
 import { ScreenPositionCalculator } from "./ScreenPositionCalculator";
@@ -8,10 +8,13 @@ import { TPAssert } from "../engine/error/TPException";
 import { createShaderFromSources } from "../engine/utils/Utils";
 import { ConnectionsRenderShader } from "../shaders/debug/ConnectionsRenderShader";
 import { NodeRenderShader } from "../shaders/debug/NodeRenderShader";
+import { BoundaryRenderShader } from "../shaders/debug/BoundaryRenderShader";
 
 export class GraphRenderer {
   private nodeShader: Shader;
   private connectionShader: Shader;
+  private boundaryShader: Shader;
+
   private cubeVAO: WebGLVertexArrayObject;
   private selectedId = -1;
   private screenPositionCalculator: ScreenPositionCalculator;
@@ -20,6 +23,7 @@ export class GraphRenderer {
   init() {
     this.nodeShader = createShaderFromSources(NodeRenderShader);
     this.connectionShader = createShaderFromSources(ConnectionsRenderShader);
+    this.boundaryShader = createShaderFromSources(BoundaryRenderShader);
 
     this.createInstanceInfo();
     this.nodeFramebuffer = gl.createFramebuffer();
@@ -219,6 +223,57 @@ export class GraphRenderer {
     this.connectionShader.unuse();
   }
 
+  drawDebugBoundarys(
+    boundarys: Float32Array,
+    mvp: mat4,
+    scaling: mat4,
+  ) {
+    this.boundaryShader.use();
+
+    const width = boundarys[2] - boundarys[0];
+    const height = boundarys[3] - boundarys[1];
+    
+    const centerX = boundarys[0] + width / 2;
+    const centerY = boundarys[1] + height / 2;
+
+    const boundarySize = vec3.fromValues(width, 1, height);
+    const boundaryCenter = vec3.fromValues(centerX, 0.5, centerY);
+
+    //console.log(boundarySize, boundaryCenter);
+
+    gl.uniform3fv(
+      this.boundaryShader.getUniformLocation("u_boundarySize"),
+      boundarySize
+    );
+
+    gl.uniform3fv(
+      this.boundaryShader.getUniformLocation("u_boundaryCenter"),
+      boundaryCenter
+    );
+
+    gl.uniformMatrix4fv(
+      this.boundaryShader.getUniformLocation("u_mvp"),
+      false,
+      mvp
+    );
+
+    gl.uniformMatrix4fv(
+        this.boundaryShader.getUniformLocation("u_scaling"),
+        false,
+        scaling
+    );
+
+    gl.bindVertexArray(this.cubeVAO);
+    gl.drawElements(
+      gl.TRIANGLES,
+      36,
+      gl.UNSIGNED_SHORT,
+      0
+    );
+    gl.bindVertexArray(null);
+
+    this.boundaryShader.unuse();
+  }
   setSelectedPerson(id: number) {
     this.selectedId = id != null ? id : -1;
   }

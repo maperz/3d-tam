@@ -21,7 +21,7 @@ export const AppSettings = {
     pullIteration: 10,
     densityIteration: 1,
 
-    logDensity: false,
+    showBoundaryBox: false,
     mode : RenderMode.Scene3D,
     updateGraph: true,
     renderGraph: true,
