@@ -41,7 +41,7 @@ export const AppSettings = {
     gravity_x : 0,
     gravity_y : 0,
 
-    famDistanceFactor: 20,
+    famDistanceFactor: 300,
     velocityDecay: 0.6,
 
     // Rendering
@@ -52,7 +52,7 @@ export const AppSettings = {
     connectionSize: 1,
     invertColorRamp: true,
     smoothRamp: false,
-    numSegments: 40,
+    numSegments: 50,
     showNames: false,
     showSegmentLines: false,
 };
