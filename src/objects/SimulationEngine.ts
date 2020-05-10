@@ -4,14 +4,15 @@ import {gl} from '../engine/Context';
 import {TPAssert} from '../engine/error/TPException';
 import {Shader} from '../engine/Shader';
 import {createShaderFromSources} from '../engine/utils/Utils';
-import {AttractionCompute} from '../shaders/compute/AttractionCompute';
+import {AttractionForceCompute} from '../shaders/compute/AttractionForceCompute';
 import {PositionUpdateCompute} from '../shaders/compute/PositionUpdateCompute';
-import {RepulsionCompute} from '../shaders/compute/RepulsionCompute';
+import {RepulsionForceCompute} from '../shaders/compute/RepulsionForceCompute';
 import {DensityMapCalculator} from './DensityMapCalculator';
 import {DataBuffers} from './DataBuffers';
 import { vec2 } from 'gl-matrix';
 import { BoundaryCompute } from '../shaders/compute/BoundaryCompute';
 import { FamilyForceCompute } from '../shaders/compute/FamilyForceCompute';
+import { ApplyForcesCompute } from '../shaders/compute/ApplyForcesCompute';
 
 export class SimulationEngine {
 
@@ -22,6 +23,8 @@ export class SimulationEngine {
 
     attractionShader: Shader;
     repulsionShader: Shader;
+    applyForcesShader: Shader;
+
     updateShader: Shader;
     boundaryShader: Shader;
     familyForceShader: Shader;
@@ -55,8 +58,10 @@ export class SimulationEngine {
         this.height = height;
         this.tick = 0;
 
-        this.attractionShader = createShaderFromSources(AttractionCompute);
-        this.repulsionShader = createShaderFromSources(RepulsionCompute);
+        this.attractionShader = createShaderFromSources(AttractionForceCompute);
+        this.repulsionShader = createShaderFromSources(RepulsionForceCompute);
+        this.applyForcesShader = createShaderFromSources(ApplyForcesCompute);
+
         this.updateShader = createShaderFromSources(PositionUpdateCompute);
         //this.densityMapCalculator = new DensityMapCalculator();
         //this.densityMapCalculator.init(width, height);
@@ -87,12 +92,11 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.infosBuffer);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.neighboursBuffer);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.attractionBuffers);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, buffers.familyInfoBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.velocityBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, buffers.attractionBuffers);
 
-        gl.uniform1f(this.attractionStiffnessLoc, AppSettings.attraction_stiffness);
-        gl.uniform1f(this.attractionLengthLoc, AppSettings.attraction_length);
-        gl.uniform1ui(this.attractionShaderNumSamplesLoc, buffers.numSamples);
+        gl.uniform1f(this.attractionShader.getUniformLocation("u_length"), AppSettings.attractionLength);
+        gl.uniform1ui(this.attractionShader.getUniformLocation("u_numSamples"), buffers.numSamples);
 
         gl.dispatchCompute(Math.ceil(buffers.numSamples / AppConfig.WORK_GROUP_SIZE), 1, 1);
 
@@ -115,7 +119,7 @@ export class SimulationEngine {
 1
         gl.uniform1ui (this.repulsionShader.getUniformLocation('u_maxCalculation'), 600);
         gl.uniform1ui(this.repulsionShader.getUniformLocation('u_tick'), this.tick);
-        gl.uniform1f(this.repulsionShader.getUniformLocation('u_repulsionForce'), AppSettings.repulsionForce);
+        gl.uniform1f(this.repulsionShader.getUniformLocation('u_repulsionStrength'), AppSettings.repulsionStrength);
         gl.uniform1ui(this.repulsionShaderNumSamplesLoc, buffers.numSamples);
 
         gl.uniform2f(this.repulsionDimensionLoc, this.width, this.height);
@@ -130,20 +134,44 @@ export class SimulationEngine {
         this.repulsionShader.unuse();
     }
 
+    private applyForces(buffers: DataBuffers) {
+        this.applyForcesShader.use();
+
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.attractionBuffers);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.repulsionBuffers);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.velocityBuffer);
+1
+        gl.uniform1ui (this.applyForcesShader.getUniformLocation('u_maxCalculation'), 600);
+        gl.uniform1ui(this.applyForcesShader.getUniformLocation('u_tick'), this.tick);
+        gl.uniform1f(this.applyForcesShader.getUniformLocation('u_repulsionStrength'), AppSettings.repulsionStrength);
+        gl.uniform1ui(this.applyForcesShader.getUniformLocation("u_numSamples"), buffers.numSamples);
+
+        gl.dispatchCompute(Math.ceil(buffers.numSamples / AppConfig.WORK_GROUP_SIZE), 1, 1);
+
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, null);
+
+        this.applyForcesShader.unuse();
+
+    }
+
     private calculatePositionUpdates(buffers: DataBuffers, selected?: number, dragForce?: vec2) {
         this.updateShader.use();
 
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.attractionBuffers);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.repulsionBuffers);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.familyForceBuffers);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, buffers.position3dBuffer);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 5, buffers.valuesBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.velocityBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.familyInfoBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, buffers.position3dBuffer);
+        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, buffers.valuesBuffer);
 
         gl.uniform2f(this.updateShader.getUniformLocation('u_gravity'), AppSettings.gravity_x, AppSettings.gravity_y);
         gl.uniform2f(this.updateShader.getUniformLocation('u_center'), 0, 0);
         gl.uniform1ui(this.updateShaderNumSamplesLoc, buffers.numSamples);
         gl.uniform2f(this.updateShader.getUniformLocation('u_dimension'), this.width, this.height);
+        gl.uniform1f(this.updateShader.getUniformLocation('u_velocityDecay'), AppSettings.velocityDecay);
+        gl.uniform1f(this.updateShader.getUniformLocation('u_famDistanceFactor'), AppSettings.famDistanceFactor);
 
         let selectedId = -1;
         let force = vec2.fromValues(0, 0);
@@ -161,26 +189,8 @@ export class SimulationEngine {
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 3, null);
         gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 4, null);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 5, null);
 
         this.updateShader.unuse();
-    }
-
-    private calculateFamilyForces(buffers: DataBuffers) {
-        this.familyForceShader.use();
-
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.positionBuffer);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.familyInfoBuffer);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, buffers.familyForceBuffers);
-
-        gl.uniform1ui(this.familyForceShader.getUniformLocation("u_numSamples"), buffers.numSamples);
-
-        gl.dispatchCompute(Math.ceil(buffers.numSamples / AppConfig.WORK_GROUP_SIZE), 1, 1);
-
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
-        gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 2, null);
-        this.familyForceShader.unuse();
     }
 
     private initBoundaryBuffers(buffers: DataBuffers) {
@@ -249,13 +259,18 @@ export class SimulationEngine {
     updatePositions(buffers: DataBuffers, selected?: number, dragForce?: vec2) {
         TPAssert(this.initialized, 'FDGCalculator needs to be initialized first before usage.');
 
-        //const pyramid = this.densityMapCalculator.calculateDensityMap(buffers);
-        //const density = this.densityMapCalculator.getDensityTexture();
-        //const levels = this.densityMapCalculator.getLevels();
-
+        if (false) {
+            console.log(`==== Debug Tick: ${this.tick} ====`);
+            console.log("Position: ", buffers.getBufferDataDebug(2, buffers.positionBuffer));
+            console.log("Attraction: ", buffers.getBufferDataDebug(2, buffers.attractionBuffers));
+            console.log("Repulsion: ", buffers.getBufferDataDebug(2, buffers.repulsionBuffers));
+            console.log("Velocity: ", buffers.getBufferDataDebug(2, buffers.velocityBuffer));
+        }
+        
         this.calculateAttractionForces(buffers);
         this.calculateRepulsionForces(buffers);
-        this.calculateFamilyForces(buffers);
+        gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
+        this.applyForces(buffers);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);
         this.calculatePositionUpdates(buffers, selected, dragForce);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);

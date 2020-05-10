@@ -22,6 +22,7 @@ export const AppSettings = {
     densityIteration: 1,
 
     showBoundaryBox: false,
+    constraintToBoundary: true,
     mode : RenderMode.Scene3D,
     updateGraph: true,
     renderGraph: true,
@@ -35,11 +36,13 @@ export const AppSettings = {
     heightMapResolution: 512,
 
     // FDG
-    attraction_stiffness : 0.02,
-    attraction_length : 20,
+    attractionLength : 30,
+    repulsionStrength: 30,
     gravity_x : 0,
     gravity_y : 0,
-    repulsionForce: 1000,
+
+    famDistanceFactor: 20,
+    velocityDecay: 0.6,
 
     // Rendering
     useLights: false,

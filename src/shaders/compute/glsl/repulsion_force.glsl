@@ -20,7 +20,7 @@ layout (std430, binding = 3) buffer NeighboursBuffer { int data[]; } neighbours;
 
 uniform vec2 u_dimension;
 
-uniform float u_repulsionForce;
+uniform float u_repulsionStrength;
 uniform uint u_numSamples;
 
 uniform uint u_maxCalculation;
@@ -56,25 +56,27 @@ void main() {
     vec2 force = vec2(0, 0);
 
     vec2 position = positions.data[id];
-
-    uint numCalculations = min(u_maxCalculation, u_numSamples);
+    //uint numCalculations = u_numSamples;
+    uint numCalculations = min(u_numSamples, u_maxCalculation);
     uint startFrame = (u_tick * numCalculations) % u_numSamples;
-
 
     for (uint i = 0u; i < numCalculations; ++i) 
     {
         uint index = startFrame + i;
         index = index >= u_numSamples ? index - u_numSamples : index;
-        if (isNeighbour(info, index) || index == id) {
+        if (index == id) {
             continue;
         }
         vec2 other_pos = positions.data[index];
-        vec2 vec = position - other_pos;
+        vec2 vec = other_pos - position;
 
-        if (vec == vec2(0.0)) { vec = random_jiggle(position); }
+        if (vec == vec2(0.0)) { vec = random_jiggle(position - vec2(id)); }
 
-        float dist = length(vec);
-        vec2 f = normalize(vec) / max(1.0, dist * dist) * u_repulsionForce;
+        float l = length(vec);
+
+        float strength = -u_repulsionStrength;
+
+        vec2 f = normalize(vec) * strength / l;
         force += f;
     }
     repulsion.forces[id] = force;

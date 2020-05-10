@@ -20,6 +20,7 @@ void main()
     
     vec2 position2d = position.xz + offset;
 
-    gl_Position =  u_proj * vec4(position2d, 0 , 1);
+    // Use value on z-axis to seperate overlapping lines
+    gl_Position =  u_proj * vec4(position2d, v_value, 1);
     gl_PointSize = max(1.0f, u_radius);
 }

@@ -9,6 +9,7 @@ layout (std430, binding = 1) readonly buffer FamilyInfoBuffer { float data[]; } 
 layout (std430, binding = 2) writeonly buffer FamilyForceBuffer { vec2 data[]; } familyForce;
 
 uniform uint u_numSamples;
+uniform float u_famDistanceFactor;
 
 void main() {
     uint id = gl_GlobalInvocationID.x;
@@ -20,7 +21,7 @@ void main() {
 
     uint familyInfoIndex = id * 2u;
     int famId = int(familyInfo.data[familyInfoIndex]);
-    float famDistance = familyInfo.data[familyInfoIndex + 1u];
+    float famDistance = familyInfo.data[familyInfoIndex + 1u] * u_famDistanceFactor;
     vec2 pos = positions.data[id];
 
     vec2 force = vec2(0.0);

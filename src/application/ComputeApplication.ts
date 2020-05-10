@@ -211,11 +211,21 @@ export class ComputeApplication extends ComputeGLApplication {
     const aspect = canvas.width / canvas.height;
     this.perspective = mat4.perspective(mat4.create(), 70, aspect, 0.1, 50);
 
+    this.worldScaling = mat4.identity(mat4.create());
+
+    this.area = mat4.identity(mat4.create());
+    this.fitToPlane = mat4.identity(mat4.create());
+    this.userView = mat4.identity(mat4.create());
+
+
     this.recalculateViewMat();
     this.recalculateModelMat();
 
+
     // create frameBuffer to read from texture
     this.frameBuffer = gl.createFramebuffer();
+
+
 
     this.initialized = true;
     Profiler.stopSession();
@@ -416,7 +426,7 @@ export class ComputeApplication extends ComputeGLApplication {
         );
       }
 
-      if (this.grabbedPerson == null) {
+      if (this.grabbedPerson == null && AppSettings.constraintToBoundary) {
         const boundary = this.simuEngine.getBoundaries(this.fdgBuffers);
 
         const length = Math.abs(boundary[2] - boundary[0]);
@@ -429,7 +439,7 @@ export class ComputeApplication extends ComputeGLApplication {
         // Use the minimum scaling for both dimensions to preserve aspect ratio
         // Scaled by a factor to better fit on plane
         const factor =
-          Math.min(this.WIDTH / length, this.HEIGHT / height) * 0.8;
+          Math.min(this.WIDTH / length, this.HEIGHT / height) * 0.9;
 
         // TODO: refactor this..
         this.fitToPlane = mat4.fromScaling(mat4.create(), [factor, 1, factor]);
@@ -667,16 +677,11 @@ export class ComputeApplication extends ComputeGLApplication {
               .getDate(this.selectedPerson)
               .getFullYear();
 
-            const famId = this.graphData.getFamily(this.selectedPerson);
-            const famDistance = this.graphData.getDistanceToFamily(
-              this.selectedPerson
-            );
-
             this.tooltip.style.visibility = "";
             this.tooltip.style.top = (e.y + 10).toString() + "px";
             this.tooltip.style.left = (e.x + 10).toString() + "px";
 
-            this.tooltip.innerText = `#${this.selectedPerson} ${name} [${date}] (Fam: ${famId} Distance: ${famDistance})`;
+            this.tooltip.innerText = `#${this.selectedPerson} ${name} [${date}]`;
             200;
           } else {
             canvas.style.cursor = "";

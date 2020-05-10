@@ -12,6 +12,11 @@ export class DataBuffers {
     return this._positionBuffer;
   }
 
+  get velocityBuffer(): WebGLBuffer {
+    TPAssert(this._velocityBuffer != null, "Velocity Buffer not created yet!");
+    return this._velocityBuffer;
+  }
+
   get edgeIndexBuffer(): WebGLBuffer {
     TPAssert(
       this._edgeIndexBuffer != null,
@@ -115,6 +120,8 @@ export class DataBuffers {
   private _numIndicies: number = 0;
 
   private _positionBuffer: WebGLBuffer;
+  private _velocityBuffer: WebGLBuffer;
+
   private _infosBuffer: WebGLBuffer;
   private _neighboursBuffer: WebGLBuffer;
   private _attractionBuffers: WebGLBuffer;
@@ -134,9 +141,10 @@ export class DataBuffers {
 
     this._numSamples = graph.getCount();
 
-    this._attractionBuffers = this.create2dForceBuffer(graph);
-    this._repulsionBuffers = this.create2dForceBuffer(graph);
-    this._familyForceBuffers = this.create2dForceBuffer(graph);
+    this._velocityBuffer = this.create2dBuffer(graph);
+    this._attractionBuffers = this.create2dBuffer(graph);
+    this._repulsionBuffers = this.create2dBuffer(graph);
+    this._familyForceBuffers = this.create2dBuffer(graph);
 
     this._positionBuffer = this.createPositionsBuffer(graph);
     this._infosBuffer = this.createInfoBuffer(graph);
@@ -154,6 +162,14 @@ export class DataBuffers {
     [this._edgeIndexBuffer, this._numIndicies] = this.createEdgeIndexBuffer(
       graph
     );
+  }
+
+  getBufferDataDebug(numValues: number, buffer: WebGLBuffer) {
+    const data = new Float32Array(numValues);
+    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
+    gl.getBufferSubData(gl.SHADER_STORAGE_BUFFER, 0, data);
+    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+    return data;
   }
 
   private createFamilyInfoBuffer(graph: FamilyGraphData): WebGLBuffer {
@@ -199,15 +215,19 @@ export class DataBuffers {
     const count = graph.getCount();
     const data = new Array(count * 2).fill(0);
 
-    const tw = this.width / 3;
-    const th = this.height / 3;
+
+    const initialRadius = this.width / 5;
+    const initialAngle = Math.PI * (3 - Math.sqrt(5));
+
 
     for (let i = 0; i < graph.getCount(); i++) {
       let position = graph.getPosition(i);
 
       if (!position) {
-        const x = (Math.random() * 2 - 1) * tw;
-        const y = (Math.random() * 2 - 1) * th;
+        const radius = initialRadius * Math.sqrt(0.5 + i);
+        const angle = i * initialAngle;
+        const x =  radius * Math.cos(angle);
+        const y = radius * Math.sin(angle);
         position = vec2.fromValues(x, y);
       }
       const index = i * 2;
@@ -286,21 +306,19 @@ export class DataBuffers {
     return buffer;
   }
 
-  private create2dForceBuffer(graph: FamilyGraphData): WebGLBuffer {
-    /* Force buffer has following entries:
+  private create2dBuffer(graph: FamilyGraphData, value = 0): WebGLBuffer {
+    /* 2D buffer has following entries:
     //
     // | X (Float) | Y (Float) |
     //
-    // X: x-value of force
-    // Y: y-value of force
+    // X: x-value
+    // Y: y-value
     */
 
     const buffer = gl.createBuffer();
-    const data = new Array(graph.getCount() * 2).fill(0);
-    const forces = new Float32Array(data);
-
+    const data = new Array(graph.getCount() * 2).fill(value);
     gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
-    gl.bufferData(gl.SHADER_STORAGE_BUFFER, forces, gl.STATIC_COPY);
+    gl.bufferData(gl.SHADER_STORAGE_BUFFER, new Float32Array(data), gl.STATIC_COPY);
     gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
 
     return buffer;
