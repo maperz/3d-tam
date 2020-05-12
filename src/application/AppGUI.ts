@@ -146,6 +146,10 @@ export class AppGUI {
       .name("Repulsion Strength");
 
     fdgSettings
+      .add(AppSettings, "constrainToFamily")
+      .name("Enable Family Constraints");
+
+    fdgSettings
       .add(AppSettings, "famDistanceFactor", 1)
       .name("Fam Distance Factor");
     fdgSettings
@@ -215,7 +219,8 @@ export class AppGUI {
         colorRampChanged(URL.createObjectURL(this.files[0]));
       }
     }
-    renderFolder.add(AppSettings, "smoothRamp").name("Smooth Ramp");
+    renderFolder.add(AppSettings, "smoothRamp").name("Smooth Segment Colors");
+    renderFolder.add(AppSettings, "enableGraphDepthTest").name("Graph DepthTest");
 
     renderFolder.add(colorRampLoader, "loadColorRamp").name("Load ColorRamp");
 

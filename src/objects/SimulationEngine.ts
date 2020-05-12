@@ -172,7 +172,8 @@ export class SimulationEngine {
         gl.uniform2f(this.updateShader.getUniformLocation('u_dimension'), this.width, this.height);
         gl.uniform1f(this.updateShader.getUniformLocation('u_velocityDecay'), AppSettings.velocityDecay);
         gl.uniform1f(this.updateShader.getUniformLocation('u_famDistanceFactor'), AppSettings.famDistanceFactor);
-
+        gl.uniform1i(this.updateShader.getUniformLocation('u_enabledFamilyConstraint'), AppSettings.constrainToFamily ? 1 : 0);
+        
         let selectedId = -1;
         let force = vec2.fromValues(0, 0);
         if(selected != null && dragForce != null) {
@@ -266,7 +267,7 @@ export class SimulationEngine {
             console.log("Repulsion: ", buffers.getBufferDataDebug(2, buffers.repulsionBuffers));
             console.log("Velocity: ", buffers.getBufferDataDebug(2, buffers.velocityBuffer));
         }
-        
+
         this.calculateAttractionForces(buffers);
         this.calculateRepulsionForces(buffers);
         gl.memoryBarrier(gl.SHADER_STORAGE_BARRIER_BIT);

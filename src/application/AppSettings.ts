@@ -41,6 +41,7 @@ export const AppSettings = {
     gravity_x : 0,
     gravity_y : 0,
 
+    constrainToFamily: true,
     famDistanceFactor: 300,
     velocityDecay: 0.6,
 
@@ -53,6 +54,7 @@ export const AppSettings = {
     invertColorRamp: true,
     smoothRamp: false,
     numSegments: 50,
+    enableGraphDepthTest: true,
     showNames: false,
     showSegmentLines: false,
 };

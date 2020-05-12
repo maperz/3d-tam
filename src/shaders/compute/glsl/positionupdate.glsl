@@ -22,6 +22,7 @@ uniform vec2 u_dimension;
 
 uniform float u_velocityDecay;
 uniform float u_famDistanceFactor;
+uniform int u_enabledFamilyConstraint;
 
 void main() {
     uint id = gl_GlobalInvocationID.x;
@@ -42,18 +43,20 @@ void main() {
     else {
         pos += vel;
 
-        uint familyInfoIndex = id * 2u;
-        int famId = int(familyInfo.data[familyInfoIndex]);
-        float famDistance = familyInfo.data[familyInfoIndex + 1u] * u_famDistanceFactor;
+        if (u_enabledFamilyConstraint > 0) {
+            uint familyInfoIndex = id * 2u;
+            int famId = int(familyInfo.data[familyInfoIndex]);
+            float famDistance = familyInfo.data[familyInfoIndex + 1u] * u_famDistanceFactor;
 
-        if (famId >= 0 && famId < int(u_numSamples)) {
-            vec2 famPos = positions.data[famId];
-            float dist = distance(pos, famPos);
-            if (dist > famDistance)
-            {
-                float fac = (dist - famDistance) / dist;
-                pos += (famPos - pos) * fac;
-            }
+            if (famId >= 0 && famId < int(u_numSamples)) {
+                vec2 famPos = positions.data[famId];
+                float dist = distance(pos, famPos);
+                if (dist > famDistance)
+                {
+                    float fac = (dist - famDistance) / dist;
+                    pos += (famPos - pos) * fac;
+                }
+            }              
         }
     }
 

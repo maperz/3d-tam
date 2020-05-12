@@ -95,7 +95,9 @@ export class GraphRenderer {
     }
     const oldClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
 
-    gl.disable(gl.DEPTH_TEST);
+    if (!AppSettings.enableGraphDepthTest) {
+      gl.disable(gl.DEPTH_TEST);
+    }
 
     if (AppSettings.showNames) {
       this.screenPositionCalculator.calculate(
