@@ -393,7 +393,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     let graphScaling = mat4.mul(mat4.create(), this.worldScaling, this.area);
 
-    this.graphRenderer.draw(this.fdgBuffers, mvp, graphScaling);
+    this.graphRenderer.draw(this.fdgBuffers, mvp, this.view, this.perspective, this.model, graphScaling);
     if (AppSettings.showBoundaryBox) {
       this.graphRenderer.drawDebugBoundarys(
         this.simuEngine.getBoundaries(this.fdgBuffers),

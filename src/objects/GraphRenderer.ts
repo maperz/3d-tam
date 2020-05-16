@@ -9,21 +9,32 @@ import { createShaderFromSources } from "../engine/utils/Utils";
 import { ConnectionsRenderShader } from "../shaders/debug/ConnectionsRenderShader";
 import { NodeRenderShader } from "../shaders/debug/NodeRenderShader";
 import { BoundaryRenderShader } from "../shaders/debug/BoundaryRenderShader";
+import { NodeBillboardShader } from "../shaders/debug/NodeBillboardShader";
 
 export class GraphRenderer {
   private nodeShader: Shader;
   private connectionShader: Shader;
   private boundaryShader: Shader;
+  private nodeBillboardShader: Shader;
 
   private cubeVAO: WebGLVertexArrayObject;
+  private billboardVAO: WebGLVertexArrayObject;
+
   private selectedId = -1;
   private screenPositionCalculator: ScreenPositionCalculator;
   private nodeFramebuffer: WebGLFramebuffer;
 
+  private circleTexture: WebGLTexture;
+
   init() {
+
     this.nodeShader = createShaderFromSources(NodeRenderShader);
     this.connectionShader = createShaderFromSources(ConnectionsRenderShader);
     this.boundaryShader = createShaderFromSources(BoundaryRenderShader);
+    this.nodeBillboardShader = createShaderFromSources(NodeBillboardShader);
+
+
+    this.circleTexture = loadTexture(gl, "textures/circle.png");
 
     this.createInstanceInfo();
     this.nodeFramebuffer = gl.createFramebuffer();
@@ -77,11 +88,24 @@ export class GraphRenderer {
     gl.bindVertexArray(null);
 
     this.cubeVAO = vao;
+
+    this.billboardVAO = gl.createVertexArray();
+    gl.bindVertexArray(this.billboardVAO);
+
+    const billboardVertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, billboardVertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, SQUAREDATA, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
   }
 
   draw(
     buffer: DataBuffers,
     mvp: mat4,
+    view: mat4,
+    proj: mat4,
+    model: mat4,
     scaling: mat4,
   ) {
     TPAssert(
@@ -107,6 +131,10 @@ export class GraphRenderer {
       );
     }
 
+    if (AppSettings.renderGraph && AppSettings.connectionSize > 0) {
+      this.drawConnections(buffer, mvp, scaling);
+    }
+
     if (AppSettings.renderGraph && AppSettings.personSize > 0) {
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.nodeFramebuffer);
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -114,13 +142,11 @@ export class GraphRenderer {
       this.drawNodes(buffer, mvp, scaling, true);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
       if (!AppSettings.showNames) {
-        this.drawNodes(buffer, mvp, scaling, false);
+        this.drawNodeBillboards(buffer, mvp, proj, view, model, scaling);
+        //this.drawNodes(buffer, mvp, scaling, false);
       }
     }
 
-    if (AppSettings.renderGraph && AppSettings.connectionSize > 0) {
-      this.drawConnections(buffer, mvp, scaling);
-    }
 
     gl.enable(gl.DEPTH_TEST);
     gl.clearColor(
@@ -137,6 +163,11 @@ export class GraphRenderer {
     scaling: mat4,
     renderIds: boolean = false
   ) {
+
+    if (renderIds) {
+      gl.disable(gl.BLEND);
+    }
+
     this.nodeShader.use();
 
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.position3dBuffer);
@@ -225,6 +256,67 @@ export class GraphRenderer {
     this.connectionShader.unuse();
   }
 
+  private drawNodeBillboards(
+    buffers: DataBuffers,
+    mvp: mat4,
+    proj: mat4,
+    view: mat4,
+    model: mat4,
+    scaling: mat4,
+  ) {
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    this.nodeBillboardShader.use();
+
+    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.position3dBuffer);
+
+    gl.uniformMatrix4fv(this.nodeBillboardShader.getUniformLocation("u_mvp"), false, mvp);
+
+    gl.uniformMatrix4fv(this.nodeBillboardShader.getUniformLocation("u_view"), false, view);
+    gl.uniformMatrix4fv(this.nodeBillboardShader.getUniformLocation("u_proj"), false, proj);
+    gl.uniformMatrix4fv(this.nodeBillboardShader.getUniformLocation("u_model"), false, model);
+
+    gl.uniformMatrix4fv(
+      this.nodeBillboardShader.getUniformLocation("u_scaling"),
+      false,
+      scaling
+    );
+
+    // TODO:
+    gl.uniform1ui(
+      this.nodeBillboardShader.getUniformLocation("u_renderIds"),
+      false ? 1 : 0
+    );
+    gl.uniform1i(
+      this.nodeBillboardShader.getUniformLocation("u_selectedId"),
+      this.selectedId
+    );
+
+    gl.uniform1f(
+      this.nodeBillboardShader.getUniformLocation("u_cubeSize"),
+      AppSettings.personSize
+    );
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.circleTexture);
+    gl.uniform1i(this.nodeBillboardShader.getUniformLocation("u_circleTex"), 0);
+
+    const colorLocation = this.nodeBillboardShader.getUniformLocation("u_color");
+    gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
+
+    gl.bindVertexArray(this.billboardVAO);
+    gl.drawArraysInstanced(
+      gl.TRIANGLES,
+      0, (SQUAREDATA.length / 2), 
+      buffers.count
+    );
+    gl.bindVertexArray(null);
+
+    gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
+
+    this.nodeBillboardShader.unuse();
+  }
+
   drawDebugBoundarys(
     boundarys: Float32Array,
     mvp: mat4,
@@ -306,6 +398,22 @@ export class GraphRenderer {
     return null;
   }
 }
+
+const SQUAREDATA  = new Float32Array([
+  -1.0,
+  -1.0,
+  -1.0,
+  1.0,
+  1.0,
+  -1.0,
+
+  -1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  -1.0,
+]);
 
 const CUBEDATA = new Float32Array([
   // Front face
@@ -431,3 +539,43 @@ const CUBEINDICES = new Int16Array([
   22,
   23, // left
 ]);
+
+function loadTexture(gl, url) {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  const level = 0;
+  const internalFormat = gl.RGBA;
+  const width = 1;
+  const height = 1;
+  const border = 0;
+  const srcFormat = gl.RGBA;
+  const srcType = gl.UNSIGNED_BYTE;
+  const pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
+  gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                width, height, border, srcFormat, srcType,
+                pixel);
+
+  const image = new Image();
+  image.onload = function() {
+    console.log(image.width, image.height);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                  srcFormat, srcType, image);
+
+    if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+       gl.generateMipmap(gl.TEXTURE_2D);
+    } else {
+       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    }
+  };
+  image.src = url;
+
+  return texture;
+}
+
+function isPowerOf2(value) {
+  return (value & (value - 1)) == 0;
+}
