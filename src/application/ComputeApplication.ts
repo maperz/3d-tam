@@ -139,7 +139,8 @@ export class ComputeApplication extends ComputeGLApplication {
     this.gui.init(
       this.initApp.bind(this),
       this.onInputChanged.bind(this),
-      this.onColorRampChanged.bind(this)
+      this.onColorRampChanged.bind(this),
+      this.resetUserScaling.bind(this)
     );
 
     this.initControlls();
@@ -215,20 +216,23 @@ export class ComputeApplication extends ComputeGLApplication {
 
     this.area = mat4.identity(mat4.create());
     this.fitToPlane = mat4.identity(mat4.create());
-    this.userView = mat4.identity(mat4.create());
 
+    this.resetUserScaling();
 
     this.recalculateViewMat();
     this.recalculateModelMat();
 
-
     // create frameBuffer to read from texture
     this.frameBuffer = gl.createFramebuffer();
 
-
-
     this.initialized = true;
     Profiler.stopSession();
+  }
+
+  resetUserScaling() {
+    this.userScale = 1;
+    this.userTranslate = vec2.create();
+    this.userView = mat4.identity(mat4.create());
   }
 
   renderPush(

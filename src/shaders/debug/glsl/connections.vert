@@ -8,6 +8,7 @@ layout (std430, binding = 1) buffer EdgesInfoBuffer { vec2 data[]; } edges;
 uniform mat4 u_mvp;
 uniform mat4 u_scaling;
 
+uniform float u_personSize;
 uniform int u_selectedId;
 
 out float v_isSelected;
@@ -24,7 +25,7 @@ void main()
     vec3 myPosition = positions.data[id];
     vec3 otherPosition = positions.data[otherId];
     vec3 dir = otherPosition - myPosition;
-    vec3 pointPosition = myPosition + (normalize(dir) * 8.0);
+    vec3 pointPosition = myPosition + (normalize(dir) * 3.0 * u_personSize);
 
     vec4 position = u_scaling * vec4(pointPosition, 1);
     gl_Position =  u_mvp * position;

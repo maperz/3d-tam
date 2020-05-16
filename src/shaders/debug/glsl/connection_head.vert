@@ -13,14 +13,13 @@ uniform mat4 u_view;
 uniform mat4 u_scaling;
 
 uniform int u_selectedId;
-uniform float u_cubeSize;
+uniform float u_personSize;
 uniform vec4 u_color;
 
 out float v_isSelected;
 out vec2 v_uv;
 out vec3 v_color;
 out float v_shouldDrop;
-
 
 void main()
 {
@@ -49,7 +48,7 @@ void main()
     vec3 famPosition = positions.data[famId];
 
     vec3 dir = childPosition - famPosition;
-    vec3 headPosition = famPosition + (normalize(dir) * 8.0);
+    vec3 headPosition = famPosition + (normalize(dir) * (u_personSize * 3.0));
 
     vec4 worldOffset = u_scaling * vec4(headPosition, 1);
 
@@ -61,7 +60,7 @@ void main()
 
     vec3 position = alignedPos;
 
-    position *= 0.01 * u_cubeSize;
+    position *= 0.01 * u_personSize;
 
     position += worldOffset.xyz;
 

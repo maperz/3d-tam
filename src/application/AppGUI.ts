@@ -5,7 +5,8 @@ export class AppGUI {
   init(
     restartCallback: Function,
     inputLoadedCallback: Function,
-    colorRampChanged: Function
+    colorRampChanged: Function,
+    resetUserScaling: Function
   ) {
     const gui: GUI = new GUI({ width: 300 });
     gui.domElement.style.zIndex = "1000";
@@ -42,6 +43,13 @@ export class AppGUI {
     gui.add(AppSettings, "dilateRadius", 1, 10, 1).name("Dilate Radius");
 
     gui.add(AppSettings, "smoothPullStep").name("Smooth Pull");
+
+    const resetScalingObject = {
+      Reset: () => {
+        resetUserScaling();
+      },
+    };
+    gui.add(resetScalingObject, "Reset").name("Reset Scaling");
 
     const heightMapSettings = gui.addFolder("HeightMap Settings");
     heightMapSettings
@@ -162,11 +170,7 @@ export class AppGUI {
       .add(AppSettings, "numUpdates", 0, 300, 1)
       .name("Number of updates");
 
-    const restartObject = {
-      Restart: () => {
-        restartCallback();
-      },
-    };
+
     const fileLoader = {
       loadFile: () => {
         document.getElementById("upload").click();
@@ -225,6 +229,12 @@ export class AppGUI {
     renderFolder.add(colorRampLoader, "loadColorRamp").name("Load ColorRamp");
 
     gui.add(fileLoader, "loadFile").name("Load GED file");
+
+    const restartObject = {
+      Restart: () => {
+        restartCallback();
+      },
+    };
     gui.add(restartObject, "Restart");
 
     document

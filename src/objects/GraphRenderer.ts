@@ -251,6 +251,11 @@ export class GraphRenderer {
         scaling
     );
 
+    gl.uniform1f(
+      this.connectionShader.getUniformLocation("u_personSize"),
+      AppSettings.personSize
+    );
+
     gl.lineWidth(AppSettings.connectionSize);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.edgeIndexBuffer);
@@ -346,7 +351,7 @@ export class GraphRenderer {
 
 
     gl.uniform1f(
-      this.connectionHeadShader.getUniformLocation("u_cubeSize"),
+      this.connectionHeadShader.getUniformLocation("u_personSize"),
       AppSettings.personSize
     );
 
