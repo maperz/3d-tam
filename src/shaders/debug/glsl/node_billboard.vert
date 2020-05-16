@@ -43,14 +43,12 @@ void main()
     position *= 0.03 * u_cubeSize;
 
     vec4 gridOffset = u_scaling * vec4(positions.data[id].xyz, 1.0);
-
-    float type = positions.data[id].w;
-
     position += gridOffset.xyz;
 
     gl_Position = u_proj * u_view * u_model * vec4(position, 1.0);
 
     v_uv = (a_position + vec2(1.0)) / 2.0;
+    float type = positions.data[id].w;
 
     if(u_renderIds > 0u) {
         v_color = colorFromId(id);

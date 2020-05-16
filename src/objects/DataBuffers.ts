@@ -25,6 +25,14 @@ export class DataBuffers {
     return this._edgeIndexBuffer;
   }
 
+  get edgeInfoBuffer(): WebGLBuffer {
+    TPAssert(
+      this._edgeInfoBuffer != null,
+      "Edge Info Buffer not created yet!"
+    );
+    return this._edgeInfoBuffer;
+  }
+
   get infosBuffer(): WebGLBuffer {
     TPAssert(this._infosBuffer != null, "Infos Buffer not created yet!");
     return this._infosBuffer;
@@ -127,6 +135,7 @@ export class DataBuffers {
   private _attractionBuffers: WebGLBuffer;
   private _repulsionBuffers: WebGLBuffer;
   private _familyForceBuffers: WebGLBuffer;
+  private _edgeInfoBuffer: WebGLBuffer;
 
   private _valuesBuffer: WebGLBuffer;
   private _connectionsBuffer: WebGLBuffer;
@@ -153,6 +162,8 @@ export class DataBuffers {
     this._position3dBuffer = this.createPositionsBuffer3d(graph);
     this._screenPositionBuffer = this.createScreenPositionBuffer(graph);
     this._familyInfoBuffer = this.createFamilyInfoBuffer(graph);
+
+    this._edgeInfoBuffer = this.createEdgeInfoBuffer(graph)[0];
 
     [
       this._connectionsBuffer,
@@ -382,6 +393,32 @@ export class DataBuffers {
 
     return [buffer, count];
   }
+
+
+  private createEdgeInfoBuffer(graph: FamilyGraphData): [WebGLBuffer, number] {
+
+    const buffer = gl.createBuffer();
+
+    const data = [];
+
+    for (let i = 0; i < graph.getCount(); i++) {
+      const neighbours = graph.getEdges(i);
+      for (let neighbour of neighbours) {
+        if (neighbour > i) {
+          data.push(i, neighbour);
+        }
+      }
+    }
+
+    const values = new Float32Array(data);
+
+    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, buffer);
+    gl.bufferData(gl.SHADER_STORAGE_BUFFER, values, gl.STATIC_COPY);
+    gl.bindBuffer(gl.SHADER_STORAGE_BUFFER, null);
+
+    return [buffer, values.length];
+  }
+
 
   private createEdgeIndexBuffer(graph: FamilyGraphData): [WebGLBuffer, number] {
     // Indices for all lines between graph nodes
