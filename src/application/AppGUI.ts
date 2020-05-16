@@ -40,7 +40,7 @@ export class AppGUI {
       .name("Update Graph")
       .setValue(true);
 
-    gui.add(AppSettings, "dilateRadius", 1, 10, 1).name("Dilate Radius");
+    gui.add(AppSettings, "dilateRadius", 1, 100, 1).name("Dilate Radius");
 
     gui.add(AppSettings, "smoothPullStep").name("Smooth Pull");
 

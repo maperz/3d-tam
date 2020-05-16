@@ -329,6 +329,7 @@ export class GraphRenderer {
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
 
     this.nodeBillboardShader.unuse();
+    gl.disable(gl.BLEND);
   }
 
   private drawConnectionHeads(
@@ -339,6 +340,8 @@ export class GraphRenderer {
     model: mat4,
     scaling: mat4,
   ) {
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     this.connectionHeadShader.use();
 
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.position3dBuffer);
@@ -385,6 +388,7 @@ export class GraphRenderer {
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
 
     this.connectionHeadShader.unuse();
+    gl.disable(gl.BLEND);
   }
 
 
