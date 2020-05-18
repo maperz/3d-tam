@@ -213,7 +213,7 @@ export class AppGUI {
       .name("Color Ramp");
 
     renderFolder.add(AppSettings, "invertColorRamp").name("Invert Ramp");
-    renderFolder.add(AppSettings, "numSegments", 0, 100).name("Num Segments");
+    renderFolder.add(AppSettings, "numSegments", 0, 100, 1).name("Num Segments");
     renderFolder.add(AppSettings, "showSegmentLines").name("Show Segments");
     renderFolder.add(AppSettings, "showNames").name("Display Names");
 

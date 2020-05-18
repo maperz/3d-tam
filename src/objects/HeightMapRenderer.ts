@@ -24,8 +24,8 @@ export class HeightMapRenderer {
   private colorRampTexture: WebGLTexture;
 
   private useLightsLoc: WebGLUniformLocation;
-  private colorRampLoc: WebGLUniformLocation;
-  private invertColorRampLoc: WebGLUniformLocation;
+
+
   private numSegmentsLoc: WebGLUniformLocation;
   private showSegmentLinesLoc: WebGLUniformLocation;
   private smoothRampLoc: WebGLUniformLocation;
@@ -72,11 +72,7 @@ export class HeightMapRenderer {
     );
 
     this.setColorRamp(`images/${AppSettings.colorRamp}`);
-    this.colorRampLoc = this.shader.getUniformLocation("u_colorRamp");
     this.useLightsLoc = this.shader.getUniformLocation("u_useLights");
-    this.invertColorRampLoc = this.shader.getUniformLocation(
-      "u_invertColorRamp"
-    );
     this.numSegmentsLoc = this.shader.getUniformLocation("u_numSegments");
     this.showSegmentLinesLoc = this.shader.getUniformLocation(
       "u_showSegmentLines"
@@ -156,11 +152,13 @@ export class HeightMapRenderer {
       this.normalsCalculator.calculateNormals(heightMapTexture, height);
       this.drawMap(heightMapTexture, height, mvp, useLights, wireframe, false);
 
-      //this.postProcessor.startHeightRendering();
-      //this.drawMap(buffer, heightMapTexture, height, model, view, proj, useLights, wireframe, true);
-      //this.postProcessor.startColorRendering();
-      //this.drawMap(buffer, heightMapTexture, height, model, view, proj, useLights, wireframe, false);
-      //this.postProcessor.doPostProcess();
+      /*
+      this.postProcessor.startHeightRendering();
+      this.drawMap(heightMapTexture, height, mvp, useLights, wireframe, true);
+      this.postProcessor.startColorRendering();
+      this.drawMap(heightMapTexture, height, mvp, useLights, wireframe, false);
+      this.postProcessor.doPostProcess();
+      */
     }
   }
 
@@ -176,8 +174,11 @@ export class HeightMapRenderer {
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.colorRampTexture);
-    gl.uniform1i(this.colorRampLoc, 0);
-    gl.uniform1i(this.invertColorRampLoc, AppSettings.invertColorRamp ? 1 : 0);
+
+    gl.uniform1i(this.shader.getUniformLocation("u_colorRamp"), 0);
+    gl.uniform1i(this.shader.getUniformLocation(
+      "u_invertColorRamp"
+    ), AppSettings.invertColorRamp ? 1 : 0);
     gl.uniform1i(this.smoothRampLoc, AppSettings.smoothRamp ? 1 : 0);
     gl.uniform1i(
       this.showSegmentLinesLoc,

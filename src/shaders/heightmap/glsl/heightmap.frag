@@ -22,7 +22,7 @@ uniform int u_renderHeightValues;
 void main() {
 
     if (u_renderHeightValues != 0) {
-        color = vec4(v_position.y, 0, 0, 1);
+        color = vec4(v_pixelvalue, 0, 0, 1);
         return;
     }
 
@@ -36,6 +36,7 @@ void main() {
 
     float rampUV = u_invertColorRamp > 0 ? 1.0 - v_pixelvalue : v_pixelvalue;
 
+    
     if(u_useSmoothRamp == 0 && u_numSegments > 1) {
         rampUV =  float(int(rampUV * float(u_numSegments))) / float(u_numSegments); 
     }

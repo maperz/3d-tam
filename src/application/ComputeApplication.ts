@@ -104,6 +104,7 @@ export class ComputeApplication extends ComputeGLApplication {
   onStart(): void {
     const ext = gl.getExtension("EXT_color_buffer_float");
     TPAssert(ext != null, "Cannot render to floating point FBOs!");
+
     if (this.forceFullscreen) {
       this.CANVAS_WIDTH =
         window.innerWidth ||
