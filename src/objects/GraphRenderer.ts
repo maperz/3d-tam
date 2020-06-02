@@ -21,6 +21,7 @@ export class GraphRenderer {
 
   private cubeVAO: WebGLVertexArrayObject;
   private billboardVAO: WebGLVertexArrayObject;
+  private boundaryVAO: WebGLVertexArrayObject;
 
   private selectedId = -1;
   private screenPositionCalculator: ScreenPositionCalculator;
@@ -30,7 +31,6 @@ export class GraphRenderer {
   private headTexture: WebGLTexture;
 
   init() {
-
     this.nodeShader = createShaderFromSources(NodeRenderShader);
     this.connectionShader = createShaderFromSources(ConnectionsRenderShader);
     this.boundaryShader = createShaderFromSources(BoundaryRenderShader);
@@ -102,6 +102,16 @@ export class GraphRenderer {
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
+
+    this.boundaryVAO = gl.createVertexArray();
+    gl.bindVertexArray(this.boundaryVAO);
+
+    const boundaryVertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, boundaryVertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, CUBE_LINES, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
   }
 
   draw(
@@ -110,7 +120,7 @@ export class GraphRenderer {
     view: mat4,
     proj: mat4,
     model: mat4,
-    scaling: mat4,
+    scaling: mat4
   ) {
     TPAssert(
       this.nodeShader != null,
@@ -128,11 +138,7 @@ export class GraphRenderer {
     }
 
     if (AppSettings.showNames) {
-      this.screenPositionCalculator.calculate(
-        buffer,
-        mvp,
-        scaling
-      );
+      this.screenPositionCalculator.calculate(buffer, mvp, scaling);
     }
 
     if (AppSettings.renderGraph && AppSettings.connectionSize > 0) {
@@ -155,7 +161,6 @@ export class GraphRenderer {
       this.drawConnectionHeads(buffer, mvp, proj, view, model, scaling);
     }
 
-
     gl.enable(gl.DEPTH_TEST);
     gl.clearColor(
       oldClearColor[0],
@@ -171,7 +176,6 @@ export class GraphRenderer {
     scaling: mat4,
     renderIds: boolean = false
   ) {
-
     if (renderIds) {
       gl.disable(gl.BLEND);
     }
@@ -221,11 +225,7 @@ export class GraphRenderer {
     this.nodeShader.unuse();
   }
 
-  private drawConnections(
-    buffers: DataBuffers,
-    mvp: mat4,
-    scaling: mat4,
-  ) {
+  private drawConnections(buffers: DataBuffers, mvp: mat4, scaling: mat4) {
     this.connectionShader.use();
 
     var vertexArrayA = gl.createVertexArray();
@@ -246,9 +246,9 @@ export class GraphRenderer {
     );
 
     gl.uniformMatrix4fv(
-        this.connectionShader.getUniformLocation("u_scaling"),
-        false,
-        scaling
+      this.connectionShader.getUniformLocation("u_scaling"),
+      false,
+      scaling
     );
 
     gl.uniform1f(
@@ -276,7 +276,7 @@ export class GraphRenderer {
     proj: mat4,
     view: mat4,
     model: mat4,
-    scaling: mat4,
+    scaling: mat4
   ) {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -284,11 +284,27 @@ export class GraphRenderer {
 
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.position3dBuffer);
 
-    gl.uniformMatrix4fv(this.nodeBillboardShader.getUniformLocation("u_mvp"), false, mvp);
+    gl.uniformMatrix4fv(
+      this.nodeBillboardShader.getUniformLocation("u_mvp"),
+      false,
+      mvp
+    );
 
-    gl.uniformMatrix4fv(this.nodeBillboardShader.getUniformLocation("u_view"), false, view);
-    gl.uniformMatrix4fv(this.nodeBillboardShader.getUniformLocation("u_proj"), false, proj);
-    gl.uniformMatrix4fv(this.nodeBillboardShader.getUniformLocation("u_model"), false, model);
+    gl.uniformMatrix4fv(
+      this.nodeBillboardShader.getUniformLocation("u_view"),
+      false,
+      view
+    );
+    gl.uniformMatrix4fv(
+      this.nodeBillboardShader.getUniformLocation("u_proj"),
+      false,
+      proj
+    );
+    gl.uniformMatrix4fv(
+      this.nodeBillboardShader.getUniformLocation("u_model"),
+      false,
+      model
+    );
 
     gl.uniformMatrix4fv(
       this.nodeBillboardShader.getUniformLocation("u_scaling"),
@@ -315,13 +331,16 @@ export class GraphRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.circleTexture);
     gl.uniform1i(this.nodeBillboardShader.getUniformLocation("u_circleTex"), 0);
 
-    const colorLocation = this.nodeBillboardShader.getUniformLocation("u_color");
+    const colorLocation = this.nodeBillboardShader.getUniformLocation(
+      "u_color"
+    );
     gl.uniform4f(colorLocation, 1.0, 1.0, 1.0, 1.0);
 
     gl.bindVertexArray(this.billboardVAO);
     gl.drawArraysInstanced(
       gl.TRIANGLES,
-      0, (SQUAREDATA.length / 2), 
+      0,
+      SQUAREDATA.length / 2,
       buffers.count
     );
     gl.bindVertexArray(null);
@@ -338,7 +357,7 @@ export class GraphRenderer {
     proj: mat4,
     view: mat4,
     model: mat4,
-    scaling: mat4,
+    scaling: mat4
   ) {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -347,11 +366,26 @@ export class GraphRenderer {
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, buffers.position3dBuffer);
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, buffers.edgeInfoBuffer);
 
-    gl.uniformMatrix4fv(this.connectionHeadShader.getUniformLocation("u_mvp"), false, mvp);
-    gl.uniformMatrix4fv(this.connectionHeadShader.getUniformLocation("u_view"), false, view);
-    gl.uniformMatrix4fv(this.connectionHeadShader.getUniformLocation("u_proj"), false, proj);
-    gl.uniformMatrix4fv(this.connectionHeadShader.getUniformLocation("u_model"), false, model);
-
+    gl.uniformMatrix4fv(
+      this.connectionHeadShader.getUniformLocation("u_mvp"),
+      false,
+      mvp
+    );
+    gl.uniformMatrix4fv(
+      this.connectionHeadShader.getUniformLocation("u_view"),
+      false,
+      view
+    );
+    gl.uniformMatrix4fv(
+      this.connectionHeadShader.getUniformLocation("u_proj"),
+      false,
+      proj
+    );
+    gl.uniformMatrix4fv(
+      this.connectionHeadShader.getUniformLocation("u_model"),
+      false,
+      model
+    );
 
     gl.uniform1f(
       this.connectionHeadShader.getUniformLocation("u_personSize"),
@@ -364,12 +398,18 @@ export class GraphRenderer {
     );
 
     gl.uniformMatrix4fv(
-        this.connectionHeadShader.getUniformLocation("u_scaling"),
-        false,
-        scaling
+      this.connectionHeadShader.getUniformLocation("u_scaling"),
+      false,
+      scaling
     );
-    
-    gl.uniform4f(this.connectionHeadShader.getUniformLocation("u_color"), 1.0, 1.0, 1.0, 1.0);
+
+    gl.uniform4f(
+      this.connectionHeadShader.getUniformLocation("u_color"),
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    );
 
     gl.bindVertexArray(this.billboardVAO);
     gl.activeTexture(gl.TEXTURE0);
@@ -378,11 +418,11 @@ export class GraphRenderer {
 
     gl.drawArraysInstanced(
       gl.TRIANGLES,
-      0, (SQUAREDATA.length / 2), 
-      buffers.edgeIndiciesCount / 2,
+      0,
+      SQUAREDATA.length / 2,
+      buffers.edgeIndiciesCount / 2
     );
     gl.bindVertexArray(null);
-
 
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, null);
     gl.bindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, null);
@@ -391,17 +431,12 @@ export class GraphRenderer {
     gl.disable(gl.BLEND);
   }
 
-
-  drawDebugBoundarys(
-    boundarys: Float32Array,
-    mvp: mat4,
-    scaling: mat4,
-  ) {
+  drawDebugBoundarys(boundarys: Float32Array, mvp: mat4, scaling: mat4) {
     this.boundaryShader.use();
 
     const width = boundarys[2] - boundarys[0];
     const height = boundarys[3] - boundarys[1];
-    
+
     const centerX = boundarys[0] + width / 2;
     const centerY = boundarys[1] + height / 2;
 
@@ -425,18 +460,13 @@ export class GraphRenderer {
     );
 
     gl.uniformMatrix4fv(
-        this.boundaryShader.getUniformLocation("u_scaling"),
-        false,
-        scaling
+      this.boundaryShader.getUniformLocation("u_scaling"),
+      false,
+      scaling
     );
 
-    gl.bindVertexArray(this.cubeVAO);
-    gl.drawElements(
-      gl.TRIANGLES,
-      36,
-      gl.UNSIGNED_SHORT,
-      0
-    );
+    gl.bindVertexArray(this.boundaryVAO);
+    gl.drawArrays(gl.LINES, 0, CUBE_LINES.length);
     gl.bindVertexArray(null);
 
     this.boundaryShader.unuse();
@@ -472,7 +502,7 @@ export class GraphRenderer {
   }
 }
 
-const SQUAREDATA  = new Float32Array([
+const SQUAREDATA = new Float32Array([
   -1.0,
   -1.0,
   -1.0,
@@ -486,6 +516,81 @@ const SQUAREDATA  = new Float32Array([
   1.0,
   1.0,
   -1.0,
+]);
+
+const CUBE_LINES = new Float32Array([
+  -1,
+  -1,
+  -1,
+  -1,
+  1,
+  -1,
+  -1,
+  1,
+  -1,
+  1,
+  1,
+  -1,
+  1,
+  1,
+  -1,
+  1,
+  -1,
+  -1,
+  1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  1,
+  -1,
+  1,
+  1,
+  -1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  -1,
+  1,
+  1,
+  -1,
+  1,
+  -1,
+  -1,
+  1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  1,
+  -1,
+  1,
+  -1,
+  -1,
+  1,
+  1,
+  1,
+  1,
+  -1,
+  1,
+  1,
+  1,
+  1,
+  -1,
+  -1,
+  1,
+  -1,
+  1,
 ]);
 
 const CUBEDATA = new Float32Array([
@@ -624,23 +729,37 @@ function loadTexture(gl, url) {
   const border = 0;
   const srcFormat = gl.RGBA;
   const srcType = gl.UNSIGNED_BYTE;
-  const pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
-  gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                width, height, border, srcFormat, srcType,
-                pixel);
+  const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    level,
+    internalFormat,
+    width,
+    height,
+    border,
+    srcFormat,
+    srcType,
+    pixel
+  );
 
   const image = new Image();
   image.onload = function() {
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                  srcFormat, srcType, image);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      level,
+      internalFormat,
+      srcFormat,
+      srcType,
+      image
+    );
 
     if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-       gl.generateMipmap(gl.TEXTURE_2D);
+      gl.generateMipmap(gl.TEXTURE_2D);
     } else {
-       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     }
   };
   image.src = url;
