@@ -18,7 +18,7 @@ vec2 toUv(vec2 pixel) {
     return pixel / u_size;
 }
 
-bool valid(int x, int y) {
+bool onDifferentZPlane(int x, int y) {
     vec2 otherUv = v_uv + toUv(vec2(x, y));
     bool onTexture =  otherUv.x >= 0.0 && otherUv.y >= 0.0 && otherUv.x <= 1.0 && otherUv.y <= 1.0;
 
@@ -28,8 +28,15 @@ bool valid(int x, int y) {
 
     float depth = texture(u_depthTexture, otherUv).r;
     
-    const float depthThreshold = 100.0;
-    return distance(depth, gl_FragDepth) < depthThreshold;
+    const float depthThreshold = 0.0005;
+    return abs(depth - gl_FragDepth) > depthThreshold;
+}
+
+bool isSilhoute() {
+    return onDifferentZPlane(-1, 0)
+     || onDifferentZPlane( 1, 0)
+     || onDifferentZPlane( 0, 1)
+     || onDifferentZPlane( 0,-1);
 }
 
 float getHeight(int x, int y) {
@@ -40,7 +47,9 @@ float signedDistanceToTarget(float target, ivec2 offset) {
     return target - getHeight(offset.x, offset.y);
 }
 
+
 bool isClosestTo(float target) {
+
     float c = signedDistanceToTarget(target, ivec2(0, 0));
     float l = signedDistanceToTarget(target, ivec2(-1,  0));
     float r = signedDistanceToTarget(target, ivec2( 1,  0));
@@ -82,7 +91,14 @@ void main() {
     float lowerTarget = lowerSegment * stepSize;
     float heigherTarget = heigherSegment * stepSize;
 
-    if (isClosestTo(lowerTarget) || isClosestTo(heigherTarget)) {
+    // Comment this out to draw detected silhoute red
+    /*
+    if (isSilhoute()) {
+        color = vec4(1, 0, 0, 1);
+        return;
+    }*/
+
+    if (isSilhoute() || isClosestTo(lowerTarget) || isClosestTo(heigherTarget)) {
         color *= 0.8;
     }
 }
