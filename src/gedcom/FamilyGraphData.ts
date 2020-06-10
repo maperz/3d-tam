@@ -7,7 +7,7 @@ import { Profiler } from "../engine/Profiler";
 
 class NodeObject {
   public isFamily: boolean;
-  public birthdate: Date;
+  public birthday: Date;
   public value: number;
   public connections = new Array<NodeObject>();
   public link: NodeObject;
@@ -19,7 +19,7 @@ class NodeObject {
 
     if (person != null) {
       this.isFamily = false;
-      this.birthdate = person.getBirthDate();
+      this.birthday = person.getBirthDate();
       this.gedId = person.getId();
       this.name = person.getFullName();
     } else {
@@ -49,7 +49,7 @@ class NodeObject {
         .filter((b) => b != null)
         .map((b) => b.getTime());
       const min = Math.min.apply(null, bdaysNumber);
-      this.birthdate = new Date(min);
+      this.birthday = new Date(min);
     }
   }
 }
@@ -89,18 +89,18 @@ export class FamilyGraphData {
     this.maxDate = null;
 
     for (let node of this.nodes) {
-      if (node.birthdate == null) {
+      if (node.birthday == null) {
         continue;
       } else if (
         this.minDate == null ||
-        node.birthdate.getTime() < this.minDate
+        node.birthday.getTime() < this.minDate
       ) {
-        this.minDate = node.birthdate.getTime();
+        this.minDate = node.birthday.getTime();
       } else if (
         this.maxDate == null ||
-        node.birthdate.getTime() > this.maxDate
+        node.birthday.getTime() > this.maxDate
       ) {
-        this.maxDate = node.birthdate.getTime();
+        this.maxDate = node.birthday.getTime();
       }
     }
 
@@ -112,10 +112,10 @@ export class FamilyGraphData {
     );
 
     for (let node of this.nodes) {
-      if (!node.birthdate) {
-        node.birthdate = new Date(this.minDate);
+      if (!node.birthday) {
+        node.birthday = new Date(this.minDate);
       }
-      let date = node.birthdate.getTime();
+      let date = node.birthday.getTime();
       let value = (date - this.minDate) / range;
 
       // Clamp value so that we do not reach zero values.
@@ -196,8 +196,8 @@ export class FamilyGraphData {
       return -1;
     }
 
-    const ownDate = this.nodes[id].birthdate.getFullYear();
-    const familyDate = family.birthdate.getFullYear();
+    const ownDate = this.nodes[id].birthday.getFullYear();
+    const familyDate = family.birthday.getFullYear();
     return (ownDate - familyDate) + 1;
   }
  
@@ -206,6 +206,6 @@ export class FamilyGraphData {
   }
 
   getDate(id: number): Date {
-    return this.nodes[id].birthdate;
+    return this.nodes[id].birthday;
   }
 }

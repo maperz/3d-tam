@@ -398,7 +398,14 @@ export class ComputeApplication extends ComputeGLApplication {
 
     let graphScaling = mat4.mul(mat4.create(), this.worldScaling, this.area);
 
-    this.graphRenderer.draw(this.fdgBuffers, mvp, this.view, this.perspective, this.model, graphScaling);
+    this.graphRenderer.draw(
+      this.fdgBuffers,
+      mvp,
+      this.view,
+      this.perspective,
+      this.model,
+      graphScaling
+    );
     if (AppSettings.showBoundaryBox) {
       this.graphRenderer.drawDebugBoundarys(
         this.simuEngine.getBoundaries(this.fdgBuffers),
@@ -844,19 +851,22 @@ export class ComputeApplication extends ComputeGLApplication {
           this.ctx.fillStyle = "#FF00FF";
         }
 
+        if (this.graphData.getType(id) == 0) {
+          const name = this.graphData.getName(id).split(" ")[0];
+          this.ctx.fillText(name, x + 5, y + 3);
+        } else {
+          /*
+          this.ctx.beginPath();
+          const familyRadi = 50 * this.userScale;
+          this.ctx.ellipse(x, y, familyRadi, familyRadi, 0, 0, 2 * Math.PI);
+          this.ctx.stroke();
+          */
+          this.ctx.fillStyle = "#FFFFFF";
+        }
+
         this.ctx.beginPath();
         this.ctx.ellipse(x, y, 3, 3, 0, 0, 2 * Math.PI);
         this.ctx.fill();
-
-        if (this.graphData.getType(id) == 0) {
-          const name = this.graphData.getName(id);
-          this.ctx.fillText(name, x + 5, y + 3);
-        } else {
-          //this.ctx.beginPath();
-          //const familyRadi = 50 * this.userScale;
-          //this.ctx.ellipse(x, y, familyRadi, familyRadi, 0, 0, 2 * Math.PI);
-          //this.ctx.stroke();
-        }
 
         this.ctx.fillStyle = fillStyle;
       }

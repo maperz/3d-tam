@@ -149,11 +149,9 @@ export class HeightMapRenderer {
     );
 
     if (heightMapTexture) {
-      // this.normalsCalculator.calculateNormals(heightMapTexture, height);
-      // this.drawMap(heightMapTexture, height, mvp, useLights, wireframe, false);
-      
+      this.normalsCalculator.calculateNormals(heightMapTexture, height);      
       this.postProcessor.startHeightRendering();
-      this.drawMap(heightMapTexture, height, mvp, useLights, wireframe, true);
+      this.drawMap(heightMapTexture, height, mvp, false, wireframe, true);
       this.postProcessor.startColorRendering();
       this.drawMap(heightMapTexture, height, mvp, useLights, wireframe, false);
       this.postProcessor.doPostProcess();
