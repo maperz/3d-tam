@@ -111,9 +111,9 @@ export class ComputeApplication extends ComputeGLApplication {
         document.documentElement.clientWidth ||
         document.body.clientWidth;
       this.CANVAS_HEIGHT =
-        window.innerHeight ||
+        ( window.innerHeight ||
         document.documentElement.clientHeight ||
-        document.body.clientHeight;
+        document.body.clientHeight ) - 60;
     }
 
     canvas.width = this.CANVAS_WIDTH;

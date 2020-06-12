@@ -6,7 +6,7 @@ body {
 #info-hud {
   display: inline-block;
   position: fixed;
-  top: 0;
+  top: 60px;
   left: 0;
   color: white;
   font-family: Helvetica, Arial, sans-serif;
@@ -38,12 +38,12 @@ body {
   display: none;
 }
 
-
 #error {
   font-family: "Arial";
   background: red;
   color: white;
   position: fixed;
+  top: 60px;
   width: 100%;
   white-space: pre-line;
   padding: 20px;
@@ -60,4 +60,26 @@ body {
   border-radius: 2px;
   padding: 8px;
   color: white;
+}
+
+#app-bar {
+  height: 60px;
+  background-color: #0E0E0E;
+  overflow: hidden;
+  user-select: none;
+}
+
+#app-bar span {
+  float: left;
+  color: white;
+  font-size: 28px;
+  vertical-align: center;
+  line-height: 60px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#app-bar img {
+  float: left;
+  margin: 12px 20px;
+  width: 50px;
 }
