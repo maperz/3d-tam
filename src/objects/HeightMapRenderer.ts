@@ -27,7 +27,6 @@ export class HeightMapRenderer {
 
 
   private numSegmentsLoc: WebGLUniformLocation;
-  private showSegmentLinesLoc: WebGLUniformLocation;
   private smoothRampLoc: WebGLUniformLocation;
 
   private postProcessor: PostProcesser;
@@ -74,9 +73,6 @@ export class HeightMapRenderer {
     this.setColorRamp(`images/${AppSettings.colorRamp}`);
     this.useLightsLoc = this.shader.getUniformLocation("u_useLights");
     this.numSegmentsLoc = this.shader.getUniformLocation("u_numSegments");
-    this.showSegmentLinesLoc = this.shader.getUniformLocation(
-      "u_showSegmentLines"
-    );
     this.smoothRampLoc = this.shader.getUniformLocation("u_useSmoothRamp");
 
     this.postProcessor = new PostProcesser();
@@ -176,10 +172,6 @@ export class HeightMapRenderer {
       "u_invertColorRamp"
     ), AppSettings.invertColorRamp ? 1 : 0);
     gl.uniform1i(this.smoothRampLoc, AppSettings.smoothRamp ? 1 : 0);
-    gl.uniform1i(
-      this.showSegmentLinesLoc,
-      AppSettings.showSegmentLines ? 1 : 0
-    );
 
     gl.uniform1i(this.numSegmentsLoc, AppSettings.numSegments);
 

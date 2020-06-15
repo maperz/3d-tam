@@ -22,6 +22,8 @@ export class ComputeApplication extends ComputeGLApplication {
   CANVAS_WIDTH = 1024;
   CANVAS_HEIGHT = 1024;
 
+  APPBAR_HEIGHT = 60;
+
   WIDTH: number;
   HEIGHT: number;
 
@@ -111,9 +113,9 @@ export class ComputeApplication extends ComputeGLApplication {
         document.documentElement.clientWidth ||
         document.body.clientWidth;
       this.CANVAS_HEIGHT =
-        ( window.innerHeight ||
-        document.documentElement.clientHeight ||
-        document.body.clientHeight ) - 60;
+        (window.innerHeight ||
+          document.documentElement.clientHeight ||
+          document.body.clientHeight) - this.APPBAR_HEIGHT;
     }
 
     canvas.width = this.CANVAS_WIDTH;
@@ -604,6 +606,10 @@ export class ComputeApplication extends ComputeGLApplication {
     return Math.min(max, Math.max(min, value));
   }
 
+  private toCanvasCoordinates(x, y): vec2 {
+    return vec2.fromValues(x, y - this.APPBAR_HEIGHT);
+  }
+
   private initControlls() {
     canvas.addEventListener("mousedown", (e) => {
       if (
@@ -612,7 +618,7 @@ export class ComputeApplication extends ComputeGLApplication {
         )
       ) {
         this.mouseDragging = true;
-        this.lastMouseMove = vec2.fromValues(e.x, e.y);
+        this.lastMouseMove = this.toCanvasCoordinates(e.x, e.y);
         if (this.selectedPerson != null) {
           this.grabbedPerson = this.selectedPerson;
           this.grabPoint = null;
@@ -621,7 +627,7 @@ export class ComputeApplication extends ComputeGLApplication {
       }
     });
 
-    canvas.addEventListener("mouseup", (e) => {
+    canvas.addEventListener("mouseup", () => {
       this.mouseDragging = false;
       canvas.style.cursor = "";
       this.tooltip.style.visibility = "hidden";
@@ -634,7 +640,7 @@ export class ComputeApplication extends ComputeGLApplication {
           AppSettings.mode
         )
       ) {
-        const pos = vec2.fromValues(e.x, e.y);
+        const pos = this.toCanvasCoordinates(e.x, e.y);
         const delta = vec2.sub(vec2.create(), pos, this.lastMouseMove);
         this.lastMouseMove = pos;
 
@@ -670,17 +676,14 @@ export class ComputeApplication extends ComputeGLApplication {
 
         if (this.mouseDragging && this.grabbedPerson != null) {
           this.grabPoint = this.getGrabPoint(
-            this.getRay(e.x, e.y),
+            this.getRay(pos),
             this.graphData.getValue(this.grabbedPerson)
           );
           this.tooltip.style.visibility = "hidden";
         }
 
         if (!this.mouseDragging && this.graphRenderer) {
-          this.selectedPerson = this.graphRenderer.getPersonAt(
-            e.x,
-            canvas.height - e.y
-          );
+          this.selectedPerson = this.graphRenderer.getPersonAt(pos[0], canvas.height - pos[1]);
           this.graphRenderer.setSelectedPerson(this.selectedPerson);
           if (this.selectedPerson != null && this.selectedPerson >= 0) {
             canvas.style.cursor = "grab";
@@ -764,10 +767,10 @@ export class ComputeApplication extends ComputeGLApplication {
     return vec2.fromValues(worldPoint[0], worldPoint[2]);
   }
 
-  private getRay(screenX: number, screenY: number): vec3 {
+  private getRay(screenPos: vec2): vec3 {
     // To NDC space
-    const normX = (screenX * 2) / canvas.width - 1;
-    const normY = ((canvas.height - screenY) * 2) / canvas.height - 1;
+    const normX = (screenPos[0] * 2) / canvas.width - 1;
+    const normY = ((canvas.height - screenPos[1]) * 2) / canvas.height - 1;
     const clipCoords = vec4.fromValues(normX, normY, -1, 1);
 
     // To view space

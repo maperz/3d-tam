@@ -14,7 +14,6 @@ uniform int u_invertColorRamp;
 uniform sampler2D u_colorRamp;
 uniform int u_useLights;
 uniform int u_useSmoothRamp;
-uniform int u_showSegmentLines;
 uniform int u_numSegments;
 
 uniform int u_renderHeightValues;
@@ -43,14 +42,6 @@ void main() {
 
     vec3 diffuseColor = texture(u_colorRamp, vec2(rampUV, 0)).xyz;
 
-
-    if(u_showSegmentLines > 0 && u_numSegments > 1)
-    {
-        float valuePercent = v_pixelvalue * 100.0f;
-        if(abs(mod(valuePercent, 100.0 / float(u_numSegments))) < 0.08) {
-            diffuseColor *= 0.8f;
-        }
-    }
 
     if (u_useLights == 0) {
         color = vec4(diffuseColor, 1);

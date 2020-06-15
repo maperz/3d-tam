@@ -2,28 +2,24 @@ import { GUI } from "dat.gui";
 import { AppSettings, RenderMode, ColorRamps } from "./AppSettings";
 
 export class AppGUI {
+  colorRampChanged: Function;
+  resetUserScaling: Function;
+
   init(
     restartCallback: Function,
     inputLoadedCallback: Function,
     colorRampChanged: Function,
     resetUserScaling: Function
   ) {
-    const gui: GUI = new GUI({ width: 300 });
+    this.colorRampChanged = colorRampChanged;
+    this.resetUserScaling = resetUserScaling;
+
+    const gui: GUI = new GUI({ width: 320, closeOnTop: true });
+    gui.domElement.id = "dat-gui";
     gui.domElement.style.zIndex = "1000";
     gui.useLocalStorage = true;
     gui.remember(AppSettings);
-    gui
-      .add(AppSettings, "mode", [
-        RenderMode.All,
-        RenderMode.Constraint,
-        RenderMode.Push,
-        RenderMode.Pull,
-        RenderMode.Density,
-        RenderMode.Scene3D,
-        RenderMode.Scene3DFlat,
-        RenderMode.FDGDebug,
-      ])
-      .name("Render Mode");
+
     gui
       .add(AppSettings, "resolution", 1024, 4096)
       .name("Resolution")
@@ -40,24 +36,133 @@ export class AppGUI {
       .name("Update Graph")
       .setValue(true);
 
-    gui.add(AppSettings, "dilateRadius", 1, 100, 1).name("Dilate Radius");
+    gui.add(AppSettings, "numUpdates", 0, 300, 1).name("Number of updates");
 
-    gui.add(AppSettings, "smoothPullStep").name("Smooth Pull");
+    const layoutGUI = gui.addFolder("Layout");
+    this.initLayoutSettings(layoutGUI);
 
-    const resetScalingObject = {
-      Reset: () => {
-        resetUserScaling();
+    const meshGUI = gui.addFolder("Mesh Settings");
+    this.initMeshSettings(meshGUI);
+
+    const gradientGUI = gui.addFolder("Gradient Settings");
+    this.initGradientSettings(gradientGUI);
+
+    const displayGUI = gui.addFolder("Display Settings");
+    this.initDisplaySettings(displayGUI);
+
+    const debugGUI = gui.addFolder("Debug Settings");
+    this.initDebugSettings(debugGUI);
+
+    const fileLoader = {
+      loadFile: () => {
+        document.getElementById("upload").click();
       },
     };
-    gui.add(resetScalingObject, "Reset").name("Reset Scaling");
 
-    const heightMapSettings = gui.addFolder("HeightMap Settings");
-    heightMapSettings
-      .add(AppSettings, "heightMapFactor", 0, 5, 0.2)
-      .name("Height");
-    heightMapSettings
+    function readSingleFile(e) {
+      const file = e.target.files[0];
+      if (!file) {
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const contents = String(reader.result);
+        inputLoadedCallback(contents);
+      };
+      reader.readAsText(file);
+    }
+
+    gui.add(fileLoader, "loadFile").name("Load GED file");
+
+    const restartObject = {
+      Restart: () => {
+        restartCallback();
+      },
+    };
+    gui.add(restartObject, "Restart");
+
+    document
+      .getElementById("upload")
+      .addEventListener("change", readSingleFile, false);
+  }
+
+  initGradientSettings(settings: GUI) {
+    settings.add(AppSettings, "dilateRadius", 1, 100, 1).name("Dilate Radius");
+    settings.add(AppSettings, "smoothPullStep").name("Smooth Pull");
+
+    settings.add(AppSettings, "numSegments", 0, 100, 1).name("Num Segments");
+
+    settings.add(AppSettings, "smoothRamp").name("Smooth Segment Colors");
+
+    settings
+      .add(AppSettings, "colorRamp", ColorRamps)
+      .onChange(
+        function(url) {
+          this.colorRampChanged(`images/${url}`);
+        }.bind(this)
+      )
+      .name("Color Ramp");
+
+    let loadColorRamp = function(e) {
+      if (e.target.files && e.target.files[0]) {
+        this.colorRampChanged(URL.createObjectURL(e.target.files[0]));
+      }
+    }.bind(this);
+
+    document
+      .getElementById("color-ramp-upload")
+      .addEventListener("change", loadColorRamp, false);
+    settings.add(AppSettings, "invertColorRamp").name("Invert Ramp");
+
+    const colorRampLoader = {
+      loadColorRamp: () => {
+        document.getElementById("color-ramp-upload").click();
+      },
+    };
+    settings.add(colorRampLoader, "loadColorRamp").name("Load ColorRamp");
+  }
+
+  initDisplaySettings(display: GUI) {
+    display.add(AppSettings, "useLights").name("Use Lights");
+    display.add(AppSettings, "renderGraph").name("Render Graph");
+    display.add(AppSettings, "personSize", 0, 3, 0.1).name("Person Size");
+    display.add(AppSettings, "connectionSize", 0, 5, 1).name("Connection Size");
+    display.add(AppSettings, "showNames").name("Display Names");
+    display.add(AppSettings, "enableGraphDepthTest").name("Graph DepthTest");
+  }
+
+  initLayoutSettings(layout: GUI) {
+    layout.add(AppSettings, "attractionLength", 0.1).name("Attraction Length");
+    layout
+      .add(AppSettings, "repulsionStrength", 0, 100)
+      .name("Repulsion Strength");
+
+    layout
+      .add(AppSettings, "constrainToFamily")
+      .name("Enable Family Constraints");
+
+    layout
+      .add(AppSettings, "famDistanceFactor", 1)
+      .name("Family distance Fac.");
+    layout.add(AppSettings, "velocityDecay", 0, 1, 0.05).name("VelocityDecay");
+
+    layout
+      .add(AppSettings, "constraintToBoundary")
+      .name("Constaint to Boundary");
+
+    const resetScalingObject = {
+      Reset: function() {
+        this.resetUserScaling();
+      }.bind(this),
+    };
+    layout.add(resetScalingObject, "Reset").name("Reset Scaling");
+  }
+
+  initMeshSettings(mesh: GUI) {
+    mesh.add(AppSettings, "heightMapFactor", 0, 5, 0.2).name("Height");
+    mesh
       .add(AppSettings, "heightMapResolution", 128, 2048)
-      .name("Resolution (3D Map)")
+      .name("Mesh Tiles")
       .onChange((value) => {
         const log = Math.log2(value);
         if (!Number.isInteger(log)) {
@@ -65,9 +170,22 @@ export class AppGUI {
           AppSettings.heightMapResolution = Math.pow(2, Math.ceil(log));
         }
       });
+  }
 
-    const iterationSettings = gui.addFolder("Display Settings");
-    iterationSettings
+  initDebugSettings(debug: GUI) {
+    debug
+      .add(AppSettings, "mode", [
+        RenderMode.All,
+        RenderMode.Constraint,
+        RenderMode.Push,
+        RenderMode.Pull,
+        RenderMode.Density,
+        RenderMode.Scene3D,
+        RenderMode.Scene3DFlat,
+        RenderMode.FDGDebug,
+      ])
+      .name("Render Mode");
+    debug
       .add(AppSettings, "pushIteration", [
         1,
         2,
@@ -91,7 +209,7 @@ export class AppGUI {
           value
         );
       });
-    iterationSettings
+    debug
       .add(AppSettings, "pullIteration", [
         1,
         2,
@@ -115,7 +233,7 @@ export class AppGUI {
           value
         );
       });
-    iterationSettings
+    debug
       .add(AppSettings, "densityIteration", [
         0,
         1,
@@ -140,109 +258,7 @@ export class AppGUI {
           value
         );
       });
-    iterationSettings.add(AppSettings, "showBoundaryBox").name("Show Boundary");
-    iterationSettings
-      .add(AppSettings, "constraintToBoundary")
-      .name("Constaint Boundary");
-
-    const fdgSettings = gui.addFolder("FDG Settings");
-    fdgSettings
-      .add(AppSettings, "attractionLength", 0.1)
-      .name("Attraction Length");
-    fdgSettings
-      .add(AppSettings, "repulsionStrength", 0, 100)
-      .name("Repulsion Strength");
-
-    fdgSettings
-      .add(AppSettings, "constrainToFamily")
-      .name("Enable Family Constraints");
-
-    fdgSettings
-      .add(AppSettings, "famDistanceFactor", 1)
-      .name("Fam Distance Factor");
-    fdgSettings
-      .add(AppSettings, "velocityDecay", 0, 1, 0.05)
-      .name("VelocityDecay");
-
-    //fdgSettings.add(AppSettings, "gravity_x", 0, 10, 0.01).name("GravityX");
-    //fdgSettings.add(AppSettings, "gravity_y", 0, 10, 0.01).name("GravityY");
-    fdgSettings
-      .add(AppSettings, "numUpdates", 0, 300, 1)
-      .name("Number of updates");
-
-
-    const fileLoader = {
-      loadFile: () => {
-        document.getElementById("upload").click();
-      },
-    };
-
-    const colorRampLoader = {
-      loadColorRamp: () => {
-        document.getElementById("color-ramp-upload").click();
-      },
-    };
-
-    function readSingleFile(e) {
-      const file = e.target.files[0];
-      if (!file) {
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const contents = String(reader.result);
-        inputLoadedCallback(contents);
-      };
-      reader.readAsText(file);
-    }
-
-    const renderFolder = gui.addFolder("Render Settings");
-    renderFolder.add(AppSettings, "useLights").name("Use Lights");
-    renderFolder.add(AppSettings, "wireframe").name("Show Wireframe");
-    renderFolder.add(AppSettings, "renderGraph").name("Render Graph");
-    renderFolder.add(AppSettings, "personSize", 0, 3, 0.1).name("Person Size");
-    renderFolder
-      .add(AppSettings, "connectionSize", 0, 5, 1)
-      .name("Connection Size");
-
-    renderFolder
-      .add(AppSettings, "colorRamp", ColorRamps)
-      .onChange((url) => {
-        colorRampChanged(`images/${url}`);
-      })
-      .name("Color Ramp");
-
-    renderFolder.add(AppSettings, "invertColorRamp").name("Invert Ramp");
-    renderFolder.add(AppSettings, "numSegments", 0, 100, 1).name("Num Segments");
-    renderFolder.add(AppSettings, "showSegmentLines").name("Show Segments");
-    renderFolder.add(AppSettings, "showNames").name("Display Names");
-
-    function loadColorRamp(e) {
-      if (e.target.files && e.target.files[0]) {
-        var img = document.querySelector("img");
-        colorRampChanged(URL.createObjectURL(this.files[0]));
-      }
-    }
-    renderFolder.add(AppSettings, "smoothRamp").name("Smooth Segment Colors");
-    renderFolder.add(AppSettings, "enableGraphDepthTest").name("Graph DepthTest");
-
-    renderFolder.add(colorRampLoader, "loadColorRamp").name("Load ColorRamp");
-
-    gui.add(fileLoader, "loadFile").name("Load GED file");
-
-    const restartObject = {
-      Restart: () => {
-        restartCallback();
-      },
-    };
-    gui.add(restartObject, "Restart");
-
-    document
-      .getElementById("upload")
-      .addEventListener("change", readSingleFile, false);
-
-    document
-      .getElementById("color-ramp-upload")
-      .addEventListener("change", loadColorRamp, false);
+    debug.add(AppSettings, "showBoundaryBox").name("Show Boundary");
+    debug.add(AppSettings, "wireframe").name("Show Wireframe");
   }
 }

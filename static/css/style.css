@@ -11,6 +11,7 @@ body {
   color: white;
   font-family: Helvetica, Arial, sans-serif;
   font-size: 14px;
+  font-weight: 600;
   z-index: 0;
   background-color: black;
   padding: 8px;
@@ -18,6 +19,7 @@ body {
 }
 
 #recorder-controls {
+  font-family: Arial, Helvetica, sans-serif;
   color: white;
   vertical-align: middle;
   display: inline;
@@ -64,7 +66,7 @@ body {
 
 #app-bar {
   height: 60px;
-  background-color: #0E0E0E;
+  background-color: #0e0e0e;
   overflow: hidden;
   user-select: none;
 }
@@ -82,4 +84,11 @@ body {
   float: left;
   margin: 12px 20px;
   width: 50px;
+}
+
+#dat-gui {
+  position: absolute;
+  top: 60px;
+  right: -10px;
+  overflow-x: hidden;
 }

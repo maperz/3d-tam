@@ -56,5 +56,4 @@ export const AppSettings = {
     numSegments: 50,
     enableGraphDepthTest: true,
     showNames: false,
-    showSegmentLines: false,
 };
