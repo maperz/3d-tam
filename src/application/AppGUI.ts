@@ -5,6 +5,8 @@ export class AppGUI {
   colorRampChanged: Function;
   resetUserScaling: Function;
 
+  private gui: GUI;
+
   init(
     restartCallback: Function,
     inputLoadedCallback: Function,
@@ -84,6 +86,8 @@ export class AppGUI {
     document
       .getElementById("upload")
       .addEventListener("change", readSingleFile, false);
+
+    this.gui = gui;
   }
 
   initGradientSettings(settings: GUI) {
@@ -260,5 +264,9 @@ export class AppGUI {
       });
     debug.add(AppSettings, "showBoundaryBox").name("Show Boundary");
     debug.add(AppSettings, "wireframe").name("Show Wireframe");
+  }
+
+  notifyChange() {
+    this.gui.updateDisplay();
   }
 }

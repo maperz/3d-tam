@@ -48,6 +48,9 @@ void main() {
         return;
     }
 
+    // Phong shader source adapted from 
+    // http://www.cs.toronto.edu/~jacobson/phong-demo/
+    
     vec3 N = normalize(v_normal);
     vec3 L = normalize(lightPos - v_position);
     float lightFactor = max(dot(N, L), 0.0);
@@ -65,6 +68,4 @@ void main() {
     color = vec4(Ka * ambientColor +
                       Kd * lightFactor * diffuseColor +
                       Ks * specular * specularColor, 1.0);
-
-
 }

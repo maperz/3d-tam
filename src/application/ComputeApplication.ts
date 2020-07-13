@@ -611,6 +611,14 @@ export class ComputeApplication extends ComputeGLApplication {
   }
 
   private initControlls() {
+    document.addEventListener("keydown", (e: KeyboardEvent) => {
+      // Check if space bar is pressed
+      if (e.keyCode == 32) {
+        AppSettings.updateGraph = !AppSettings.updateGraph;
+        this.gui.notifyChange();
+      }
+    });
+
     canvas.addEventListener("mousedown", (e) => {
       if (
         [RenderMode.Scene3D, RenderMode.Scene3DFlat, RenderMode.All].includes(
@@ -683,7 +691,10 @@ export class ComputeApplication extends ComputeGLApplication {
         }
 
         if (!this.mouseDragging && this.graphRenderer) {
-          this.selectedPerson = this.graphRenderer.getPersonAt(pos[0], canvas.height - pos[1]);
+          this.selectedPerson = this.graphRenderer.getPersonAt(
+            pos[0],
+            canvas.height - pos[1]
+          );
           this.graphRenderer.setSelectedPerson(this.selectedPerson);
           if (this.selectedPerson != null && this.selectedPerson >= 0) {
             canvas.style.cursor = "grab";
