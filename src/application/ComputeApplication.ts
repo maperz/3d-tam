@@ -83,6 +83,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
   private canvas2d: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  private firstCycle = true;
 
   gui: AppGUI = null;
 
@@ -229,6 +230,8 @@ export class ComputeApplication extends ComputeGLApplication {
     this.frameBuffer = gl.createFramebuffer();
 
     this.initialized = true;
+    this.firstCycle = true;
+
     Profiler.stopSession();
   }
 
@@ -427,9 +430,14 @@ export class ComputeApplication extends ComputeGLApplication {
       ? AppSettings.numUpdates
       : 0;
 
-    if (numSimulationTicks == 0 && this.grabbedPerson != null) {
+    if (
+      numSimulationTicks == 0 &&
+      (this.grabbedPerson != null || this.firstCycle)
+    ) {
       numSimulationTicks = 1;
     }
+
+    this.firstCycle = false;
 
     if (numSimulationTicks > 0) {
       for (let i = 0; i < numSimulationTicks; i++) {
@@ -679,6 +687,22 @@ export class ComputeApplication extends ComputeGLApplication {
             90
           );
           this.modelRotationY += delta[0];
+
+          if (this.modelRotationY < 0) {
+            this.modelRotationY += 360;
+          }
+
+          if (this.modelRotationY >= 360) {
+            this.modelRotationY -= 360;
+          }
+
+          // Snap to 90 degree angles
+          this.modelRotationY = this.snapToValues(
+            this.modelRotationY,
+            [0, 90, 180, 270, 360],
+            1
+          );
+
           this.recalculateModelMat();
         }
 
@@ -847,6 +871,15 @@ export class ComputeApplication extends ComputeGLApplication {
     this.ctx.beginPath();
     this.ctx.rect(20 + scopeX, 50 + scopeY, scopeW, scopeH);
     this.ctx.stroke();
+  }
+
+  private snapToValues(x: number, values: number[], delta: number) {
+    for (let value of values) {
+      if (Math.abs(x - value) <= delta) {
+        return value;
+      }
+    }
+    return x;
   }
 
   drawOverlay() {
