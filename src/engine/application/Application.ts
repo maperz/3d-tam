@@ -1,5 +1,3 @@
-import {setupCanvas2DContext, setupWebGL2Context} from '../Context';
-
 /**
  * Runnable application that initialises the GL context
  * and keeps running in a loop.

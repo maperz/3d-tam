@@ -13,6 +13,7 @@ class NodeObject {
   public link: NodeObject;
   public gedId: string;
   public name: string;
+  public randomizedName: string;
 
   constructor(public id: number, person: Person, family: Family) {
     TPAssert(person == null || family == null, "Cannot be both.");
@@ -22,27 +23,24 @@ class NodeObject {
       this.birthday = person.getBirthDate();
       this.gedId = person.getId();
       this.name = person.getFullName();
+      this.randomizedName = person.getRandomizedName();
     } else {
       let name = "N/A";
-      
+
       if (family.husband != null) {
         name = family.husband.getSurname();
-      }
-      else if (family.wife != null) {
+      } else if (family.wife != null) {
         name = family.wife.getSurname();
-      } 
+      }
 
       this.name = `Family - ${name}`;
       this.isFamily = true;
       this.gedId = family.getId();
+      this.randomizedName = `Family - ${id}`;
 
-      let persons = family.children.filter(
-        (p) => p != null
-      );
+      let persons = family.children.filter((p) => p != null);
       if (family.children.length == 0) {
-        persons = [family.wife, family.husband].filter(
-          (p) => p != null
-        );
+        persons = [family.wife, family.husband].filter((p) => p != null);
       }
       const bdays = persons.map((p) => p.getBirthDate());
       const bdaysNumber = bdays
@@ -80,7 +78,10 @@ export class FamilyGraphData {
 
     if (this.nodes.length > 0) {
       Profiler.evaluate("Calculate Values", this.calculateValues.bind(this));
-      Profiler.evaluate("Calculate Connections", this.calculateConnections.bind(this));
+      Profiler.evaluate(
+        "Calculate Connections",
+        this.calculateConnections.bind(this)
+      );
     }
   }
 
@@ -141,7 +142,6 @@ export class FamilyGraphData {
   }
 
   private calculateConnections() {
-
     for (let [famId, family] of this.graph.families) {
       const familyNode = this.getFamNode(famId);
       if (family.wife) {
@@ -178,8 +178,8 @@ export class FamilyGraphData {
     return this.nodes[id].value;
   }
 
-  getName(id: number): string {
-    return this.nodes[id].name;
+  getName(id: number, randomized: boolean): string {
+    return randomized ? this.nodes[id].randomizedName : this.nodes[id].name;
   }
 
   getFamily(id: number): number {
@@ -190,7 +190,7 @@ export class FamilyGraphData {
     return family.id;
   }
 
-  getDistanceToFamily(id: number) : number {
+  getDistanceToFamily(id: number): number {
     const family = this.nodes[id].link;
     if (family == null) {
       return -1;
@@ -198,9 +198,9 @@ export class FamilyGraphData {
 
     const ownDate = this.nodes[id].birthday.getFullYear();
     const familyDate = family.birthday.getFullYear();
-    return (ownDate - familyDate) + 1;
+    return ownDate - familyDate + 1;
   }
- 
+
   getType(id: number): number {
     return this.nodes[id].isFamily ? 1 : 0;
   }

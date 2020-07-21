@@ -68,15 +68,15 @@ void main() {
             continue;
         }
         vec2 other_pos = positions.data[index];
-        vec2 vec = other_pos - position;
+        vec2 vec = position - other_pos;
 
         if (vec == vec2(0.0)) { vec = random_jiggle(position - vec2(id)); }
 
         float l = length(vec);
 
-        float strength = -u_repulsionStrength;
+        float strength = u_repulsionStrength;
 
-        vec2 f = normalize(vec) * strength / l;
+        vec2 f = normalize(vec) * strength / (l * l);
         force += f;
     }
     repulsion.forces[id] = force;

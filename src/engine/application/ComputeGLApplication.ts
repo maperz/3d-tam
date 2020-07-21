@@ -1,4 +1,4 @@
-import {setupComputeGLContext, setupWebGL2Context} from '../Context';
+import {setupComputeGLContext} from '../Context';
 import {Application} from './Application';
 
 export abstract class ComputeGLApplication extends Application {

@@ -144,7 +144,8 @@ export class ComputeApplication extends ComputeGLApplication {
       this.initApp.bind(this),
       this.onInputChanged.bind(this),
       this.onColorRampChanged.bind(this),
-      this.resetUserScaling.bind(this)
+      this.resetUserScaling.bind(this),
+      this.generateInput.bind(this)
     );
 
     this.initControlls();
@@ -166,6 +167,17 @@ export class ComputeApplication extends ComputeGLApplication {
     this.familyGraph = new FamilyGraph();
     this.familyGraph.loadGedcom(input);
     this.familyGraph.estimateMissingDates(20);
+    Profiler.startSession("Family Graph Data");
+    this.graphData = new FamilyGraphData(this.familyGraph);
+    Profiler.stopSession();
+
+    console.log(`Loaded GraphData with ${this.graphData.getCount()} entries.`);
+    this.initApp();
+  }
+
+  generateInput() {
+    this.familyGraph = new FamilyGraph();
+    this.familyGraph.generate(4, 4);
     Profiler.startSession("Family Graph Data");
     this.graphData = new FamilyGraphData(this.familyGraph);
     Profiler.stopSession();
@@ -373,11 +385,6 @@ export class ComputeApplication extends ComputeGLApplication {
       gl.NEAREST
     );
 
-    // Log density
-    if (false) {
-      const pixels = new Float32Array(w * h);
-      gl.readPixels(0, 0, w, h, gl.RED, gl.FLOAT, pixels);
-    }
   }
 
   render3d(
@@ -476,7 +483,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     this.worldScaling = mat4.fromScaling(mat4.create(), [
       this.heightmapModelWidth / this.WIDTH,
-      AppSettings.heightMapFactor,
+      Math.max(AppSettings.heightMapFactor, 0.00000001),
       this.heightmapModelHeight / this.HEIGHT,
     ]);
 
@@ -722,7 +729,10 @@ export class ComputeApplication extends ComputeGLApplication {
           this.graphRenderer.setSelectedPerson(this.selectedPerson);
           if (this.selectedPerson != null && this.selectedPerson >= 0) {
             canvas.style.cursor = "grab";
-            const name = this.graphData.getName(this.selectedPerson);
+            const name = this.graphData.getName(
+              this.selectedPerson,
+              AppSettings.obfuscateNames
+            );
             const date = this.graphData
               .getDate(this.selectedPerson)
               .getFullYear();
@@ -797,6 +807,7 @@ export class ComputeApplication extends ComputeGLApplication {
 
     let graphScaling = mat4.mul(mat4.create(), this.worldScaling, this.area);
     const inverse = mat4.invert(mat4.create(), graphScaling);
+
     vec3.transformMat4(worldPoint, worldPoint, inverse);
 
     return vec2.fromValues(worldPoint[0], worldPoint[2]);
@@ -899,7 +910,9 @@ export class ComputeApplication extends ComputeGLApplication {
         }
 
         if (this.graphData.getType(id) == 0) {
-          const name = this.graphData.getName(id).split(" ")[0];
+          const name = this.graphData
+            .getName(id, AppSettings.obfuscateNames)
+            .split(" ")[0];
           this.ctx.fillText(name, x + 5, y + 3);
         } else {
           /*

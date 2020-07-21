@@ -42,6 +42,8 @@ export const AppSettings = {
   // FDG
   attractionLength: 30,
   repulsionStrength: 30,
+  attractionStrength: 30,
+  
   gravity_x: 0,
   gravity_y: 0,
 
@@ -60,4 +62,5 @@ export const AppSettings = {
   numSegments: 50,
   enableGraphDepthTest: true,
   showNames: false,
+  obfuscateNames: false,
 };

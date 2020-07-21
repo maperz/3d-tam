@@ -4,6 +4,7 @@ import { AppSettings, RenderMode, ColorRamps } from "./AppSettings";
 export class AppGUI {
   colorRampChanged: Function;
   resetUserScaling: Function;
+  generateInput: Function;
 
   private gui: GUI;
 
@@ -11,10 +12,12 @@ export class AppGUI {
     restartCallback: Function,
     inputLoadedCallback: Function,
     colorRampChanged: Function,
-    resetUserScaling: Function
+    resetUserScaling: Function,
+    generateInput: Function,
   ) {
     this.colorRampChanged = colorRampChanged;
     this.resetUserScaling = resetUserScaling;
+    this.generateInput = generateInput;
 
     const gui: GUI = new GUI({ width: 320, closeOnTop: true });
     gui.domElement.id = "dat-gui";
@@ -137,6 +140,12 @@ export class AppGUI {
 
   initLayoutSettings(layout: GUI) {
     layout.add(AppSettings, "attractionLength", 0.1).name("Attraction Length");
+
+    /*layout
+      .add(AppSettings, "attractionStrength", 0, 100)
+      .name("Attraction Strength");
+    */
+
     layout
       .add(AppSettings, "repulsionStrength", 0, 100)
       .name("Repulsion Strength");
@@ -264,6 +273,14 @@ export class AppGUI {
       });
     debug.add(AppSettings, "showBoundaryBox").name("Show Boundary");
     debug.add(AppSettings, "wireframe").name("Show Wireframe");
+    debug.add(AppSettings, "obfuscateNames").name("Obfuscate Names");
+
+    const generateInputObject = {
+      Generate: function() {
+        this.generateInput();
+      }.bind(this),
+    };
+    debug.add(generateInputObject, "Generate").name("Generate Input");
   }
 
   notifyChange() {

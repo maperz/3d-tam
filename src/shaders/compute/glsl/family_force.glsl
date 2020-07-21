@@ -18,7 +18,6 @@ void main() {
         return;
     }
 
-
     uint familyInfoIndex = id * 2u;
     int famId = int(familyInfo.data[familyInfoIndex]);
     float famDistance = familyInfo.data[familyInfoIndex + 1u] * u_famDistanceFactor;
