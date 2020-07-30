@@ -33,6 +33,8 @@ export const AppSettings = {
   numUpdates: 1,
   dilateRadius: 2,
 
+
+  maxRepulsionCalculation: 600,
   smoothPullStep: true,
 
   // Heightmap

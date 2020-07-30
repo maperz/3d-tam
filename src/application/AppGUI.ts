@@ -159,6 +159,8 @@ export class AppGUI {
       .name("Family distance Fac.");
     layout.add(AppSettings, "velocityDecay", 0, 1, 0.05).name("VelocityDecay");
 
+    layout.add(AppSettings, "maxRepulsionCalculation", 0, 50000, 600).name("Max Repulsions");
+
     layout
       .add(AppSettings, "constraintToBoundary")
       .name("Constaint to Boundary");
