@@ -3,6 +3,8 @@
 #define WORKGROUP_SIZE 16
 #define MAX_PYRAMID_SIZE 16
 
+#define MIN_L 1.0
+
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 
@@ -73,6 +75,7 @@ void main() {
         if (vec == vec2(0.0)) { vec = random_jiggle(position - vec2(id)); }
 
         float l = length(vec);
+        if (l < MIN_L) { l = MIN_L; }
 
         float strength = u_repulsionStrength;
 

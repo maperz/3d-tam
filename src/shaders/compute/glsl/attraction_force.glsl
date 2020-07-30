@@ -54,6 +54,8 @@ void main() {
         vec2 dir = neighbour_pos - position;
         if (dir == vec2(0.0)) { dir = random_jiggle(position - vec2(id)); }
         float l = length(dir);
+
+
         l = (l - targetDistance) / l * strength;
         dir *= l;
         // count[link.source.index] / (count[link.source.index] + count[link.target.index])
