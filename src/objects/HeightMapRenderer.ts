@@ -25,7 +25,6 @@ export class HeightMapRenderer {
 
   private useLightsLoc: WebGLUniformLocation;
 
-
   private numSegmentsLoc: WebGLUniformLocation;
   private smoothRampLoc: WebGLUniformLocation;
 
@@ -138,14 +137,18 @@ export class HeightMapRenderer {
     useLights: boolean = false,
     wireframe: boolean = false
   ) {
-
     TPAssert(
       this.shader != null,
       "Shader == null! Forgot to init HeightMapRenderer?"
     );
 
     if (heightMapTexture) {
-      this.normalsCalculator.calculateNormals(heightMapTexture, height);      
+      this.normalsCalculator.calculateNormals(heightMapTexture, height);
+      if (AppSettings.noPostProcessing) {
+        this.drawMap(heightMapTexture, height, mvp, false, wireframe, true);
+        return;
+      }
+
       this.postProcessor.startHeightRendering();
       this.drawMap(heightMapTexture, height, mvp, false, wireframe, true);
       this.postProcessor.startColorRendering();
@@ -168,9 +171,10 @@ export class HeightMapRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.colorRampTexture);
 
     gl.uniform1i(this.shader.getUniformLocation("u_colorRamp"), 0);
-    gl.uniform1i(this.shader.getUniformLocation(
-      "u_invertColorRamp"
-    ), AppSettings.invertColorRamp ? 1 : 0);
+    gl.uniform1i(
+      this.shader.getUniformLocation("u_invertColorRamp"),
+      AppSettings.invertColorRamp ? 1 : 0
+    );
     gl.uniform1i(this.smoothRampLoc, AppSettings.smoothRamp ? 1 : 0);
 
     gl.uniform1i(this.numSegmentsLoc, AppSettings.numSegments);

@@ -65,4 +65,5 @@ export const AppSettings = {
   enableGraphDepthTest: true,
   showNames: false,
   obfuscateNames: false,
+  noPostProcessing: false,
 };

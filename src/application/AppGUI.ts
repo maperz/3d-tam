@@ -275,6 +275,7 @@ export class AppGUI {
       });
     debug.add(AppSettings, "showBoundaryBox").name("Show Boundary");
     debug.add(AppSettings, "wireframe").name("Show Wireframe");
+    debug.add(AppSettings, "noPostProcessing").name("No postprocessing");
     debug.add(AppSettings, "obfuscateNames").name("Obfuscate Names");
 
     const generateInputObject = {
